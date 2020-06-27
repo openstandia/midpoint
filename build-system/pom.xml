@@ -16,7 +16,7 @@
     <parent>
         <groupId>com.evolveum.midpoint</groupId>
         <artifactId>midpoint</artifactId>
-        <version>4.0.3-SNAPSHOT</version>
+        <version>4.0.3.pre1</version>
     </parent>
     <pluginRepositories>
         <pluginRepository>
@@ -1423,10 +1423,15 @@
     </licenses>
 
     <distributionManagement>
+      <!-- <repository>                                                                 -->
+      <!--   <id>evolveum-nexus</id>                                                    -->
+      <!--   <name>Internal Releases</name>                                             -->
+      <!--   <url>https://nexus.evolveum.com/nexus/content/repositories/releases/</url> -->
+      <!-- </repository>                                                                -->
       <repository>
-        <id>evolveum-nexus</id>
-        <name>Internal Releases</name>
-        <url>https://nexus.evolveum.com/nexus/content/repositories/releases/</url>
+        <id>aslead-id-hosted</id>
+        <name>aslead ID Repository</name>
+        <url>https://dev.aslead.cloud/nexus/repository/aslead-id-hosted/</url>
       </repository>
       <snapshotRepository>
         <id>evolveum-nexus</id>

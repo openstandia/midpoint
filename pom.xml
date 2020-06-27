@@ -12,7 +12,7 @@
     <name>midPoint Project</name>
     <groupId>com.evolveum.midpoint</groupId>
     <artifactId>midpoint</artifactId>
-    <version>4.0.3-SNAPSHOT</version>
+    <version>4.0.3.pre1</version>
     <packaging>pom</packaging>
     <description>Utility module to compile all of the maven based midPoint projects.</description>
     <organization>
@@ -28,10 +28,15 @@
     </licenses>
 
     <distributionManagement>
+        <!-- <repository>                                                                   -->
+        <!--     <id>evolveum-nexus</id>                                                    -->
+        <!--     <name>Internal Releases</name>                                             -->
+        <!--     <url>https://nexus.evolveum.com/nexus/content/repositories/releases/</url> -->
+        <!-- </repository>                                                                  -->
         <repository>
-            <id>evolveum-nexus</id>
-            <name>Internal Releases</name>
-            <url>https://nexus.evolveum.com/nexus/content/repositories/releases/</url>
+            <id>aslead-id-hosted</id>
+            <name>aslead ID Repository</name>
+            <url>https://dev.aslead.cloud/nexus/repository/aslead-id-hosted/</url>
         </repository>
         <snapshotRepository>
             <id>evolveum-nexus</id>
@@ -161,17 +166,17 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <modules>
-        <module>build-tools</module>
+        <!-- <module>build-tools</module> -->
         <module>build-system</module>
-        <module>tools</module>
+        <!-- <module>tools</module> -->
         <module>infra</module>
         <module>repo</module>
         <module>provisioning</module>
         <module>model</module>
-        <module>custom</module>
+        <!-- <module>custom</module> -->
         <module>gui</module>
         <module>icf-connectors</module>
-        <module>testing</module>
+        <!-- <module>testing</module> -->
     </modules>
     <profiles>
         <profile>
