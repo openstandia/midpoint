@@ -26,11 +26,16 @@ public class ExportOptions extends BaseImportExportOptions {
     public static final String P_SPLIT = "-n";
     public static final String P_SPLIT_LONG = "-split";
 
+    public static final String P_REPLACE_OID_MAPPING_FILE_LONG = "--replaceOid";
+
     @Parameter(names = {P_OUTPUT, P_OUTPUT_LONG}, descriptionKey = "export.output")
     private File output;
 
     @Parameter(names = {P_OVERWRITE, P_OVERWRITE_LONG}, descriptionKey = "export.overwrite")
     private boolean overwrite;
+
+    @Parameter(names = { P_REPLACE_OID_MAPPING_FILE_LONG}, descriptionKey = "export.replaceOid")
+    private File replaceOid;
 
 //    @Parameter(names = {P_SPLIT, P_SPLIT_LONG}, descriptionKey = "export.split")
 //    private boolean split;
@@ -43,7 +48,11 @@ public class ExportOptions extends BaseImportExportOptions {
         return overwrite;
     }
 
-//    public boolean isSplit() {
+    public File getReplaceOid() {
+        return replaceOid;
+    }
+
+    //    public boolean isSplit() {
 //        return split;
 //    }
 }
