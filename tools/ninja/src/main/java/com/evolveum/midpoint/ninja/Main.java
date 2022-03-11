@@ -146,7 +146,9 @@ public class Main {
         if (parsedCommand == null) {
             jc.usage();
         } else {
-            jc.usage(parsedCommand);
+            StringBuilder sb = new StringBuilder();
+            jc.getUsageFormatter().usage(parsedCommand, sb);
+            System.out.println(sb.toString());
         }
     }
 }

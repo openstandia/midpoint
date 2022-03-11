@@ -154,6 +154,24 @@
             <name>Evolveum Snapshots</name>
             <url>https://nexus.evolveum.com/nexus/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>jaspersoft-third-party</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/third-party-ce-artifacts/</url>
+        </repository>
+        <repository>
+            <id>jr-ce-releases</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/jr-ce-releases</url>
+        </repository>
+        <repository>
+            <id>jr-snapshots</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/jr-ce-snapshots/</url>
+        </repository>
+        <repository>
+            <!-- We need this for Sleepycat JE -->
+            <id>oracle</id>
+            <name>Oracle</name>
+            <url>https://nexus.evolveum.com/nexus/content/groups/public/</url>
+        </repository> 
     </repositories>
     <properties>
         <!-- Build system options - more options in build-system/pom.xml -->

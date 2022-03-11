@@ -31,6 +31,18 @@
             <name>Evolveum Snapshots</name>
             <url>http://nexus.evolveum.com/nexus/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>jaspersoft-third-party</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/third-party-ce-artifacts/</url>
+        </repository>
+        <repository>
+            <id>jr-ce-releases</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/jr-ce-releases</url>
+        </repository>
+        <repository>
+            <id>jr-snapshots</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/jr-ce-snapshots/</url>
+        </repository>
     </repositories>
 
     <distributionManagement>

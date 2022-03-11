@@ -30,6 +30,7 @@
             </resource>
         </resources>
         <plugins>
+            <!--
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
@@ -45,6 +46,7 @@
                     <offline>true</offline>
                 </configuration>
             </plugin>
+            -->
         </plugins>
     </build>
     <dependencies>

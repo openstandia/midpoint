@@ -12,12 +12,16 @@ import com.evolveum.midpoint.common.configuration.api.MidpointConfiguration;
 import com.evolveum.midpoint.ninja.opts.BaseOptions;
 import com.evolveum.midpoint.ninja.opts.ConnectionOptions;
 import com.evolveum.midpoint.ninja.util.InitializationBeanPostprocessor;
+import com.evolveum.midpoint.ninja.opts.PolyStringNormalizerOptions;
 import com.evolveum.midpoint.ninja.util.Log;
 import com.evolveum.midpoint.ninja.util.NinjaUtils;
 import com.evolveum.midpoint.prism.PrismContext;
 import com.evolveum.midpoint.prism.query.QueryConverter;
 import com.evolveum.midpoint.repo.api.RepositoryService;
 import com.evolveum.midpoint.schema.SchemaHelper;
+import com.evolveum.prism.xml.ns._public.types_3.PolyStringNormalizerConfigurationType;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
@@ -112,6 +116,8 @@ public class NinjaContext {
 
         context = ctx;
 
+        updatePolyStringNormalizationConfiguration(ctx.getBean(PrismContext.class));
+
         return context.getBean(REPOSITORY_SERVICE_BEAN, RepositoryService.class);
     }
 
@@ -139,7 +145,10 @@ public class NinjaContext {
             throw new IllegalStateException("Url is not defined");
         }
 
-        return new RestService(url, username, password);
+        RestService restService = new RestService(url, username, password);
+        updatePolyStringNormalizationConfiguration(restService.getPrismContext());
+
+        return restService;
     }
 
     public JCommander getJc() {
@@ -180,6 +189,44 @@ public class NinjaContext {
         }
 
         return prismContext;
+    }
+
+    private void updatePolyStringNormalizationConfiguration(PrismContext ctx) {
+        if (!shouldUseCustomPolyStringNormalizer()) {
+            return;
+        }
+
+        try {
+            PolyStringNormalizerConfigurationType psnConfiguration = createPolyStringNormalizerConfiguration();
+            ctx.configurePolyStringNormalizer(psnConfiguration);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Couldn't setup custom PolyString normalizer configuration", ex);
+        }
+    }
+
+    private PolyStringNormalizerConfigurationType createPolyStringNormalizerConfiguration() {
+        BaseOptions base = NinjaUtils.getOptions(jc, BaseOptions.class);
+        PolyStringNormalizerOptions opts = base.getPolyStringNormalizerOptions();
+
+        PolyStringNormalizerConfigurationType config = new PolyStringNormalizerConfigurationType();
+        config.setClassName(opts.getPsnClassName());
+        config.setTrim(opts.isPsnTrim());
+        config.setNfkd(opts.isPsnNfkd());
+        config.setTrimWhitespace(opts.isPsnTrimWhitespace());
+        config.setLowercase(opts.isPsnLowercase());
+
+        return config;
+    }
+
+    private boolean shouldUseCustomPolyStringNormalizer() {
+        BaseOptions base = NinjaUtils.getOptions(jc, BaseOptions.class);
+        PolyStringNormalizerOptions opts = base.getPolyStringNormalizerOptions();
+
+        return StringUtils.isNotEmpty(opts.getPsnClassName()) ||
+                opts.isPsnTrim() != null ||
+                opts.isPsnNfkd() != null ||
+                opts.isPsnTrimWhitespace() != null ||
+                opts.isPsnLowercase() != null;
     }
 
     public SchemaHelper getSchemaHelper() {
