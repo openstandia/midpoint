@@ -6,11 +6,18 @@
  */
 package com.evolveum.midpoint.ninja.action.worker;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
 
 import com.evolveum.midpoint.ninja.action.ExportOptions;
+import com.evolveum.midpoint.ninja.impl.Log;
 import com.evolveum.midpoint.ninja.impl.NinjaContext;
 import com.evolveum.midpoint.ninja.util.NinjaUtils;
 import com.evolveum.midpoint.ninja.util.OperationStatus;
@@ -18,6 +25,7 @@ import com.evolveum.midpoint.prism.PrismSerializer;
 import com.evolveum.midpoint.prism.SerializationOptions;
 import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ObjectType;
+import org.apache.commons.io.FileUtils;
 
 /**
  * Created by Viliam Repan (lazyman).
@@ -36,6 +44,8 @@ public class ExportConsumerWorker extends AbstractWriterConsumerWorker<ExportOpt
         serializer = context.getPrismContext()
                 .xmlSerializer()
                 .options(SerializationOptions.createSerializeForExport().skipContainerIds(options.isSkipContainerIds()));
+
+        initReplaceOidMap();
     }
 
     @Override
@@ -46,6 +56,9 @@ public class ExportConsumerWorker extends AbstractWriterConsumerWorker<ExportOpt
     @Override
     protected void write(Writer writer, ObjectType object) throws SchemaException, IOException {
         String xml = serializer.serialize(object.asPrismObject());
+        if (replaceOidMap != null) {
+            xml = replaceOid(replaceOidMap, xml);
+        }
         writer.write(xml);
     }
 

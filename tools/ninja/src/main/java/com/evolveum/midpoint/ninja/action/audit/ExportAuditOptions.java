@@ -28,11 +28,22 @@ public class ExportAuditOptions extends BaseAuditImportExportOptions implements 
     @Parameter(names = { P_OVERWRITE, P_OVERWRITE_LONG }, descriptionKey = "export.overwrite")
     private boolean overwrite;
 
+    @Parameter(names = { P_REPLACE_OID_MAPPING_FILE_LONG}, descriptionKey = "export.replaceOid")
+    private File replaceOid;
+
     public File getOutput() {
         return output;
     }
 
     public boolean isOverwrite() {
         return overwrite;
+    }
+
+    public void setReplaceOid(File replaceOid) {
+        this.replaceOid = replaceOid;
+    }
+
+    public File getReplaceOid() {
+        return replaceOid;
     }
 }

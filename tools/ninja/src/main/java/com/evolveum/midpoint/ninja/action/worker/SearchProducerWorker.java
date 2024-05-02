@@ -20,7 +20,9 @@ import com.evolveum.midpoint.repo.api.RepositoryService;
 import com.evolveum.midpoint.schema.GetOperationOptionsBuilder;
 import com.evolveum.midpoint.schema.ResultHandler;
 import com.evolveum.midpoint.schema.constants.ObjectTypes;
+import com.evolveum.midpoint.schema.util.ExceptionUtil;
 import com.evolveum.midpoint.util.exception.SchemaException;
+import com.evolveum.midpoint.util.exception.SystemException;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ObjectType;
 
 /**
@@ -75,6 +77,9 @@ public class SearchProducerWorker extends BaseWorker<ExportOptions, ObjectType> 
             }
         } catch (SchemaException ex) {
             log.error("Unexpected exception, reason: {}", ex, ex.getMessage());
+        } catch (SystemException ex) {
+            Throwable rootCause = ExceptionUtil.findRootCause(ex);
+            log.error("SystemException while searching \"{}\", reason: {}, rootCause: {}", type.getClassDefinition(), ex.getMessage(), rootCause.getMessage());
         } catch (NinjaException ex) {
             log.error(ex.getMessage(), ex);
         } finally {

@@ -10,9 +10,19 @@ import java.io.File;
 
 public interface BasicExportOptions {
 
+    public static final String P_REPLACE_OID_MAPPING_FILE_LONG = "--replaceOid";
+
     File getOutput();
 
     boolean isOverwrite();
 
     boolean isZip();
+
+    default void setReplaceOid(File replaceOid) {
+        // No op
+    }
+
+    default File getReplaceOid() {
+        return null;
+    }
 }
