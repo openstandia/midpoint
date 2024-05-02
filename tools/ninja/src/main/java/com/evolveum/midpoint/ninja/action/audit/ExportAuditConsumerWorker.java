@@ -41,6 +41,8 @@ public class ExportAuditConsumerWorker
                         //  the names still go only to the comments (ignored by the import, obviously).
                         .serializeReferenceNames(true)
                         .skipContainerIds(true));
+
+        initReplaceOidMap();
     }
 
     @Override
@@ -51,6 +53,9 @@ public class ExportAuditConsumerWorker
     @Override
     protected void write(Writer writer, AuditEventRecordType object) throws SchemaException, IOException {
         String xml = serializer.serialize(object.asPrismContainerValue());
+        if (replaceOidMap != null) {
+            xml = replaceOid(replaceOidMap, xml);
+        }
         writer.write(xml);
     }
 
