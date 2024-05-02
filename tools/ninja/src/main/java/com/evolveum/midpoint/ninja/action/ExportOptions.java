@@ -25,6 +25,7 @@ public class ExportOptions extends BaseImportExportOptions implements BasicExpor
 
     public static final String P_NO_IDS = "-ni";
     public static final String P_NO_IDS_LONG = "--no-container-ids";
+    public static final String P_REPLACE_OID_MAPPING_FILE_LONG = "--replaceOid";
 
     @Parameter(names = { P_OUTPUT, P_OUTPUT_LONG }, descriptionKey = "export.output")
     private File output;
@@ -34,6 +35,9 @@ public class ExportOptions extends BaseImportExportOptions implements BasicExpor
 
     @Parameter(names = { P_NO_IDS, P_NO_IDS_LONG }, descriptionKey = "export.skipids")
     private boolean skipIds;
+
+    @Parameter(names = { P_REPLACE_OID_MAPPING_FILE_LONG}, descriptionKey = "export.replaceOid")
+    private File replaceOid;
 
     @Override
     public File getOutput() {
@@ -62,5 +66,13 @@ public class ExportOptions extends BaseImportExportOptions implements BasicExpor
     public ExportOptions setSkipIds(boolean skipIds) {
         this.skipIds = skipIds;
         return this;
+    }
+
+    public void setReplaceOid(File replaceOid) {
+        this.replaceOid = replaceOid;
+    }
+
+    public File getReplaceOid() {
+        return replaceOid;
     }
 }
