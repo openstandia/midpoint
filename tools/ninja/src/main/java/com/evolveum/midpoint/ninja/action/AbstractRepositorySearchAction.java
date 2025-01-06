@@ -159,6 +159,11 @@ public abstract class AbstractRepositorySearchAction<O extends ExportOptions, R>
         QueryFactory queryFactory = context.getPrismContext().queryFactory();
         List<SearchProducerWorker> shadowProducers = new ArrayList<>();
 
+        if (options.isSearchShadowByResourceDisabled()) {
+            shadowProducers.add(createShadowProducer(queue, operation, producers, filter));
+            return shadowProducers;
+        }
+
         try {
             RepositoryService repository = context.getRepository();
 
