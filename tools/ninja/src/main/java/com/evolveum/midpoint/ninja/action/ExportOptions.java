@@ -26,6 +26,8 @@ public class ExportOptions extends BaseImportExportOptions implements BasicExpor
     public static final String P_NO_IDS = "-ni";
     public static final String P_NO_IDS_LONG = "--no-container-ids";
 
+    public static final String P_SEARCH_SHADOW_BY_RESOURCE_DISABLED_LONG = "--searchShadowByResourceDisabled";
+
     @Parameter(names = { P_OUTPUT, P_OUTPUT_LONG }, descriptionKey = "export.output")
     private File output;
 
@@ -37,6 +39,9 @@ public class ExportOptions extends BaseImportExportOptions implements BasicExpor
 
     @Parameter(names = { P_REPLACE_OID_MAPPING_FILE_LONG}, descriptionKey = "export.replaceOid")
     private File replaceOid;
+
+    @Parameter(names = { P_SEARCH_SHADOW_BY_RESOURCE_DISABLED_LONG }, descriptionKey = "export.searchShadowByResourceDisabled")
+    private boolean searchShadowByResourceDisabled;
 
     @Override
     public File getOutput() {
@@ -73,5 +78,13 @@ public class ExportOptions extends BaseImportExportOptions implements BasicExpor
 
     public File getReplaceOid() {
         return replaceOid;
+    }
+
+    public void setSearchShadowByResourceDisabled(boolean searchShadowByResourceDisabled) {
+        this.searchShadowByResourceDisabled = searchShadowByResourceDisabled;
+    }
+
+    public boolean isSearchShadowByResourceDisabled() {
+        return searchShadowByResourceDisabled;
     }
 }
