@@ -333,6 +333,20 @@ public class LensContext<F extends ObjectType> implements ModelContext<F> {
         }
         return null;
     }
+    
+    /**
+     * Find projection context ignoring tags. This is used for dependency matching
+     * to support tag-agnostic dependencies where source depends on target regardless of tag values.
+     */
+    public LensProjectionContext findProjectionContextIgnoringTags(ResourceShadowDiscriminator rat) {
+        Validate.notNull(rat);
+        for (LensProjectionContext projCtx : getProjectionContexts()) {
+            if (projCtx.compareResourceShadowDiscriminator(rat, true, false)) {
+                return projCtx;
+            }
+        }
+        return null;
+    }
 
     public LensProjectionContext findOrCreateProjectionContext(ResourceShadowDiscriminator rat) {
         LensProjectionContext projectionContext = findProjectionContext(rat);

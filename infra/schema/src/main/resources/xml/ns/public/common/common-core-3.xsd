@@ -8572,7 +8572,8 @@
      <xsd:complexType name="ShadowTagSpecificationType">
          <xsd:annotation>
              <xsd:documentation>
-                 TODO
+                 Specification of a shadow tag for multiaccount projections. 
+                 Tags are used to distinguish multiple accounts of the same resource+kind+intent combination.
              </xsd:documentation>
              <xsd:appinfo>
                 <a:container/>
@@ -8584,7 +8585,15 @@
              <xsd:element name="expression" type="tns:ExpressionType" minOccurs="0">
                 <xsd:annotation>
                     <xsd:documentation>
-                        TODO
+                        Expression to compute the tag value. This is typically used for inbound synchronization.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="outbound" type="tns:MappingType" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Outbound mapping to generate tag values for multiaccount provisioning.
+                        The mapping result determines which tags should be created for this projection.
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

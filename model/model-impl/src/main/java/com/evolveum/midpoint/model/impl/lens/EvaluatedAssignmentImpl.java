@@ -377,12 +377,100 @@ public class EvaluatedAssignmentImpl<AH extends AssignmentHolderType> implements
 
     // System configuration is used only to provide $configuration script variable (MID-2372)
     public void evaluateConstructions(ObjectDeltaObject<AH> focusOdo, PrismObject<SystemConfigurationType> systemConfiguration, Task task, OperationResult result) throws SchemaException, ExpressionEvaluationException, ObjectNotFoundException, SecurityViolationException, ConfigurationException, CommunicationException {
-        for (Construction<AH> construction :constructionTriple.getAllValues()) {
+        // Create new construction triple to store evaluated constructions
+        PrismContext prismContext = null;
+        if (focusOdo.getOldObject() != null) {
+            prismContext = focusOdo.getOldObject().getPrismContext();
+        } else if (focusOdo.getNewObject() != null) {
+            prismContext = focusOdo.getNewObject().getPrismContext();
+        } else {
+            // Get from existing construction triple
+            prismContext = constructionTriple.getAllValues().iterator().next().getPrismContext();
+        }
+        DeltaSetTriple<Construction<AH>> newConstructionTriple = prismContext.deltaFactory().createDeltaSetTriple();
+        
+        // Process each set of the construction triple (zero, plus, minus)
+        processConstructionSet(constructionTriple.getZeroSet(), newConstructionTriple, PlusMinusZero.ZERO, focusOdo, systemConfiguration, task, result);
+        processConstructionSet(constructionTriple.getPlusSet(), newConstructionTriple, PlusMinusZero.PLUS, focusOdo, systemConfiguration, task, result);
+        processConstructionSet(constructionTriple.getMinusSet(), newConstructionTriple, PlusMinusZero.MINUS, focusOdo, systemConfiguration, task, result);
+        
+        // Replace the old construction triple with the new one
+        this.constructionTriple.clearPlusSet();
+        this.constructionTriple.clearZeroSet();
+        this.constructionTriple.clearMinusSet();
+        this.constructionTriple.merge(newConstructionTriple);
+    }
+    
+    private void processConstructionSet(Collection<Construction<AH>> constructions, DeltaSetTriple<Construction<AH>> newConstructionTriple, 
+            PlusMinusZero set, ObjectDeltaObject<AH> focusOdo, PrismObject<SystemConfigurationType> systemConfiguration, 
+            Task task, OperationResult result) throws SchemaException, ExpressionEvaluationException, ObjectNotFoundException, SecurityViolationException, ConfigurationException, CommunicationException {
+        
+        for (Construction<AH> construction : constructions) {
             construction.setFocusOdo(focusOdo);
             construction.setSystemConfiguration(systemConfiguration);
             construction.setWasValid(wasValid);
             LOGGER.trace("Evaluating construction '{}' in {}", construction, construction.getSource());
-            construction.evaluate(task, result);
+            
+            // NEW: Get the construction triple from the evaluate method
+            DeltaSetTriple<EvaluatedConstructionImpl> evaluatedConstructionTriple = construction.evaluate(task, result);
+            
+            // Handle multiaccount construction triples properly
+            processEvaluatedConstructionTriple(evaluatedConstructionTriple, construction, newConstructionTriple, set);
+        }
+    }
+    
+    /**
+     * Processes the evaluated construction triple to handle multiaccount scenarios.
+     * This handles both Pattern 1 (role unassignment - delete all) and Pattern 2 (tag removal - delete specific).
+     *
+     * FIXED: Ensures construction is added to exactly ONE set, not multiple sets.
+     */
+    private void processEvaluatedConstructionTriple(DeltaSetTriple<EvaluatedConstructionImpl> evaluatedTriple,
+            Construction<AH> originalConstruction, DeltaSetTriple<Construction<AH>> newConstructionTriple, PlusMinusZero originalSet) {
+
+        // Determine the correct target set for this construction
+        // Rule: If ANY tags remain or are added (ZERO or PLUS), keep construction active in originalSet
+        //       Only if ALL tags are removed (MINUS only), move construction to MINUS set
+        PlusMinusZero targetSet = originalSet;
+
+        if (evaluatedTriple.hasMinusSet() && !evaluatedTriple.hasZeroSet() && !evaluatedTriple.hasPlusSet()) {
+            // ONLY MINUS set exists - all tags removed or entire construction being deleted
+            targetSet = PlusMinusZero.MINUS;
+            LOGGER.trace("All tags removed or construction being deleted - moving to MINUS set");
+        } else if (evaluatedTriple.hasZeroSet() || evaluatedTriple.hasPlusSet()) {
+            // Has ZERO or PLUS - some tags remain or are being added
+            targetSet = originalSet;
+            if (evaluatedTriple.hasZeroSet() && evaluatedTriple.hasPlusSet() && evaluatedTriple.hasMinusSet()) {
+                LOGGER.trace("Tags changed: some unchanged, some added, some removed - keeping in {} set", originalSet);
+            } else if (evaluatedTriple.hasZeroSet() && evaluatedTriple.hasMinusSet()) {
+                LOGGER.trace("Some tags removed but others remain - keeping in {} set", originalSet);
+            } else if (evaluatedTriple.hasPlusSet() && evaluatedTriple.hasMinusSet()) {
+                LOGGER.trace("Tags replaced - keeping in {} set", originalSet);
+            } else if (evaluatedTriple.hasZeroSet()) {
+                LOGGER.trace("Tags unchanged - keeping in {} set", originalSet);
+            } else if (evaluatedTriple.hasPlusSet()) {
+                LOGGER.trace("New tags added - keeping in {} set", originalSet);
+            }
+        } else {
+            // No evaluated constructions - empty triple (should not happen normally)
+            LOGGER.trace("No evaluated constructions - maintaining in {} set for backward compatibility", originalSet);
+        }
+
+        // Add construction to exactly ONE set
+        addToSet(newConstructionTriple, originalConstruction, targetSet);
+    }
+    
+    private void addToSet(DeltaSetTriple<Construction<AH>> triple, Construction<AH> construction, PlusMinusZero set) {
+        switch (set) {
+            case ZERO:
+                triple.addToZeroSet(construction);
+                break;
+            case PLUS:
+                triple.addToPlusSet(construction);
+                break;
+            case MINUS:
+                triple.addToMinusSet(construction);
+                break;
         }
     }
 

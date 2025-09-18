@@ -19,8 +19,11 @@ import com.evolveum.midpoint.model.impl.lens.projector.ConstructionProcessor;
 import com.evolveum.midpoint.model.impl.lens.projector.mappings.*;
 import com.evolveum.midpoint.model.impl.lens.projector.policy.PolicyRuleProcessor;
 import com.evolveum.midpoint.model.impl.util.ModelImplUtils;
+import com.evolveum.midpoint.model.impl.lens.RefinedDefinitionUtil;
+import com.evolveum.midpoint.model.impl.lens.EvaluatedConstructionImpl;
 import com.evolveum.midpoint.prism.*;
 import com.evolveum.midpoint.prism.delta.*;
+import com.evolveum.midpoint.prism.delta.PlusMinusZero;
 import com.evolveum.midpoint.prism.path.ItemName;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.RelationRegistry;
@@ -384,188 +387,484 @@ public class AssignmentProcessor {
     }
 
     private <F extends FocusType> void processProjections(LensContext<F> context, DeltaSetTriple<EvaluatedAssignmentImpl<F>> evaluatedAssignmentTriple, Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
-        ComplexConstructionConsumer<ResourceShadowDiscriminator, Construction<F>> consumer = new ComplexConstructionConsumer<ResourceShadowDiscriminator, Construction<F>>() {
 
-            private boolean processOnlyExistingProjCxts;
+        // Process EvaluatedConstructionImpl objects directly with aggregation by RSD
+        processProjectionsV42Style(context, evaluatedAssignmentTriple, task, result);
+    }
 
-            @Override
-            public boolean before(ResourceShadowDiscriminator rat) {
-                if (rat.getResourceOid() == null) {
-                    throw new IllegalStateException("Resource OID null in ResourceAccountType during assignment processing");
+    /**
+     * Projection processing with multiaccount support.
+     * Processes EvaluatedConstructionImpl objects and aggregates by ResourceShadowDiscriminator.
+     */
+    private <F extends FocusType> void processProjectionsV42Style(LensContext<F> context, DeltaSetTriple<EvaluatedAssignmentImpl<F>> evaluatedAssignmentTriple, Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
+
+        LOGGER.debug("Processing projections with multiaccount support and RSD aggregation");
+
+        // PHASE 1: Collect all projection states across all assignments
+        // This aggregates constructions by RSD to determine which projections should exist
+        Map<ResourceShadowDiscriminator, ProjectionDecision> projectionDecisions = new HashMap<>();
+
+        collectProjectionDecisions(context, evaluatedAssignmentTriple.getZeroSet(), PlusMinusZero.ZERO, projectionDecisions, task, result);
+        collectProjectionDecisions(context, evaluatedAssignmentTriple.getPlusSet(), PlusMinusZero.PLUS, projectionDecisions, task, result);
+        collectProjectionDecisions(context, evaluatedAssignmentTriple.getMinusSet(), PlusMinusZero.MINUS, projectionDecisions, task, result);
+
+        // PHASE 2: Apply aggregated decisions to projection contexts
+        applyProjectionDecisions(context, projectionDecisions, task, result);
+
+        LOGGER.debug("Completed projection processing");
+    }
+
+    /**
+     * Helper class to track projection decisions across multiple assignments
+     */
+    private static class ProjectionDecision {
+        boolean shouldExist = false;
+        boolean wasAssignedBefore = false;
+        boolean isNew = false;
+        List<ConstructionWithMode> constructionsWithModes = new ArrayList<>();
+
+        void recordConstruction(Construction construction, PlusMinusZero finalMode) {
+            // FIX: Store each construction with its individual mode (including weak constructions)
+            constructionsWithModes.add(new ConstructionWithMode(construction, finalMode));
+
+            // Aggregate mode: if ANY construction says ZERO or PLUS, projection might exist
+            // (but will be filtered by hasNonWeakConstruction() check later)
+            if (finalMode == PlusMinusZero.ZERO || finalMode == PlusMinusZero.PLUS) {
+                shouldExist = true;
+                if (finalMode == PlusMinusZero.PLUS) {
+                    isNew = true;
                 }
-                if (rat.getIntent() == null) {
-                    throw new IllegalStateException(
-                            "Account type is null in ResourceAccountType during assignment processing");
-                }
-
-                processOnlyExistingProjCxts = false;
-                if (ModelExecuteOptions.isLimitPropagation(context.getOptions())) {
-                    if (context.getTriggeredResourceOid() != null
-                            && !rat.getResourceOid().equals(context.getTriggeredResourceOid())) {
-                        LOGGER.trace(
-                                "Skipping processing construction for shadow identified by {} because of limitation to propagate changes only for resource {}",
-                                rat, context.getTriggeredResourceOid());
-                        return false;
-                    }
-
-                    if (context.getChannel() != null && SchemaConstants.CHANGE_CHANNEL_DISCOVERY.equals(QNameUtil.uriToQName(context.getChannel()))) {
-                        LOGGER.trace(
-                                "Processing of shadow identified by {} will be skipped because of limitation for discovery channel.", context.getChannel());    // TODO is this message OK? [med]
-                        processOnlyExistingProjCxts = true;
-                    }
-                }
-
-                return true;
             }
 
-            @Override
-            public void onAssigned(ResourceShadowDiscriminator rat, String desc) throws SchemaException {
-                LensProjectionContext projectionContext = LensUtil.getOrCreateProjectionContext(context, rat);
-                projectionContext.setAssigned(true);
-                projectionContext.setAssignedOld(false);
-                projectionContext.setLegalOld(false);
-                if (projectionContext.getAssignmentPolicyEnforcementType() != AssignmentPolicyEnforcementType.NONE) {
-                    LOGGER.trace("Projection {} legal: assigned (valid)", desc);
-                    projectionContext.setLegal(true);
-                } else {
-                    LOGGER.trace("Projection {} skip: assigned (valid), NONE enforcement", desc);
+            // Track if was assigned before (for proper deletion handling)
+            if (finalMode == PlusMinusZero.MINUS || finalMode == PlusMinusZero.ZERO) {
+                wasAssignedBefore = true;
+            }
+        }
+
+        /**
+         * Check if there is at least one non-weak (strong) construction.
+         * Same logic as v4.2 EvaluatedConstructionPack.hasNonWeakConstruction()
+         */
+        boolean hasNonWeakConstruction() {
+            for (ConstructionWithMode cwm : constructionsWithModes) {
+                if (!cwm.construction.isWeak()) {
+                    return true;
                 }
             }
+            return false;
+        }
+    }
 
-            @Override
-            public void onUnchangedValid(ResourceShadowDiscriminator key, String desc) throws SchemaException {
-                LensProjectionContext projectionContext = context.findProjectionContext(key);
+    /**
+     * Helper class to track a construction with its mode
+     */
+    private static class ConstructionWithMode {
+        final Construction construction;
+        final PlusMinusZero mode;
+
+        ConstructionWithMode(Construction construction, PlusMinusZero mode) {
+            this.construction = construction;
+            this.mode = mode;
+        }
+    }
+
+    /**
+     * Collect projection decisions across all assignments.
+     * This aggregates constructions by RSD to determine which projections should exist.
+     */
+    private <F extends FocusType> void collectProjectionDecisions(LensContext<F> context,
+            Collection<EvaluatedAssignmentImpl<F>> evaluatedAssignments,
+            PlusMinusZero assignmentMode, Map<ResourceShadowDiscriminator, ProjectionDecision> projectionDecisions,
+            Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
+
+        if (evaluatedAssignments == null || evaluatedAssignments.isEmpty()) {
+            return;
+        }
+
+        for (EvaluatedAssignmentImpl<F> evaluatedAssignment : evaluatedAssignments) {
+            DeltaSetTriple<Construction<F>> constructionTriple = evaluatedAssignment.getConstructionTriple();
+            if (constructionTriple == null) {
+                continue;
+            }
+
+            // Process constructions in all sets
+            collectFromConstructionSet(context, constructionTriple.getZeroSet(), assignmentMode, PlusMinusZero.ZERO, projectionDecisions, task, result);
+            collectFromConstructionSet(context, constructionTriple.getPlusSet(), assignmentMode, PlusMinusZero.PLUS, projectionDecisions, task, result);
+            collectFromConstructionSet(context, constructionTriple.getMinusSet(), assignmentMode, PlusMinusZero.MINUS, projectionDecisions, task, result);
+        }
+    }
+
+    /**
+     * Collect projection decisions from a set of constructions
+     */
+    private <F extends FocusType> void collectFromConstructionSet(LensContext<F> context,
+            Collection<Construction<F>> constructions,
+            PlusMinusZero assignmentMode, PlusMinusZero constructionMode,
+            Map<ResourceShadowDiscriminator, ProjectionDecision> projectionDecisions,
+            Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
+
+        if (constructions == null || constructions.isEmpty()) {
+            return;
+        }
+
+        for (Construction<F> construction : constructions) {
+            DeltaSetTriple<EvaluatedConstructionImpl> evaluatedConstructionTriple = construction.getEvaluatedConstructionTriple();
+            if (evaluatedConstructionTriple == null || evaluatedConstructionTriple.isEmpty()) {
+                continue;
+            }
+
+            // Collect from evaluated construction sets
+            collectFromEvaluatedConstructionSet(evaluatedConstructionTriple.getZeroSet(), construction,
+                    assignmentMode, constructionMode, PlusMinusZero.ZERO, projectionDecisions);
+            collectFromEvaluatedConstructionSet(evaluatedConstructionTriple.getPlusSet(), construction,
+                    assignmentMode, constructionMode, PlusMinusZero.PLUS, projectionDecisions);
+            collectFromEvaluatedConstructionSet(evaluatedConstructionTriple.getMinusSet(), construction,
+                    assignmentMode, constructionMode, PlusMinusZero.MINUS, projectionDecisions);
+        }
+    }
+
+    /**
+     * Collect projection decisions from evaluated constructions
+     */
+    private <F extends FocusType> void collectFromEvaluatedConstructionSet(
+            Collection<EvaluatedConstructionImpl> evaluatedConstructions,
+            Construction<F> construction,
+            PlusMinusZero assignmentMode, PlusMinusZero constructionMode, PlusMinusZero evalConstructionMode,
+            Map<ResourceShadowDiscriminator, ProjectionDecision> projectionDecisions) {
+
+        if (evaluatedConstructions == null || evaluatedConstructions.isEmpty()) {
+            return;
+        }
+
+        for (EvaluatedConstructionImpl evaluatedConstruction : evaluatedConstructions) {
+            ResourceShadowDiscriminator rsd = evaluatedConstruction.getResourceShadowDiscriminator();
+            PlusMinusZero finalMode = computeFinalMode(assignmentMode, constructionMode, evalConstructionMode);
+
+            ProjectionDecision decision = projectionDecisions.computeIfAbsent(rsd, k -> new ProjectionDecision());
+            decision.recordConstruction(construction, finalMode);
+        }
+    }
+
+    /**
+     * Apply aggregated projection decisions to projection contexts.
+     * This ensures projections are only deleted when NO active assignments provide them.
+     */
+    private <F extends FocusType> void applyProjectionDecisions(LensContext<F> context,
+            Map<ResourceShadowDiscriminator, ProjectionDecision> projectionDecisions,
+            Task task, OperationResult result) throws SchemaException, ObjectNotFoundException, CommunicationException, ConfigurationException, ExpressionEvaluationException {
+
+        for (Map.Entry<ResourceShadowDiscriminator, ProjectionDecision> entry : projectionDecisions.entrySet()) {
+            ResourceShadowDiscriminator rsd = entry.getKey();
+            ProjectionDecision decision = entry.getValue();
+
+            LensProjectionContext projectionContext = context.findProjectionContext(rsd);
+
+            // FIX MID-6899: Check for weak-only constructions (same as v4.2)
+            if (decision.shouldExist && !decision.hasNonWeakConstruction()) {
+                // This is a legal state: projection was assigned, but it only has weak construction (no strong)
+                LOGGER.debug("Projection {} ignoring: has constructions but all are weak", rsd);
+                continue;
+            }
+
+            if (decision.shouldExist) {
+                // At least one active assignment provides this projection - keep it
                 if (projectionContext == null) {
-                    if (processOnlyExistingProjCxts) {
-                        LOGGER.trace("Projection {} skip: unchanged (valid), processOnlyExistingProjCxts", desc);
-                        return;
-                    }
-                    // The projection should exist before the change but it does not
-                    // This happens during reconciliation if there is an inconsistency.
-                    // Pretend that the assignment was just added. That should do.
-                    projectionContext = LensUtil.getOrCreateProjectionContext(context, key);
+                    // FIX MID-6899: Use LensUtil.getOrCreateProjectionContext() which automatically loads resource
+                    // This ensures ActivationProcessor can access resourceAccountDefType later (same as v4.2)
+                    projectionContext = LensUtil.getOrCreateProjectionContext(context, rsd);
                 }
-                LOGGER.trace("Projection {} legal: unchanged (valid)", desc);
-                projectionContext.setAssigned(true);
-                projectionContext.setAssignedOld(true);
-                if (projectionContext.getAssignmentPolicyEnforcementType() == AssignmentPolicyEnforcementType.NONE) {
-                    projectionContext.setLegalOld(null);
-                    projectionContext.setLegal(null);
-                } else {
-                    projectionContext.setLegalOld(true);
-                    projectionContext.setLegal(true);
-                }
-            }
 
-            @Override
-            public void onUnchangedInvalid(ResourceShadowDiscriminator rat, String desc) throws SchemaException {
-                LensProjectionContext projectionContext = context.findProjectionContext(rat);
-                if (projectionContext == null) {
-                    if (processOnlyExistingProjCxts) {
-                        LOGGER.trace("Projection {} skip: unchanged (invalid), processOnlyExistingProjCxts", desc);
-                    } else {
-                        LOGGER.trace("Projection {} skip: unchanged (invalid) and does not exist in current lens context", desc);
-                    }
-                    return;
-                }
-                LOGGER.trace("Projection {} illegal: unchanged (invalid)", desc);
-                projectionContext.setLegal(false);
-                projectionContext.setLegalOld(false);
-                projectionContext.setAssigned(false);
-                projectionContext.setAssignedOld(false);
-                if (projectionContext.getAssignmentPolicyEnforcementType() == AssignmentPolicyEnforcementType.NONE
-                        || projectionContext.getAssignmentPolicyEnforcementType()
-                        == AssignmentPolicyEnforcementType.POSITIVE) {
-                    projectionContext.setLegalOld(null);
-                    projectionContext.setLegal(null);
-                } else {
+                projectionContext.setAssigned(true);
+                projectionContext.setLegal(true);
+
+                if (decision.isNew) {
+                    projectionContext.setAssignedOld(false);
                     projectionContext.setLegalOld(false);
-                    projectionContext.setLegal(false);
-                }
-            }
-
-            @Override
-            public void onUnassigned(ResourceShadowDiscriminator rat, String desc) throws SchemaException {
-                if (accountExists(context, rat)) {
-                    LensProjectionContext projectionContext = context.findProjectionContext(rat);
-                    if (projectionContext == null) {
-                        if (processOnlyExistingProjCxts) {
-                            LOGGER.trace("Projection {} skip: unassigned, processOnlyExistingProjCxts", desc);
-                            return;
-                        }
-                        projectionContext = LensUtil.getOrCreateProjectionContext(context, rat);
-                    }
-                    projectionContext.setAssigned(false);
+                } else {
                     projectionContext.setAssignedOld(true);
                     projectionContext.setLegalOld(true);
-
-                    AssignmentPolicyEnforcementType assignmentPolicyEnforcement = projectionContext
-                            .getAssignmentPolicyEnforcementType();
-                    // TODO: check for MARK and LEGALIZE enforcement policies ....add delete laso for relative enforcemenet
-                    if (assignmentPolicyEnforcement == AssignmentPolicyEnforcementType.FULL
-                            || assignmentPolicyEnforcement == AssignmentPolicyEnforcementType.RELATIVE) {
-                        LOGGER.trace("Projection {} illegal: unassigned", desc);
-                        projectionContext.setLegal(false);
-                    } else if (assignmentPolicyEnforcement == AssignmentPolicyEnforcementType.POSITIVE) {
-                        LOGGER.trace("Projection {} legal: unassigned, but allowed by policy ({})", desc,
-                                assignmentPolicyEnforcement);
-                        projectionContext.setLegal(true);
-                    } else {
-                        LOGGER.trace("Projection {} legal: unassigned, policy decision postponed ({})", desc,
-                                assignmentPolicyEnforcement);
-                        projectionContext.setLegal(null);
-                    }
-                } else {
-
-                    LOGGER.trace("Projection {} nothing: unassigned (valid->invalid) but not there", desc);
-                    // We have to delete something that is not there. Nothing to do.
                 }
-            }
 
-            @Override
-            public void after(ResourceShadowDiscriminator rat, String desc,
-                    DeltaMapTriple<ResourceShadowDiscriminator, ConstructionPack<Construction<F>>> constructionMapTriple) {
-                PrismValueDeltaSetTriple<PrismPropertyValue<Construction>> projectionConstructionDeltaSetTriple =
-                        prismContext.deltaFactory().createPrismValueDeltaSetTriple(
-                                getConstructions(constructionMapTriple.getZeroMap().get(rat), true),
-                                getConstructions(constructionMapTriple.getPlusMap().get(rat), true),
-                                getConstructions(constructionMapTriple.getMinusMap().get(rat), false));
-                LensProjectionContext projectionContext = context.findProjectionContext(rat);
+                // FIX: Add each construction with its individual mode
+                for (ConstructionWithMode cwm : decision.constructionsWithModes) {
+                    addConstructionToProjectionContext(projectionContext, cwm.construction, cwm.mode);
+                }
+
+                LOGGER.debug("Projection {} should EXIST (assigned by {} constructions)", rsd, decision.constructionsWithModes.size());
+
+            } else {
+                // NO active assignments provide this projection - delete it
+                if (projectionContext == null && accountExists(context, rsd)) {
+                    // FIX MID-6899: Use LensUtil.getOrCreateProjectionContext() which automatically loads resource
+                    // This ensures ActivationProcessor can access resourceAccountDefType later (same as v4.2)
+                    projectionContext = LensUtil.getOrCreateProjectionContext(context, rsd);
+                }
+
                 if (projectionContext != null) {
-                    // This can be null in a exotic case if we delete already deleted account
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Construction delta set triple for {}:\n{}", rat,
-                                projectionConstructionDeltaSetTriple.debugDump(1));
+                    projectionContext.setAssigned(false);
+                    projectionContext.setAssignedOld(decision.wasAssignedBefore);
+
+                    if (projectionContext.isLegalOld() == null && decision.wasAssignedBefore) {
+                        projectionContext.setLegalOld(true);
                     }
-                    projectionContext.setConstructionDeltaSetTriple(projectionConstructionDeltaSetTriple);
-                    if (isForceRecon(constructionMapTriple.getZeroMap().get(rat)) || isForceRecon(
-                            constructionMapTriple.getPlusMap().get(rat)) || isForceRecon(
-                            constructionMapTriple.getMinusMap().get(rat))) {
-                        projectionContext.setDoReconciliation(true);
+
+                    AssignmentPolicyEnforcementType enforcement = projectionContext.getAssignmentPolicyEnforcementType();
+                    if (enforcement == AssignmentPolicyEnforcementType.FULL ||
+                        enforcement == AssignmentPolicyEnforcementType.RELATIVE) {
+                        projectionContext.setLegal(false);
+                        LOGGER.debug("Projection {} should be DELETED (no active assignments)", rsd);
+                    } else {
+                        LOGGER.debug("Projection {} should be deleted but enforcement policy {} prevents it", rsd, enforcement);
+                    }
+
+                    // FIX: Add each construction with its individual mode (for proper association cleanup)
+                    for (ConstructionWithMode cwm : decision.constructionsWithModes) {
+                        addConstructionToProjectionContext(projectionContext, cwm.construction, cwm.mode);
                     }
                 }
             }
-
-        };
-
-        constructionProcessor.processConstructions(context, evaluatedAssignmentTriple,
-                evaluatedAssignment -> evaluatedAssignment.getConstructionTriple(),
-                construction -> getConstructionMapKey(context, construction, task, result),
-                consumer,
-                task, result);
-
+        }
     }
 
-
-    private <F extends FocusType> ResourceShadowDiscriminator getConstructionMapKey(LensContext<F> context, Construction<F> construction, Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
-        String resourceOid = construction.getResource(task, result).getOid();
-        String intent = construction.getIntent();
-        ShadowKindType kind = construction.getKind();
-        ResourceType resource = LensUtil.getResourceReadOnly(context, resourceOid, provisioningService, task, result);
-        intent = LensUtil.refineProjectionIntent(kind, intent, resource, prismContext);
-        ResourceShadowDiscriminator rat = new ResourceShadowDiscriminator(resourceOid, kind, intent, null, false);
-        return rat;
+    /**
+     * Process a set of evaluated assignments with a specific mode (ZERO/PLUS/MINUS).
+     * Used internally during the collection phase to iterate through assignments.
+     */
+    private <F extends FocusType> void processAssignmentSet(LensContext<F> context,
+            Collection<EvaluatedAssignmentImpl<F>> evaluatedAssignments, 
+            PlusMinusZero assignmentMode, Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
+        
+        if (evaluatedAssignments == null || evaluatedAssignments.isEmpty()) {
+            LOGGER.trace("No assignments to process for mode: {}", assignmentMode);
+            return;
+        }
+        
+        LOGGER.debug("Processing {} assignments in {} mode", evaluatedAssignments.size(), assignmentMode);
+        
+        for (EvaluatedAssignmentImpl<F> evaluatedAssignment : evaluatedAssignments) {
+            DeltaSetTriple<Construction<F>> constructionTriple = evaluatedAssignment.getConstructionTriple();
+            if (constructionTriple == null) {
+                continue;
+            }
+            
+            // Process ALL construction sets within this assignment
+            processConstructionSet(context, constructionTriple.getZeroSet(), assignmentMode, PlusMinusZero.ZERO, task, result);
+            processConstructionSet(context, constructionTriple.getPlusSet(), assignmentMode, PlusMinusZero.PLUS, task, result);
+            processConstructionSet(context, constructionTriple.getMinusSet(), assignmentMode, PlusMinusZero.MINUS, task, result); // ← DEPROVISIONING
+        }
     }
+
+    /**
+     * Process a set of constructions with specific assignment and construction modes
+     */
+    private <F extends FocusType> void processConstructionSet(LensContext<F> context,
+            Collection<Construction<F>> constructions,
+            PlusMinusZero assignmentMode, PlusMinusZero constructionMode,
+            Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
+
+        if (constructions == null || constructions.isEmpty()) {
+            LOGGER.trace("No constructions to process for assignment mode: {}, construction mode: {}", assignmentMode, constructionMode);
+            return;
+        }
+
+        LOGGER.debug("Processing {} constructions in assignment mode: {}, construction mode: {}", constructions.size(), assignmentMode, constructionMode);
+
+        for (Construction<F> construction : constructions) {
+            DeltaSetTriple<EvaluatedConstructionImpl> evaluatedConstructionTriple = construction.getEvaluatedConstructionTriple();
+            if (evaluatedConstructionTriple == null || evaluatedConstructionTriple.isEmpty()) {
+                LOGGER.trace("No evaluated constructions for construction: {}", construction);
+                continue;
+            }
+
+            // Process evaluated construction sets - PASS CONSTRUCTION OBJECT!
+            processEvaluatedConstructionSet(context, evaluatedConstructionTriple.getZeroSet(),
+                                           construction, assignmentMode, constructionMode, PlusMinusZero.ZERO, task, result);
+            processEvaluatedConstructionSet(context, evaluatedConstructionTriple.getPlusSet(),
+                                           construction, assignmentMode, constructionMode, PlusMinusZero.PLUS, task, result);
+            processEvaluatedConstructionSet(context, evaluatedConstructionTriple.getMinusSet(),
+                                           construction, assignmentMode, constructionMode, PlusMinusZero.MINUS, task, result); // ← DEPROVISIONING
+        }
+    }
+
+    /**
+     * Process a set of evaluated constructions - the actual projection context creation/deletion logic
+     */
+    private <F extends FocusType> void processEvaluatedConstructionSet(LensContext<F> context,
+            Collection<EvaluatedConstructionImpl> evaluatedConstructions,
+            Construction<F> construction,
+            PlusMinusZero assignmentMode, PlusMinusZero constructionMode, PlusMinusZero evalConstructionMode,
+            Task task, OperationResult result) throws ObjectNotFoundException, SchemaException, CommunicationException, ConfigurationException, SecurityViolationException, ExpressionEvaluationException {
+
+        if (evaluatedConstructions == null || evaluatedConstructions.isEmpty()) {
+            LOGGER.trace("No evaluated constructions to process for modes: {}/{}/{}", assignmentMode, constructionMode, evalConstructionMode);
+            return;
+        }
+
+        LOGGER.debug("Processing {} evaluated constructions in modes: {}/{}/{}", evaluatedConstructions.size(), assignmentMode, constructionMode, evalConstructionMode);
+
+        for (EvaluatedConstructionImpl evaluatedConstruction : evaluatedConstructions) {
+            ResourceShadowDiscriminator rsd = evaluatedConstruction.getResourceShadowDiscriminator();
+            String tag = evaluatedConstruction.getTag();
+
+            // Compute final mode using three-level cascade
+            PlusMinusZero finalMode = computeFinalMode(assignmentMode, constructionMode, evalConstructionMode);
+
+            LOGGER.trace("Processing EvaluatedConstructionImpl with RSD: {} (tag: {}), final mode: {}", rsd, tag, finalMode);
+
+            if (finalMode == PlusMinusZero.MINUS) {
+                // DEPROVISIONING: Mark projection for deletion
+                handleUnassignedProjection(context, rsd, construction, finalMode, task, result);
+            } else if (finalMode == PlusMinusZero.PLUS) {
+                // PROVISIONING: Create new projection
+                handleAssignedProjection(context, rsd, construction, finalMode, task, result);
+            } else {
+                // UNCHANGED: Keep existing projection
+                handleUnchangedProjection(context, rsd, construction, finalMode, task, result);
+            }
+        }
+    }
+
+    /**
+     * Handle deprovisioning - mark projection context for deletion
+     */
+    private <F extends FocusType> void handleUnassignedProjection(LensContext<F> context, ResourceShadowDiscriminator rsd,
+            Construction<F> construction, PlusMinusZero finalMode,
+            Task task, OperationResult result) throws SchemaException, ObjectNotFoundException, CommunicationException, ConfigurationException, ExpressionEvaluationException {
+
+        LOGGER.debug("DEPROVISIONING: Handling unassigned projection for RSD: {}", rsd);
+
+        LensProjectionContext projectionContext = context.findProjectionContext(rsd);
+        if (projectionContext == null) {
+            // Create context for deletion if account exists
+            if (accountExists(context, rsd)) {
+                LOGGER.debug("DEPROVISIONING: Creating projection context for deletion: {}", rsd);
+                projectionContext = context.createProjectionContext(rsd);
+                projectionContext.setResourceShadowDiscriminator(rsd);
+            } else {
+                LOGGER.debug("DEPROVISIONING: Account does not exist, nothing to delete: {}", rsd);
+                return; // Nothing to delete
+            }
+        }
+
+        // Mark for deletion according to v4.2 pattern
+        LOGGER.debug("DEPROVISIONING: Marking projection context for deletion: {}", rsd);
+        projectionContext.setAssigned(false);
+        projectionContext.setAssignedOld(true);  // Was assigned before
+        if (projectionContext.isLegalOld() == null) {
+            projectionContext.setLegalOld(true);     // Was legal before
+        }
+
+        // Trigger deletion based on enforcement policy
+        AssignmentPolicyEnforcementType enforcement = projectionContext.getAssignmentPolicyEnforcementType();
+        if (enforcement == AssignmentPolicyEnforcementType.FULL ||
+            enforcement == AssignmentPolicyEnforcementType.RELATIVE) {
+            LOGGER.debug("DEPROVISIONING: Setting legal=false to trigger deletion: {}", rsd);
+            projectionContext.setLegal(false);
+        } else {
+            LOGGER.debug("DEPROVISIONING: Enforcement policy {} does not allow deletion: {}", enforcement, rsd);
+        }
+
+        // FIX: Add construction to projection context even for deletion (needed for cleanup)
+        addConstructionToProjectionContext(projectionContext, construction, finalMode);
+    }
+
+    /**
+     * Handle provisioning - create new projection context
+     */
+    private <F extends FocusType> void handleAssignedProjection(LensContext<F> context, ResourceShadowDiscriminator rsd,
+            Construction<F> construction, PlusMinusZero finalMode,
+            Task task, OperationResult result) throws SchemaException, ObjectNotFoundException, CommunicationException, ConfigurationException, ExpressionEvaluationException {
+
+        LOGGER.debug("PROVISIONING: Handling assigned projection for RSD: {}", rsd);
+
+        LensProjectionContext projectionContext = context.findProjectionContext(rsd);
+        if (projectionContext == null) {
+            LOGGER.debug("PROVISIONING: Creating new projection context: {}", rsd);
+            projectionContext = context.createProjectionContext(rsd);
+            projectionContext.setResourceShadowDiscriminator(rsd);
+        }
+
+        // Mark as assigned
+        projectionContext.setAssigned(true);
+        projectionContext.setLegal(true);
+
+        // FIX: Add construction to projection context
+        addConstructionToProjectionContext(projectionContext, construction, finalMode);
+    }
+
+    /**
+     * Handle unchanged projection - keep existing projection context
+     */
+    private <F extends FocusType> void handleUnchangedProjection(LensContext<F> context, ResourceShadowDiscriminator rsd,
+            Construction<F> construction, PlusMinusZero finalMode,
+            Task task, OperationResult result) throws SchemaException, ObjectNotFoundException, CommunicationException, ConfigurationException, ExpressionEvaluationException {
+
+        LOGGER.trace("UNCHANGED: Handling unchanged projection for RSD: {}", rsd);
+
+        LensProjectionContext projectionContext = context.findProjectionContext(rsd);
+        if (projectionContext == null) {
+            LOGGER.debug("UNCHANGED: Creating projection context for existing projection: {}", rsd);
+            projectionContext = context.createProjectionContext(rsd);
+            projectionContext.setResourceShadowDiscriminator(rsd);
+        }
+
+        // Keep current assignment state
+        // (no changes to assigned/legal flags)
+
+        // FIX: Add construction to projection context for unchanged projections
+        addConstructionToProjectionContext(projectionContext, construction, finalMode);
+    }
+
+    /**
+     * Add construction to projection context's construction delta set triple.
+     * This is critical for later stages (ConsolidationProcessor) to apply attribute and association mappings.
+     */
+    private <F extends FocusType> void addConstructionToProjectionContext(
+            LensProjectionContext projectionContext, Construction<F> construction, PlusMinusZero mode) {
+
+        PrismValueDeltaSetTriple<PrismPropertyValue<Construction>> constructionTriple =
+                (PrismValueDeltaSetTriple<PrismPropertyValue<Construction>>) projectionContext.getConstructionDeltaSetTriple();
+
+        if (constructionTriple == null) {
+            constructionTriple = prismContext.deltaFactory().createPrismValueDeltaSetTriple();
+            projectionContext.setConstructionDeltaSetTriple((PrismValueDeltaSetTriple) constructionTriple);
+        }
+
+        PrismPropertyValue<Construction> constructionValue =
+                prismContext.itemFactory().createPropertyValue(construction);
+
+        // Add to appropriate set based on mode
+        if (mode == PlusMinusZero.PLUS) {
+            constructionTriple.addToPlusSet(constructionValue);
+            LOGGER.trace("Added construction to PLUS set for projection context: {}", projectionContext);
+        } else if (mode == PlusMinusZero.MINUS) {
+            constructionTriple.addToMinusSet(constructionValue);
+            LOGGER.trace("Added construction to MINUS set for projection context: {}", projectionContext);
+        } else {
+            constructionTriple.addToZeroSet(constructionValue);
+            LOGGER.trace("Added construction to ZERO set for projection context: {}", projectionContext);
+        }
+    }
+
+    /**
+     * Compute final mode from three-level cascade as per v4.2 logic
+     */
+    private PlusMinusZero computeFinalMode(PlusMinusZero assignmentMode, PlusMinusZero constructionMode, PlusMinusZero evalConstructionMode) {
+        // v4.2 logic: combine modes using PlusMinusZero.compute()
+        PlusMinusZero intermediate = PlusMinusZero.compute(assignmentMode, constructionMode);
+        return PlusMinusZero.compute(intermediate, evalConstructionMode);
+    }
+
+    /**
+     * Check if account exists for the given ResourceShadowDiscriminator
+     */
+    private <F extends FocusType> boolean accountExists(LensContext<F> context, ResourceShadowDiscriminator rsd) {
+        // Simple check - if there's already a projection context with this RSD, assume account exists
+        LensProjectionContext existingContext = context.findProjectionContext(rsd);
+        return existingContext != null && existingContext.getOid() != null;
+    }
+
 
     /**
      * Checks if we do not try to modify assignment.targetRef or assignment.construction.kind or intent.
@@ -995,6 +1294,8 @@ public class AssignmentProcessor {
         // TODO: reevaluate constructions
         // This should re-evaluate all the constructions. They are evaluated already, evaluated in the assignment step before.
         // But if there is any iteration counter that it will not be taken into account
+        // NOTE: For multiaccount support, the tag evaluation now happens in getConstructionMapKey()
+        // so the ResourceShadowDiscriminator should already have the correct tag by this point.
 
     }
 
@@ -1013,16 +1314,6 @@ public class AssignmentProcessor {
         return sb.toString();
     }
 
-    private <F extends ObjectType> boolean accountExists(LensContext<F> context, ResourceShadowDiscriminator rat) {
-        LensProjectionContext accountSyncContext = context.findProjectionContext(rat);
-        if (accountSyncContext == null) {
-            return false;
-        }
-        if (accountSyncContext.getObjectCurrent() == null) {
-            return false;
-        }
-        return true;
-    }
 
     private void markPolicyDecision(LensProjectionContext accountSyncContext, SynchronizationPolicyDecision decision) {
         if (accountSyncContext.getSynchronizationPolicyDecision() == null) {

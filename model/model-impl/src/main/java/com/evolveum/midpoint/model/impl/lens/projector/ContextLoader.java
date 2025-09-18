@@ -1003,7 +1003,10 @@ public class ContextLoader {
             if (ShadowUtil.isDead(shadowType)) {
                 thombstone = true;
             }
-            ResourceShadowDiscriminator rsd = new ResourceShadowDiscriminator(resourceOid, kind, intent, shadowType.getTag(), thombstone);
+            String shadowTag = shadowType.getTag();
+            LOGGER.debug("ContextLoader: Creating RSD for shadow {} with tag: {}", shadowType.getOid(), shadowTag);
+            ResourceShadowDiscriminator rsd = new ResourceShadowDiscriminator(resourceOid, kind, intent, shadowTag, thombstone);
+            LOGGER.debug("ContextLoader: Created RSD: {}", rsd);
             projectionContext = LensUtil.getOrCreateProjectionContext(context, rsd);
 
             if (projectionContext.getOid() == null) {
@@ -1016,12 +1019,19 @@ public class ContextLoader {
                     GetOperationOptions rootOpt = GetOperationOptions.createPointInTimeType(PointInTimeType.FUTURE);
                     rootOpt.setDoNotDiscovery(true);
                     Collection<SelectorOptions<GetOperationOptions>> opts = SelectorOptions.createCollection(rootOpt);
+                    LOGGER.debug("CONFLICT: Projection conflict detected for RSD: {}", rsd);
+                    LOGGER.debug("CONFLICT: Existing projection OID: {}, new projection OID: {}", projectionContext.getOid(), projection.getOid());
+                    LOGGER.debug("CONFLICT: Existing projection context RSD: {}", projectionContext.getResourceShadowDiscriminator());
                     LOGGER.trace("Projection conflict detected, existing: {}, new {}", projectionContext.getOid(), projection.getOid());
                     PrismObject<ShadowType> existingShadow = provisioningService.getObject(ShadowType.class, projectionContext.getOid(), opts, task, result);
                     // Maybe it is the other way around
                     try {
                         PrismObject<ShadowType> newShadow = provisioningService.getObject(ShadowType.class, projection.getOid(), opts, task, result);
                         // Obviously, two projections with the same discriminator exists
+                        LOGGER.debug("CONFLICT: Two projections found with same RSD: {}", rsd);
+                        LOGGER.debug("CONFLICT: Existing shadow tag: {}, new shadow tag: {}", 
+                                existingShadow.asObjectable().getTag(), 
+                                newShadow.asObjectable().getTag());
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("Projection {} already exists in context\nExisting:\n{}\nNew:\n{}", rsd,
                                     existingShadow.debugDump(1), newShadow.debugDump(1));

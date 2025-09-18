@@ -366,7 +366,7 @@ public class DependencyProcessor {
                 sourceProjContext.getResource().getOid(), sourceProjContext.getKind());
         LensProjectionContext selected = null;
         for (LensProjectionContext projectionContext: context.getProjectionContexts()) {
-            if (!projectionContext.compareResourceShadowDiscriminator(refDiscr, false)) {
+            if (!projectionContext.compareResourceShadowDiscriminator(refDiscr, false, false)) {
                 continue;
             }
             int ctxOrder = projectionContext.getResourceShadowDiscriminator().getOrder();
@@ -457,7 +457,7 @@ public class DependencyProcessor {
             ResourceShadowDiscriminator refRat = new ResourceShadowDiscriminator(dependency,
                     projContext.getResource().getOid(), projContext.getKind());
             LOGGER.trace("LOOKING FOR {}", refRat);
-            LensProjectionContext dependencyAccountContext = context.findProjectionContext(refRat);
+            LensProjectionContext dependencyAccountContext = context.findProjectionContextIgnoringTags(refRat);
             ResourceObjectTypeDependencyStrictnessType strictness = ResourceTypeUtil.getDependencyStrictness(dependency);
             if (dependencyAccountContext == null) {
                 if (strictness == ResourceObjectTypeDependencyStrictnessType.STRICT) {
@@ -519,7 +519,7 @@ public class DependencyProcessor {
                 ResourceShadowDiscriminator refRat = new ResourceShadowDiscriminator(dependency,
                         projContext.getResource().getOid(), projContext.getKind());
                 LOGGER.trace("LOOKING FOR {}", refRat);
-                LensProjectionContext dependencyAccountContext = context.findProjectionContext(refRat);
+                LensProjectionContext dependencyAccountContext = context.findProjectionContextIgnoringTags(refRat);
                 ResourceObjectTypeDependencyStrictnessType strictness = ResourceTypeUtil.getDependencyStrictness(dependency);
                 if (dependencyAccountContext != null){
                     if (!dependencyAccountContext.isCanProject()){

@@ -32,6 +32,7 @@ import com.evolveum.midpoint.prism.PrismObjectDefinition;
 import com.evolveum.midpoint.prism.PrismPropertyDefinition;
 import com.evolveum.midpoint.prism.PrismPropertyValue;
 import com.evolveum.midpoint.prism.PrismValue;
+import com.evolveum.midpoint.prism.delta.DeltaSetTriple;
 import com.evolveum.midpoint.prism.delta.PrismValueDeltaSetTriple;
 import com.evolveum.midpoint.prism.query.ObjectFilter;
 import com.evolveum.midpoint.prism.util.ItemPathTypeUtil;
@@ -64,9 +65,11 @@ import com.evolveum.midpoint.xml.ns._public.common.common_3.ObjectReferenceType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ObjectType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ResourceAttributeDefinitionType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ResourceObjectAssociationType;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.ResourceObjectMultiplicityType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ResourceType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ShadowAssociationType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ShadowKindType;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.ShadowTagSpecificationType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ShadowType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.SystemConfigurationType;
 
@@ -101,6 +104,9 @@ public class Construction<AH extends AssignmentHolderType> extends AbstractConst
     private PrismContainerDefinition<ShadowAssociationType> associationContainerDefinition;
     private PrismObject<SystemConfigurationType> systemConfiguration; // only to provide $configuration variable (MID-2372)
     private LensProjectionContext projectionContext;
+    
+    // NEW: Store evaluated construction triple for v4.2-style multiaccount processing
+    private DeltaSetTriple<EvaluatedConstructionImpl> evaluatedConstructionTriple;
 
     public Construction(ConstructionType constructionType, ObjectType source) {
         super(constructionType, source);
@@ -213,6 +219,17 @@ public class Construction<AH extends AssignmentHolderType> extends AbstractConst
         return associationMappings;
     }
 
+    /**
+     * Returns the evaluated construction triple containing multiple EvaluatedConstructionImpl objects
+     * for multiaccount scenarios. Each EvaluatedConstructionImpl has its own unique ResourceShadowDiscriminator
+     * with a specific tag value.
+     * 
+     * @return delta set triple of evaluated constructions, or null if not yet evaluated
+     */
+    public DeltaSetTriple<EvaluatedConstructionImpl> getEvaluatedConstructionTriple() {
+        return evaluatedConstructionTriple;
+    }
+
     public void addAssociationMapping(
             MappingImpl<PrismContainerValue<ShadowAssociationType>, PrismContainerDefinition<ShadowAssociationType>> mapping) {
         getAssociationMappings().add(mapping);
@@ -318,7 +335,7 @@ public class Construction<AH extends AssignmentHolderType> extends AbstractConst
         return resource;
     }
 
-    public void evaluate(Task task, OperationResult parentResult)
+    public DeltaSetTriple<EvaluatedConstructionImpl> evaluate(Task task, OperationResult parentResult)
             throws SchemaException, ExpressionEvaluationException, ObjectNotFoundException, SecurityViolationException, ConfigurationException, CommunicationException {
         // Subresult is needed here. If something fails here, this needs to be recorded as a subresult of
         // AssignmentProcessor.processAssignments. Otherwise partial error won't be propagated properly.
@@ -328,11 +345,124 @@ public class Construction<AH extends AssignmentHolderType> extends AbstractConst
             evaluateKindIntentObjectClass(task, result);
             evaluateAttributes(task, result);
             evaluateAssociations(task, result);
+            
+            // NEW: Create construction triple for multiaccount support
+            DeltaSetTriple<EvaluatedConstructionImpl> constructionTriple = createEvaluatedConstructionTriple(task, result);
+            
+            // Store the triple for later access by assignment processor
+            this.evaluatedConstructionTriple = constructionTriple;
+            
             result.recordSuccess();
+            return constructionTriple;
         } catch (Throwable e) {
             result.recordFatalError(e);
             throw e;
         }
+    }
+
+    /**
+     * Creates a delta set triple of evaluated constructions. For single-account constructions,
+     * returns a triple with a single construction in the zero set. For multiaccount constructions,
+     * evaluates tag mappings and creates constructions based on the tag values.
+     */
+    private DeltaSetTriple<EvaluatedConstructionImpl> createEvaluatedConstructionTriple(Task task, OperationResult result)
+            throws SchemaException, ExpressionEvaluationException, ObjectNotFoundException, SecurityViolationException, ConfigurationException, CommunicationException {
+        
+        DeltaSetTriple<EvaluatedConstructionImpl> constructionTriple = getPrismContext().deltaFactory().createDeltaSetTriple();
+
+        // Check if this is a multiaccount construction
+        ResourceObjectMultiplicityType multiplicity = refinedObjectClassDefinition.getMultiplicity();
+        if (!RefinedDefinitionUtil.isMultiaccount(multiplicity)) {
+            // Single-account case: create a single construction in zero set
+            EvaluatedConstructionImpl singleConstruction = new EvaluatedConstructionImpl(this, task, result);
+            constructionTriple.addToZeroSet(singleConstruction);
+            return constructionTriple;
+        }
+
+        // Multiaccount case: evaluate tag mappings and create constructions for each tag
+        PrismValueDeltaSetTriple<PrismPropertyValue<String>> tagTriple = evaluateTagTriple(task, result);
+        if (tagTriple == null) {
+            // No tag mapping configured, fall back to single construction
+            EvaluatedConstructionImpl singleConstruction = new EvaluatedConstructionImpl(this, task, result);
+            constructionTriple.addToZeroSet(singleConstruction);
+            return constructionTriple;
+        }
+
+        // Transform tag triple to construction triple
+        if (tagTriple.hasZeroSet()) {
+            for (PrismPropertyValue<String> tagValue : tagTriple.getZeroSet()) {
+                String tag = tagValue.getRealValue();
+                EvaluatedConstructionImpl construction = new EvaluatedConstructionImpl(this, tag, task, result);
+                constructionTriple.addToZeroSet(construction);
+            }
+        }
+        if (tagTriple.hasPlusSet()) {
+            for (PrismPropertyValue<String> tagValue : tagTriple.getPlusSet()) {
+                String tag = tagValue.getRealValue();
+                EvaluatedConstructionImpl construction = new EvaluatedConstructionImpl(this, tag, task, result);
+                constructionTriple.addToPlusSet(construction);
+            }
+        }
+        if (tagTriple.hasMinusSet()) {
+            for (PrismPropertyValue<String> tagValue : tagTriple.getMinusSet()) {
+                String tag = tagValue.getRealValue();
+                EvaluatedConstructionImpl construction = new EvaluatedConstructionImpl(this, tag, task, result);
+                constructionTriple.addToMinusSet(construction);
+            }
+        }
+
+        return constructionTriple;
+    }
+
+
+    /**
+     * Evaluates tag mappings for multiaccount constructions. Returns a triple of tag values
+     * that determines which accounts should be created, modified, or deleted.
+     */
+    public PrismValueDeltaSetTriple<PrismPropertyValue<String>> evaluateTagTriple(Task task, OperationResult result)
+            throws CommunicationException, ObjectNotFoundException, SchemaException, 
+                   SecurityViolationException, ConfigurationException, ExpressionEvaluationException {
+        
+        ResourceObjectMultiplicityType multiplicity = refinedObjectClassDefinition.getMultiplicity();
+        if (!RefinedDefinitionUtil.isMultiaccount(multiplicity)) {
+            return null;
+        }
+        
+        ShadowTagSpecificationType tagSpec = multiplicity.getTag();
+        if (tagSpec == null) {
+            return null;
+        }
+        
+        MappingType tagMappingBean = tagSpec.getOutbound();
+        if (tagMappingBean == null) {
+            return null;
+        }
+
+        // Create mapping builder for tag evaluation
+        MappingImpl.Builder<PrismPropertyValue<String>, PrismPropertyDefinition<String>> builder =
+                mappingFactory.createMappingBuilder(tagMappingBean, "for outbound tag mapping in " + getSource());
+
+        // Create tag property definition
+        PrismPropertyDefinition<String> tagDefinition = createTagDefinition();
+        
+        // Evaluate the mapping using the existing pattern
+        MappingImpl<PrismPropertyValue<String>, PrismPropertyDefinition<String>> mapping = 
+                evaluateMapping(builder, ShadowType.F_TAG, tagDefinition, null, task, result);
+        
+        if (mapping == null) {
+            return null;
+        }
+
+        return mapping.getOutputTriple();
+    }
+
+    /**
+     * Creates a property definition for tag values (strings with maxOccurs unbounded).
+     */
+    private PrismPropertyDefinition<String> createTagDefinition() {
+        return getPrismContext().definitionFactory()
+                .createPropertyDefinition(ExpressionConstants.OUTPUT_ELEMENT_NAME, 
+                                          javax.xml.namespace.QName.valueOf("{http://www.w3.org/2001/XMLSchema}string"));
     }
 
     private void evaluateKindIntentObjectClass(Task task, OperationResult result)
@@ -603,6 +733,8 @@ public class Construction<AH extends AssignmentHolderType> extends AbstractConst
         if (getSystemConfiguration() != null) {
             builder = builder.addVariableDefinition(ExpressionConstants.VAR_CONFIGURATION, getSystemConfiguration(), SystemConfigurationType.class);
         }
+        
+        
         // TODO: other variables ?
 
         // Set condition masks. There are used as a brakes to avoid evaluating
@@ -842,5 +974,7 @@ public class Construction<AH extends AssignmentHolderType> extends AbstractConst
         sb.append(")");
         return sb.toString();
     }
+
+
 
 }

@@ -258,7 +258,54 @@ public class LensProjectionContext extends LensElementContext<ShadowType> implem
 
     @Override
     public ObjectDeltaObject<ShadowType> getObjectDeltaObject() throws SchemaException {
-        return new ObjectDeltaObject<>(getObjectCurrent(), getDelta(), getObjectNew(), getObjectDefinition());
+        ObjectDelta<ShadowType> currentDelta = getDelta();
+        PrismObject<ShadowType> base;
+        
+        LOGGER.debug("MID-6899: getObjectDeltaObject called for context: {}, currentDelta: {}, objectCurrent: {}", 
+                this, currentDelta, getObjectCurrent());
+        
+        // NEW: Create blank shadow for ADD decisions or modify operations without current object
+        if (shouldCreateObjectNew(currentDelta)) {
+            LOGGER.debug("MID-6899: shouldCreateObjectNew returned true - creating blank shadow");
+            RefinedObjectClassDefinition rOCD = getCompositeObjectClassDefinition();
+            if (rOCD != null) {
+                // CRITICAL: Include tag from discriminator when creating blank shadow
+                base = createBlankShadowWithTag(rOCD);
+            } else {
+                LOGGER.warn("MID-6899: No composite object class definition available");
+                base = null;
+            }
+        } else {
+            LOGGER.debug("MID-6899: Using existing objectCurrent as base");
+            base = getObjectCurrent();
+        }
+        
+        ObjectDeltaObject<ShadowType> result = new ObjectDeltaObject<>(base, currentDelta, getObjectNew(), getObjectDefinition());
+        LOGGER.debug("MID-6899: Returning ObjectDeltaObject with base: {}", base);
+        return result;
+    }
+
+    /**
+     * Creates a blank shadow with the tag from the resource shadow discriminator.
+     * This is critical for MID-6899 to ensure $projection/tag is available in outbound mappings.
+     */
+    private PrismObject<ShadowType> createBlankShadowWithTag(RefinedObjectClassDefinition rOCD) {
+        LOGGER.debug("MID-6899: Creating blank shadow with tag for context: {}", this);
+        PrismObject<ShadowType> blankShadow = rOCD.createBlankShadow();
+        
+        // Set the tag if available from discriminator
+        if (resourceShadowDiscriminator != null && resourceShadowDiscriminator.getTag() != null) {
+            String tag = resourceShadowDiscriminator.getTag();
+            LOGGER.debug("MID-6899: Setting tag '{}' on blank shadow", tag);
+            blankShadow.asObjectable().setTag(tag);
+        } else {
+            LOGGER.debug("MID-6899: No tag available - discriminator: {}, tag: {}", 
+                    resourceShadowDiscriminator, 
+                    resourceShadowDiscriminator != null ? resourceShadowDiscriminator.getTag() : "null");
+        }
+        
+        LOGGER.debug("MID-6899: Created blank shadow: {}", blankShadow);
+        return blankShadow;
     }
 
     public boolean hasSecondaryDelta() {
@@ -352,6 +399,14 @@ public class LensProjectionContext extends LensElementContext<ShadowType> implem
     }
 
     public boolean compareResourceShadowDiscriminator(ResourceShadowDiscriminator rsd, boolean compareOrder) {
+        return compareResourceShadowDiscriminator(rsd, compareOrder, true);
+    }
+    
+    /**
+     * Compare ResourceShadowDiscriminator with optional tag comparison.
+     * For dependency matching, we want to ignore tags to support tag-agnostic dependencies.
+     */
+    public boolean compareResourceShadowDiscriminator(ResourceShadowDiscriminator rsd, boolean compareOrder, boolean compareTags) {
         Validate.notNull(rsd.getResourceOid());
         if (resourceShadowDiscriminator == null) {
             // This may be valid case e.g. in case of broken contexts or if a context is just loading
@@ -377,7 +432,8 @@ public class LensProjectionContext extends LensElementContext<ShadowType> implem
         } else if (!rsd.getIntent().equals(resourceShadowDiscriminator.getIntent())) {
             return false;
         }
-        if (!Objects.equals(rsd.getTag(), resourceShadowDiscriminator.getTag())) {
+        // Skip tag comparison for dependency matching to support tag-agnostic dependencies
+        if (compareTags && !Objects.equals(rsd.getTag(), resourceShadowDiscriminator.getTag())) {
             return false;
         }
 
@@ -814,6 +870,31 @@ public class LensProjectionContext extends LensElementContext<ShadowType> implem
      * Recomputes the new state of account (accountNew). It is computed by applying deltas to the old state (accountOld).
      * Assuming that oldAccount is already set (or is null if it does not exist)
      */
+    /**
+     * We sometimes need the 'object new' to exist before any real modifications are computed.
+     * An example is when outbound mappings reference $projection/tag (see MID-6899).
+     */
+    private boolean decisionIsAdd() {
+        return synchronizationPolicyDecision == SynchronizationPolicyDecision.ADD;
+    }
+
+    /**
+     * Determines when we need to create objectNew early.
+     * This is crucial for multiaccount scenarios where outbound mappings
+     * need to reference $projection/tag before actual modifications are computed.
+     */
+    private boolean shouldCreateObjectNew(ObjectDelta<ShadowType> currentDelta) {
+        boolean objectCurrentIsNull = getObjectCurrent() == null;
+        boolean isModify = ObjectDelta.isModify(currentDelta);
+        boolean isNullDeltaWithAddDecision = currentDelta == null && decisionIsAdd();
+        boolean result = objectCurrentIsNull && (isModify || isNullDeltaWithAddDecision);
+        
+        LOGGER.debug("MID-6899: shouldCreateObjectNew - objectCurrent==null: {}, isModify: {}, nullDelta+ADD: {}, result: {}", 
+                objectCurrentIsNull, isModify, isNullDeltaWithAddDecision, result);
+        
+        return result;
+    }
+
     public void recompute() throws SchemaException {
         ObjectDelta<ShadowType> accDelta = getDelta();
 
@@ -839,10 +920,11 @@ public class LensProjectionContext extends LensElementContext<ShadowType> implem
             return;
         }
 
-        if (base == null && accDelta.isModify()) {
+        if (shouldCreateObjectNew(accDelta)) {
+            // NEW: Use same logic as getObjectDeltaObject
             RefinedObjectClassDefinition rOCD = getCompositeObjectClassDefinition();
             if (rOCD != null) {
-                base = rOCD.createBlankShadow();
+                base = createBlankShadowWithTag(rOCD);
             }
         }
 
@@ -942,6 +1024,14 @@ public class LensProjectionContext extends LensElementContext<ShadowType> implem
                             + " not found in the context, but it should be there");
                 }
                 PrismObject<ShadowType> newAccount = rObjectClassDef.createBlankShadow();
+                
+                // MULTIACCOUNT FIX: Set the tag from ResourceShadowDiscriminator on the new shadow
+                if (resourceShadowDiscriminator != null && resourceShadowDiscriminator.getTag() != null) {
+                    LOGGER.debug("Setting tag '{}' on ADD delta shadow for {}", 
+                            resourceShadowDiscriminator.getTag(), resourceShadowDiscriminator);
+                    newAccount.asObjectable().setTag(resourceShadowDiscriminator.getTag());
+                }
+                
                 addDelta.setObjectToAdd(newAccount);
 
                 if (origDelta != null) {
