@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.evolveum.midpoint.authentication.api.AuthenticationChannel;
 import com.evolveum.midpoint.authentication.api.util.AuthUtil;
+import com.evolveum.midpoint.model.api.authentication.GuiProfiledPrincipal;
 import com.evolveum.midpoint.security.api.ConnectionEnvironment;
 import com.evolveum.midpoint.authentication.api.config.MidpointAuthentication;
 import com.evolveum.midpoint.authentication.api.config.ModuleAuthentication;
@@ -138,6 +139,14 @@ public abstract class AbstractAuthenticationProvider implements AuthenticationPr
         Object principal = token.getPrincipal();
         if (principal instanceof MidPointPrincipal) {
             mpAuthentication.setPrincipal(principal);
+            // Mark GUI profile as already compiled during authentication to avoid redundant compilation
+            // in FinishAuthenticationFilter on the subsequent redirect request
+            if (principal instanceof GuiProfiledPrincipal guiPrincipal) {
+                // Only set the flag if GUI profile was actually compiled (not just authorization collected)
+                if (guiPrincipal.getCompiledGuiProfile() != null) {
+                    mpAuthentication.setAlreadyCompiledGui(true);
+                }
+            }
         }
 
         mpAuthentication.setToken(token);

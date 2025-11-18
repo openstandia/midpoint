@@ -52,6 +52,9 @@ public abstract class RemoteModuleProvider extends AbstractAuthenticationProvide
         Object principal = token.getPrincipal();
         if (principal instanceof GuiProfiledPrincipal) {
             mpAuthentication.setPrincipal(principal);
+            // Mark GUI profile as already compiled during authentication to avoid redundant compilation
+            // in FinishAuthenticationFilter on the subsequent redirect request
+            mpAuthentication.setAlreadyCompiledGui(true);
         }
         if (token instanceof PreAuthenticatedAuthenticationToken) {
             ((PreAuthenticatedAuthenticationToken) token).setDetails(originalAuthentication);

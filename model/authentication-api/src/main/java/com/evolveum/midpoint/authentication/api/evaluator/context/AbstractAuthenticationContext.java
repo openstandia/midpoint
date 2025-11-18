@@ -29,6 +29,8 @@ public abstract class AbstractAuthenticationContext {
 
     private final boolean supportActivationByChannel;
 
+    private final AuthenticationChannel channel;
+
     public AbstractAuthenticationContext(
             String username,
             Class<? extends FocusType> principalType,
@@ -37,6 +39,7 @@ public abstract class AbstractAuthenticationContext {
         this.username = username;
         this.requireAssignments = requireAssignment;
         this.principalType = principalType;
+        this.channel = channel;
         this.supportActivationByChannel = channel == null || channel.isSupportActivationByChannel();
     }
 
@@ -54,6 +57,10 @@ public abstract class AbstractAuthenticationContext {
 
     public List<ObjectReferenceType> getRequireAssignments() {
         return requireAssignments;
+    }
+
+    public AuthenticationChannel getChannel() {
+        return channel;
     }
 
     public abstract Object getEnteredCredential();

@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.authentication.impl.evaluator;
 
 import com.evolveum.midpoint.authentication.api.AutheticationFailedData;
+import com.evolveum.midpoint.authentication.api.AuthenticationChannel;
 import com.evolveum.midpoint.authentication.api.config.MidpointAuthentication;
 import com.evolveum.midpoint.authentication.api.config.ModuleAuthentication;
 import com.evolveum.midpoint.authentication.api.evaluator.AuthenticationEvaluator;
@@ -61,7 +62,7 @@ public abstract class AuthenticationEvaluatorImpl<T extends AbstractAuthenticati
         MidPointPrincipal principal;
         try {
             principal = focusProfileService.getPrincipal(
-                    query, clazz, createOptionForGettingPrincipal());
+                    query, clazz, createOptionForGettingPrincipal(authCtx));
         } catch (ObjectNotFoundException e) {
             recordModuleAuthenticationFailure(username, null, connEnv, null, "no focus");
             throw new UsernameNotFoundException(AuthUtil.generateBadCredentialsMessageKey(SecurityContextHolder.getContext().getAuthentication()));
@@ -94,9 +95,13 @@ public abstract class AuthenticationEvaluatorImpl<T extends AbstractAuthenticati
         return principal;
     }
 
-    private ProfileCompilerOptions createOptionForGettingPrincipal() {
-        return ProfileCompilerOptions.createNotCompileGuiAdminConfiguration()
+    private <C extends AbstractAuthenticationContext> ProfileCompilerOptions createOptionForGettingPrincipal(C authnCtx) {
+        AuthenticationChannel channel = authnCtx.getChannel();
+        boolean supportGuiConfig = channel == null || channel.isSupportGuiConfigByChannel();
+
+        return ProfileCompilerOptions.create()
                 .collectAuthorization(true)
+                .compileGuiAdminConfiguration(supportGuiConfig)
                 .locateSecurityPolicy(true)
                 .tryReusingSecurityPolicy(true);
     }
