@@ -142,8 +142,7 @@ public abstract class AbstractAuthenticationProvider implements AuthenticationPr
             // Mark GUI profile as already compiled during authentication to avoid redundant compilation
             // in FinishAuthenticationFilter on the subsequent redirect request
             if (principal instanceof GuiProfiledPrincipal guiPrincipal) {
-                // Only set the flag if GUI profile was actually compiled (not just authorization collected)
-                if (guiPrincipal.getCompiledGuiProfile() != null) {
+                if (guiPrincipal.isGuiProfileCompiled()) {
                     mpAuthentication.setAlreadyCompiledGui(true);
                 }
             }

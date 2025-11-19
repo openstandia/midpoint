@@ -7,13 +7,9 @@
 package com.evolveum.midpoint.authentication.impl.provider;
 
 import com.evolveum.midpoint.authentication.api.AuthenticationChannel;
-import com.evolveum.midpoint.authentication.api.evaluator.AuthenticationEvaluator;
 import com.evolveum.midpoint.authentication.api.config.MidpointAuthentication;
 import com.evolveum.midpoint.authentication.impl.evaluator.PreAuthenticatedEvaluatorImpl;
 import com.evolveum.midpoint.model.api.ModelAuditRecorder;
-import com.evolveum.midpoint.model.api.authentication.GuiProfiledPrincipal;
-import com.evolveum.midpoint.authentication.api.evaluator.context.PasswordAuthenticationContext;
-
 import com.evolveum.midpoint.authentication.api.evaluator.context.PreAuthenticationContext;
 import com.evolveum.midpoint.security.api.ConnectionEnvironment;
 
@@ -49,17 +45,10 @@ public abstract class RemoteModuleProvider extends AbstractAuthenticationProvide
     @Override
     protected void writeAuthentication(Authentication originalAuthentication, MidpointAuthentication mpAuthentication,
             Authentication token) {
-        Object principal = token.getPrincipal();
-        if (principal instanceof GuiProfiledPrincipal) {
-            mpAuthentication.setPrincipal(principal);
-            // Mark GUI profile as already compiled during authentication to avoid redundant compilation
-            // in FinishAuthenticationFilter on the subsequent redirect request
-            mpAuthentication.setAlreadyCompiledGui(true);
-        }
+        super.writeAuthentication(originalAuthentication, mpAuthentication, token);
         if (token instanceof PreAuthenticatedAuthenticationToken) {
             ((PreAuthenticatedAuthenticationToken) token).setDetails(originalAuthentication);
         }
-        mpAuthentication.setToken(token);
     }
 
     protected PreAuthenticatedAuthenticationToken getPreAuthenticationToken(

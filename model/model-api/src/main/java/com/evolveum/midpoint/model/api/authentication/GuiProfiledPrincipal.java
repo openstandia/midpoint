@@ -27,6 +27,8 @@ public class GuiProfiledPrincipal extends MidPointPrincipal {
 
     private CompiledGuiProfile compiledGuiProfile;
 
+    private boolean guiProfileCompiled = false;
+
     private transient int activeSessions = 0;
 
     public GuiProfiledPrincipal(@NotNull FocusType user) {
@@ -43,6 +45,11 @@ public class GuiProfiledPrincipal extends MidPointPrincipal {
 
     public void setCompiledGuiProfile(CompiledGuiProfile compiledGuiProfile) {
         this.compiledGuiProfile = compiledGuiProfile;
+        this.guiProfileCompiled = true;
+    }
+
+    public boolean isGuiProfileCompiled() {
+        return guiProfileCompiled;
     }
 
     /**
@@ -60,6 +67,7 @@ public class GuiProfiledPrincipal extends MidPointPrincipal {
         super.copyValues(clone);
         // No need to clone user profile here. It is essentially read-only.
         clone.compiledGuiProfile = this.compiledGuiProfile;
+        clone.guiProfileCompiled = this.guiProfileCompiled;
     }
 
     @Override
