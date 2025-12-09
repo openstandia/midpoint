@@ -31,7 +31,8 @@ import com.evolveum.midpoint.gui.impl.component.search.Search;
  * @author lazyman
  */
 public abstract class BaseSearchDataProvider<C extends Serializable, T extends Serializable>
-        extends BaseSortableDataProvider<T> {
+        extends BaseSortableDataProvider<T>
+        implements IterativeExportSupport<T> {
 
     private final IModel<Search<C>> search;
 
@@ -125,5 +126,17 @@ public abstract class BaseSearchDataProvider<C extends Serializable, T extends S
     public void detach() {
         super.detach();
         search.detach();
+    }
+
+    /**
+     * Default implementation throws UnsupportedOperationException.
+     * Subclasses should override this method to support streaming CSV export.
+     */
+    @Override
+    public void exportIterative(
+            com.evolveum.midpoint.schema.ObjectHandler<T> handler,
+            com.evolveum.midpoint.task.api.Task task,
+            OperationResult result) throws CommonException {
+        throw new UnsupportedOperationException("Subclass must override exportIterative");
     }
 }
