@@ -1569,6 +1569,23 @@
                     </xsd:appinfo>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="collectDecisionsFromAllReviewers" type="xsd:boolean" minOccurs="0" default="true">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        <p>
+                            Specifies whether decisions should be collected from all reviewers.
+                        </p>
+                        <p>
+                            If true (default), progress is calculated based on WorkItems (all reviewers must respond).
+                            If false, progress is calculated based on Cases (one reviewer's decision is sufficient,
+                            and answered cases are hidden from other reviewers' work item lists).
+                        </p>
+                    </xsd:documentation>
+                    <xsd:appinfo>
+                        <a:since>4.10</a:since>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:element>
         </xsd:sequence>
         <xsd:attribute name="id" type="xsd:long"/>
     </xsd:complexType>

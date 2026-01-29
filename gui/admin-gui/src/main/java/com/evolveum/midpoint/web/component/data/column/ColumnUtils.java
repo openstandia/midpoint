@@ -1095,13 +1095,12 @@ public class ColumnUtils {
 
                         decidedPercent = all != 0 ? (decidedItems * 100) / all : 0;
                     } else {
-                        ObjectQuery query = CertCampaignTypeUtil.createWorkItemsForCampaignQuery(campaign.getOid());
-                        Task task = pageBase.createSimpleTask("countWorkItems");
-                        openNotDecidedItems = pageBase.getCertificationService().countOpenWorkItems(query, true,
-                                false, null, task, task.getResult());
+                        // Use unified method that respects collectDecisionsFromAllReviewers setting
+                        openNotDecidedItems = CertMiscUtil.countOpenCertItemsUnified(
+                                campaign.getOid(), null, true, pageBase);
 
-                        int allOpenItems = pageBase.getCertificationService().countOpenWorkItems(query, false,
-                                false, null, task, task.getResult());
+                        long allOpenItems = CertMiscUtil.countOpenCertItemsUnified(
+                                campaign.getOid(), null, false, pageBase);
                         decidedItems = allOpenItems - openNotDecidedItems;
                         decidedPercent = allOpenItems != 0 ? (decidedItems * 100) / allOpenItems : 0;
                     }
