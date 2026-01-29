@@ -96,17 +96,16 @@ public class DashboardCertCampaignsPanel extends ObjectListPanel<AccessCertifica
                 for (PrismObject<AccessCertificationCampaignType> campaignObj : campaigns) {
                     AccessCertificationCampaignType campaign = campaignObj.asObjectable();
 
-                    ObjectQuery workItems = CertCampaignTypeUtil.createWorkItemsForCampaignQuery(campaign.getOid());
-
                     try {
-                        int openNotDecided = page.getCertificationService().countOpenWorkItems(workItems, true,
-                                false, null, task, task.getResult());
-                        int allOpen = page.getCertificationService().countOpenWorkItems(workItems, false,
-                                false, null, task, task.getResult());
-                        int openDecided = allOpen - openNotDecided;
+                        // Use unified method that respects collectDecisionsFromAllReviewers setting
+                        long openNotDecided = CertMiscUtil.countOpenCertItemsUnified(
+                                campaign.getOid(), null, true, page);
+                        long allOpen = CertMiscUtil.countOpenCertItemsUnified(
+                                campaign.getOid(), null, false, page);
+                        long openDecided = allOpen - openNotDecided;
 
                         summary.add(new CampaignSummary(campaign, openDecided, openNotDecided));
-                    } catch (CommonException ex) {
+                    } catch (Exception ex) {
                         LOGGER.error("Couldn't load certification campaign work items count for campaign {}: {}",
                                 campaign.getName(), ex.getMessage(), ex);
                     }

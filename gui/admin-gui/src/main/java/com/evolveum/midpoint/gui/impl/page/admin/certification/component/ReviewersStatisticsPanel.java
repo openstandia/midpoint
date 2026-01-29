@@ -294,7 +294,8 @@ public class ReviewersStatisticsPanel extends BasePanel {
         if (isInReviewStage()) {
             String campaignOid = model.getObjectType().getOid();
             MidPointPrincipal principal = MidPointPrincipal.create(reviewer.asObjectable());
-            return CertMiscUtil.countOpenCertItems(Collections.singletonList(campaignOid), principal,
+            // Use unified method that respects collectDecisionsFromAllReviewers setting
+            return CertMiscUtil.countOpenCertItemsUnified(Collections.singletonList(campaignOid), principal,
                     true, getPageBase());
         } else if (isReviewStageDone()) {
             return CertMiscUtil.countCertItemsForClosedStageAndIteration(model.getObjectType(), true, getPageBase());
@@ -309,7 +310,8 @@ public class ReviewersStatisticsPanel extends BasePanel {
         if (isInReviewStage()) {
             String campaignOid = model.getObjectType().getOid();
             MidPointPrincipal principal = MidPointPrincipal.create(reviewer.asObjectable());
-            return CertMiscUtil.countOpenCertItems(Collections.singletonList(campaignOid), principal,
+            // Use unified method that respects collectDecisionsFromAllReviewers setting
+            return CertMiscUtil.countOpenCertItemsUnified(Collections.singletonList(campaignOid), principal,
                     false, getPageBase());
         } else if (isReviewStageDone()) {
             return CertMiscUtil.countCertItemsForClosedStageAndIteration(model.getObjectType(), false, getPageBase());

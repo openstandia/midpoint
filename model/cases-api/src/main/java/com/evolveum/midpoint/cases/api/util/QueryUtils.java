@@ -214,6 +214,22 @@ public class QueryUtils {
 
    public static ObjectQuery createQueryForOpenWorkItems(
             ObjectQuery baseWorkItemsQuery, MidPointPrincipal principal, boolean notDecidedOnly) {
+        return createQueryForOpenWorkItems(baseWorkItemsQuery, principal, notDecidedOnly, true);
+    }
+
+    /**
+     * Creates a query for open work items with an option to filter by case outcome.
+     *
+     * @param baseWorkItemsQuery the base query
+     * @param principal the principal (can be null for all reviewers)
+     * @param notDecidedOnly if true, only return work items without a decision
+     * @param collectDecisionsFromAllReviewers if false, only return work items where the parent case
+     *        has no response yet (currentStageOutcome is NO_RESPONSE)
+     * @return the query
+     */
+    public static ObjectQuery createQueryForOpenWorkItems(
+            ObjectQuery baseWorkItemsQuery, MidPointPrincipal principal, boolean notDecidedOnly,
+            boolean collectDecisionsFromAllReviewers) {
         ObjectFilter reviewerAndEnabledFilter = getReviewerAndEnabledFilterForWI(principal);
 
         ObjectFilter filter;
@@ -225,6 +241,70 @@ public class QueryUtils {
         } else {
             filter = reviewerAndEnabledFilter;
         }
+
+        // If collectDecisionsFromAllReviewers is false, only show work items where the parent case
+        // has not been decided yet (currentStageOutcome is NO_RESPONSE)
+        if (!collectDecisionsFromAllReviewers) {
+            ObjectFilter caseNotDecidedFilter = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
+                    .exists(PrismConstants.T_PARENT)
+                    .block()
+                        .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                        .eq(SchemaConstants.MODEL_CERTIFICATION_OUTCOME_NO_RESPONSE)
+                    .endBlock()
+                    .buildFilter();
+            filter = PrismContext.get().queryFactory().createAnd(filter, caseNotDecidedFilter);
+        }
+
         return addFilter(baseWorkItemsQuery, filter);
+    }
+
+    /**
+     * Creates a query for open work items for a single campaign.
+     *
+     * @param campaignOid the campaign OID
+     * @param reviewerRef the reviewer reference (can be null for all reviewers)
+     * @param notDecidedOnly if true, only return work items without a decision
+     * @return the query
+     */
+    public static ObjectQuery createQueryForOpenWorkItems(
+            String campaignOid, ObjectReferenceType reviewerRef, boolean notDecidedOnly) {
+        S_FilterEntry queryBuilder = PrismContext.get().queryFor(AccessCertificationWorkItemType.class);
+
+        S_FilterExit baseQuery;
+        if (campaignOid != null) {
+            baseQuery = queryBuilder.ownerId(campaignOid);
+        } else {
+            baseQuery = queryBuilder.all();
+        }
+
+        ObjectQuery query = baseQuery.build();
+
+        // Add reviewer filter if specified
+        if (reviewerRef != null && reviewerRef.getOid() != null) {
+            ObjectFilter reviewerFilter = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
+                    .item(AbstractWorkItemType.F_ASSIGNEE_REF)
+                    .ref(reviewerRef.getOid())
+                    .and()
+                    .item(F_CLOSE_TIMESTAMP)
+                    .isNull()
+                    .buildFilter();
+            query = addFilter(query, reviewerFilter);
+        } else {
+            ObjectFilter openFilter = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
+                    .item(F_CLOSE_TIMESTAMP)
+                    .isNull()
+                    .buildFilter();
+            query = addFilter(query, openFilter);
+        }
+
+        // Add not decided filter if specified
+        if (notDecidedOnly) {
+            ObjectFilter noResponseFilter = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
+                    .item(F_OUTPUT, F_OUTCOME).isNull()
+                    .buildFilter();
+            query = addFilter(query, noResponseFilter);
+        }
+
+        return query;
     }
 }

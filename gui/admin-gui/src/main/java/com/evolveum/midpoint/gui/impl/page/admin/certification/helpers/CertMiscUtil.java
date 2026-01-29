@@ -305,8 +305,9 @@ public class CertMiscUtil {
 
         dataset.setFill(true);
 
-        long notDecidedCertItemsCount = countOpenCertItems(campaignOids, principal, true, pageBase);
-        long allOpenCertItemsCount = countOpenCertItems(campaignOids, principal, false, pageBase);
+        // Use unified method that respects collectDecisionsFromAllReviewers setting
+        long notDecidedCertItemsCount = countOpenCertItemsUnified(campaignOids, principal, true, pageBase);
+        long allOpenCertItemsCount = countOpenCertItemsUnified(campaignOids, principal, false, pageBase);
         long decidedCertItemsCount = allOpenCertItemsCount - notDecidedCertItemsCount;
 
         dataset.addData(decidedCertItemsCount);
@@ -901,5 +902,253 @@ public class CertMiscUtil {
         }
         AccessCertificationDefinitionType definition = definitionObj.asObjectable();
         return definition.getView();
+    }
+
+    /**
+     * Returns whether decisions should be collected from all reviewers.
+     * If true (default), progress is calculated based on WorkItems.
+     * If false, progress is calculated based on Cases.
+     */
+    public static boolean isCollectDecisionsFromAllReviewers(PageBase pageBase) {
+        AccessCertificationConfigurationType config = getCertificationConfiguration(pageBase);
+        if (config == null || config.isCollectDecisionsFromAllReviewers() == null) {
+            return true;  // default: true
+        }
+        return config.isCollectDecisionsFromAllReviewers();
+    }
+
+    /**
+     * Returns the certification configuration from system configuration.
+     */
+    public static AccessCertificationConfigurationType getCertificationConfiguration(PageBase pageBase) {
+        try {
+            OperationResult result = new OperationResult(OPERATION_LOAD_CERTIFICATION_CONFIG);
+            return pageBase.getModelInteractionService().getCertificationConfiguration(result);
+        } catch (Exception e) {
+            LOGGER.error("Couldn't load certification configuration from system configuration", e);
+            return null;
+        }
+    }
+
+    /**
+     * Counts open certification items based on the collectDecisionsFromAllReviewers setting.
+     * This is the unified entry point for counting - callers should use this method
+     * instead of directly calling countOpenWorkItems or countOpenCases.
+     *
+     * @param campaignOid the campaign OID (can be null for all campaigns)
+     * @param reviewerOid the reviewer OID (can be null for all reviewers)
+     * @param notDecidedOnly if true, count only not-decided items
+     * @param pageBase the page base
+     * @return the count of open items
+     */
+    public static long countOpenCertItemsUnified(String campaignOid, String reviewerOid, boolean notDecidedOnly, PageBase pageBase) {
+        if (isCollectDecisionsFromAllReviewers(pageBase)) {
+            // WorkItem-based counting (original behavior)
+            return countOpenWorkItemsInternal(campaignOid, reviewerOid, notDecidedOnly, pageBase);
+        } else {
+            // Case-based counting
+            return countOpenCasesInternal(campaignOid, reviewerOid, notDecidedOnly, pageBase);
+        }
+    }
+
+    /**
+     * Counts open certification items for multiple campaigns based on the collectDecisionsFromAllReviewers setting.
+     */
+    public static long countOpenCertItemsUnified(List<String> campaignOids, MidPointPrincipal principal, boolean notDecidedOnly, PageBase pageBase) {
+        if (isCollectDecisionsFromAllReviewers(pageBase)) {
+            // WorkItem-based counting (original behavior)
+            return countOpenCertItems(campaignOids, principal, notDecidedOnly, pageBase);
+        } else {
+            // Case-based counting
+            return countOpenCasesForCampaigns(campaignOids, principal, notDecidedOnly, pageBase);
+        }
+    }
+
+    /**
+     * Internal method to count open work items for a single campaign.
+     */
+    private static long countOpenWorkItemsInternal(String campaignOid, String reviewerOid, boolean notDecidedOnly, PageBase pageBase) {
+        Task task = pageBase.createSimpleTask("countCertificationWorkItems");
+        OperationResult result = task.getResult();
+        try {
+            ObjectQuery query = QueryUtils.createQueryForOpenWorkItems(
+                    campaignOid,
+                    reviewerOid != null ? new ObjectReferenceType().oid(reviewerOid) : null,
+                    notDecidedOnly);
+            if (query == null) {
+                return 0;
+            }
+            return pageBase.getModelService()
+                    .countContainers(AccessCertificationWorkItemType.class, query, null, task, result);
+        } catch (Exception ex) {
+            LOGGER.error("Couldn't count certification work items", ex);
+            pageBase.showResult(result);
+        }
+        return 0;
+    }
+
+    /**
+     * Internal method to count open cases for a single campaign.
+     * Counts cases where currentStageOutcome is NO_RESPONSE (not yet decided).
+     */
+    private static long countOpenCasesInternal(String campaignOid, String reviewerOid, boolean notDecidedOnly, PageBase pageBase) {
+        Task task = pageBase.createSimpleTask("countCertificationCases");
+        OperationResult result = task.getResult();
+        try {
+            ObjectQuery query;
+
+            if (notDecidedOnly) {
+                // Count cases where currentStageOutcome is NO_RESPONSE
+                if (campaignOid != null && reviewerOid != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(campaignOid)
+                            .and()
+                            .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                            .eq(OutcomeUtils.toUri(NO_RESPONSE))
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AbstractWorkItemType.F_ASSIGNEE_REF))
+                            .ref(reviewerOid)
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AccessCertificationWorkItemType.F_CLOSE_TIMESTAMP))
+                            .isNull()
+                            .build();
+                } else if (campaignOid != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(campaignOid)
+                            .and()
+                            .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                            .eq(OutcomeUtils.toUri(NO_RESPONSE))
+                            .build();
+                } else if (reviewerOid != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                            .eq(OutcomeUtils.toUri(NO_RESPONSE))
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AbstractWorkItemType.F_ASSIGNEE_REF))
+                            .ref(reviewerOid)
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AccessCertificationWorkItemType.F_CLOSE_TIMESTAMP))
+                            .isNull()
+                            .build();
+                } else {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                            .eq(OutcomeUtils.toUri(NO_RESPONSE))
+                            .build();
+                }
+            } else {
+                // Count all cases (both decided and not decided)
+                if (campaignOid != null && reviewerOid != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(campaignOid)
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AbstractWorkItemType.F_ASSIGNEE_REF))
+                            .ref(reviewerOid)
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AccessCertificationWorkItemType.F_CLOSE_TIMESTAMP))
+                            .isNull()
+                            .build();
+                } else if (campaignOid != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(campaignOid)
+                            .build();
+                } else if (reviewerOid != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AbstractWorkItemType.F_ASSIGNEE_REF))
+                            .ref(reviewerOid)
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AccessCertificationWorkItemType.F_CLOSE_TIMESTAMP))
+                            .isNull()
+                            .build();
+                } else {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .all()
+                            .build();
+                }
+            }
+
+            return pageBase.getModelService()
+                    .countContainers(AccessCertificationCaseType.class, query, null, task, result);
+        } catch (Exception ex) {
+            LOGGER.error("Couldn't count certification cases", ex);
+            pageBase.showResult(result);
+        }
+        return 0;
+    }
+
+    /**
+     * Counts open cases for multiple campaigns.
+     */
+    private static long countOpenCasesForCampaigns(List<String> campaignOids, MidPointPrincipal principal, boolean notDecidedOnly, PageBase pageBase) {
+        if (campaignOids == null || campaignOids.isEmpty()) {
+            return 0;
+        }
+
+        Task task = pageBase.createSimpleTask("countCertificationCases");
+        OperationResult result = task.getResult();
+        try {
+            String[] oids = campaignOids.toArray(new String[0]);
+            ObjectQuery query;
+
+            if (notDecidedOnly) {
+                if (principal != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(oids)
+                            .and()
+                            .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                            .eq(OutcomeUtils.toUri(NO_RESPONSE))
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AbstractWorkItemType.F_ASSIGNEE_REF))
+                            .ref(principal.getOid())
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AccessCertificationWorkItemType.F_CLOSE_TIMESTAMP))
+                            .isNull()
+                            .build();
+                } else {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(oids)
+                            .and()
+                            .item(AccessCertificationCaseType.F_CURRENT_STAGE_OUTCOME)
+                            .eq(OutcomeUtils.toUri(NO_RESPONSE))
+                            .build();
+                }
+            } else {
+                if (principal != null) {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(oids)
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AbstractWorkItemType.F_ASSIGNEE_REF))
+                            .ref(principal.getOid())
+                            .and()
+                            .item(ItemPath.create(AccessCertificationCaseType.F_WORK_ITEM, AccessCertificationWorkItemType.F_CLOSE_TIMESTAMP))
+                            .isNull()
+                            .build();
+                } else {
+                    query = PrismContext.get().queryFor(AccessCertificationCaseType.class)
+                            .ownerId(oids)
+                            .build();
+                }
+            }
+
+            return pageBase.getModelService()
+                    .countContainers(AccessCertificationCaseType.class, query, null, task, result);
+        } catch (Exception ex) {
+            LOGGER.error("Couldn't count certification cases for campaigns", ex);
+            pageBase.showResult(result);
+        }
+        return 0;
+    }
+
+    /**
+     * Creates a progress bar model based on the collectDecisionsFromAllReviewers setting.
+     * This is the unified entry point for progress bar creation.
+     */
+    public static LoadableDetachableModel<List<ProgressBar>> createCampaignProgressBarModel(
+            AccessCertificationCampaignType campaign, String principalOid, PageBase pageBase) {
+        if (isCollectDecisionsFromAllReviewers(pageBase)) {
+            return createCampaignWorkItemsProgressBarModel(campaign, principalOid, pageBase);
+        } else {
+            return createCampaignCasesProgressBarModel(campaign, principalOid, pageBase);
+        }
     }
 }
