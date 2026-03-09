@@ -298,11 +298,15 @@
                 <administrativeStatus>
                     <outbound/>
                     <inbound>
+                        <name>administrativeStatus-validFrom-validTo-m</name>
                         <strength>weak</strength>
                         <condition>
+                            <name>administrativeStatus-validFrom-validTo-c</name>
+                            <trace>true</trace>
                             <script>
+                                <trace>true</trace>
                                 <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-                                <code>!has(focus.activation.validFrom) &amp;&amp; !has(focus.activation.validTo)</code>
+                                <code>!focus.?activation.?validFrom.hasValue() &amp;&amp; !focus.?activation.?validTo.hasValue()</code>
                             </script>
                         </condition>
                     </inbound>

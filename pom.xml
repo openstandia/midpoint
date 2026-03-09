@@ -230,6 +230,7 @@
         <!-- Groovy 4.0.24 is also default for Spring Boot 3.4.0 -->
         <groovy.version>4.0.24</groovy.version>
 
+        <cel.version>0.12.0</cel.version>
 
         <!-- START of Spring Boot dependencies overrides (temporary/security fixes, revise regularly!) -->
         <commons-lang3.version>3.18.0</commons-lang3.version>
@@ -456,13 +457,28 @@
             <dependency>
                 <groupId>dev.cel</groupId>
                 <artifactId>cel</artifactId>
-                <version>0.11.1</version>
+                <version>${cel.version}</version>
             </dependency>
             <dependency>
-                <!-- Required by CEL -->
+                <groupId>dev.cel</groupId>
+                <artifactId>compiler</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cel</groupId>
+                <artifactId>runtime</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cel</groupId>
+                <artifactId>common</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <!-- Required by CEL. Need to match version used in CEL. -->
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
-                <version>4.33.0</version>
+                <version>4.33.5</version>
             </dependency>
             <dependency>
                 <groupId>org.hibernate</groupId>

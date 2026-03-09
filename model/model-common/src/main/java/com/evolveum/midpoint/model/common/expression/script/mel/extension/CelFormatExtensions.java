@@ -13,7 +13,6 @@ import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.protobuf.Timestamp;
 import dev.cel.common.CelFunctionDecl;
 import dev.cel.common.CelOverloadDecl;
 import dev.cel.common.types.ListType;
@@ -79,7 +78,7 @@ public class CelFormatExtensions extends AbstractMidPointCelExtensions {
                                         "Formats provided timestamp to string, using a format template specified in Java SimpleDateFormat notation.",
                                         SimpleType.STRING,
                                         SimpleType.TIMESTAMP, SimpleType.STRING)),
-                        CelFunctionBinding.from(FUNCTION_NAME_PREFIX + "_formatDateTime", Timestamp.class, String.class,
+                        CelFunctionBinding.from(FUNCTION_NAME_PREFIX + "_formatDateTime", Instant.class, String.class,
                                 this::formatDateTime)
 
                 ),
@@ -95,7 +94,7 @@ public class CelFormatExtensions extends AbstractMidPointCelExtensions {
                                         SimpleType.STRING,
                                         SimpleType.TIMESTAMP, SimpleType.STRING)),
                         CelFunctionBinding.from("timestamp_" + FUNCTION_NAME_PREFIX + "_formatDateTime",
-                                Timestamp.class, String.class, this::formatDateTime)
+                                Instant.class, String.class, this::formatDateTime)
 
                 ),
 
@@ -139,7 +138,7 @@ public class CelFormatExtensions extends AbstractMidPointCelExtensions {
                                         "Formats provided timestamp to string, using a format template specified in POSIX notation.",
                                         SimpleType.STRING,
                                         SimpleType.TIMESTAMP, SimpleType.STRING)),
-                        CelFunctionBinding.from(FUNCTION_NAME_PREFIX + "_strftime", Timestamp.class, String.class,
+                        CelFunctionBinding.from(FUNCTION_NAME_PREFIX + "_strftime", Instant.class, String.class,
                                 this::strftime)
 
                 ),
@@ -155,7 +154,7 @@ public class CelFormatExtensions extends AbstractMidPointCelExtensions {
                                         SimpleType.STRING,
                                         SimpleType.TIMESTAMP, SimpleType.STRING)),
                         CelFunctionBinding.from("timestamp_" + FUNCTION_NAME_PREFIX + "_strftime",
-                                Timestamp.class, String.class, this::strftime)
+                                Instant.class, String.class, this::strftime)
 
                 ),
 
@@ -277,31 +276,25 @@ public class CelFormatExtensions extends AbstractMidPointCelExtensions {
     }
 
     @NotNull
-    private String formatDateTime(@NotNull Timestamp timestamp, @NotNull String format) {
-        return basicExpressionFunctions.formatDateTime(format, CelTypeMapper.toMillis(timestamp));
+    private String formatDateTime(@NotNull Instant instant, @NotNull String format) {
+        return basicExpressionFunctions.formatDateTime(format, CelTypeMapper.toMillis(instant));
     }
 
-    private Timestamp parseDateTime(@NotNull String stringDate, @NotNull String format) {
+    private Instant parseDateTime(@NotNull String stringDate, @NotNull String format) {
         try {
-            return CelTypeMapper.toTimestamp(basicExpressionFunctions.parseDateTime(format, stringDate));
+            return CelTypeMapper.toInstant(basicExpressionFunctions.parseDateTime(format, stringDate));
         } catch (ParseException e) {
-            // TODO: better exception handling
-            throw new RuntimeException(e);
+            throw createException(e);
         }
     }
 
-    private String strftime(@NotNull Timestamp timestamp, @NotNull String posixFormat) {
-        Instant instant = Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
+    private String strftime(@NotNull Instant instant, @NotNull String posixFormat) {
         return TimestampFormatUtil.strftime(instant, posixFormat);
     }
 
-    private Timestamp strptime(@NotNull String stringDate, @NotNull String posixFormat) {
+    private Instant strptime(@NotNull String stringDate, @NotNull String posixFormat) {
         ZonedDateTime zdt = TimestampFormatUtil.strptime(stringDate, posixFormat);
-        Instant instant = zdt.toInstant();
-        return Timestamp.newBuilder()
-                .setSeconds(instant.getEpochSecond())
-                .setNanos(instant.getNano())
-                .build();
+        return zdt.toInstant();
     }
 
     public String concatName(List<Object> args) {

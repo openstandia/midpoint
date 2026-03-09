@@ -115,6 +115,18 @@
             <artifactId>cel</artifactId>
         </dependency>
         <dependency>
+            <groupId>dev.cel</groupId>
+            <artifactId>compiler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.cel</groupId>
+            <artifactId>runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.cel</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
         </dependency>

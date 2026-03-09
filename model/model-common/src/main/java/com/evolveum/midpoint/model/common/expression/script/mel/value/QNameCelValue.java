@@ -20,7 +20,7 @@ import dev.cel.common.types.SimpleType;
 import dev.cel.common.types.StructType;
 import dev.cel.common.values.CelValue;
 import dev.cel.compiler.CelCompilerBuilder;
-import dev.cel.parser.Operator;
+import dev.cel.common.Operator;
 import dev.cel.runtime.CelFunctionBinding;
 import dev.cel.runtime.CelRuntimeBuilder;
 import org.jetbrains.annotations.NotNull;

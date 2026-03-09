@@ -24,6 +24,7 @@ import com.evolveum.midpoint.prism.*;
 
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.prism.xml.XmlTypeConverter;
+import com.evolveum.midpoint.schema.constants.ExpressionConstants;
 import com.evolveum.midpoint.schema.constants.SchemaConstants;
 import com.evolveum.midpoint.schema.internals.InternalMonitor;
 import com.evolveum.midpoint.schema.result.OperationResult;
@@ -914,6 +915,75 @@ public class TestMelExpressions extends AbstractScriptTest {
                 ),
                 "Black Pearl");
     }
+
+    @Test
+    public void testUserAdministrativeStatusNullFalse() throws Exception {
+        evaluateAndAssertBooleanScalarExpression(
+                "expression-user-administrative-status-null.xml",
+                createUserScriptVariables(),
+                false);
+    }
+
+    @Test
+    public void testUserAdministrativeStatusNullTrue1() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        userJack.asObjectable().getActivation().setAdministrativeStatus(null);
+        display("User before\n" + userJack.debugDump());
+        evaluateAndAssertBooleanScalarExpression(
+                "expression-user-administrative-status-null.xml",
+                createVariables(
+                        ExpressionConstants.VAR_FOCUS, userJack, userJack.getDefinition()
+                ),
+                true);
+    }
+
+    @Test
+    public void testUserAdministrativeStatusNullTrue2() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        userJack.asObjectable().setActivation(null);
+        display("User before\n" + userJack.debugDump());
+        evaluateAndAssertBooleanScalarExpression(
+                "expression-user-administrative-status-null.xml",
+                createVariables(
+                        ExpressionConstants.VAR_FOCUS, userJack, userJack.getDefinition()
+                ),
+                true);
+    }
+
+    @Test
+    public void testUserAdministrativeStatusNull1() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        userJack.asObjectable().getActivation().setAdministrativeStatus(null);
+        display("User before\n" + userJack.debugDump());
+        VariablesMap variables = createVariables(
+                ExpressionConstants.VAR_FOCUS, userJack, userJack.getDefinition()
+        );
+        List<PrismPropertyValue<String>> expressionResultList = evaluateExpression(
+                "expression-user-administrative-status.xml",
+                DOMUtil.XSD_STRING, true, variables);
+        PrismPropertyValue<String> expressionResult = asScalar(expressionResultList, getTestName());
+        displayValue("Expression result", expressionResult);
+        assertNull("Expression " + getTestName() + " resulted in NON null value" + expressionResult +
+                " while expecting null", expressionResult);
+    }
+
+    @Test
+    public void testUserAdministrativeStatusNull2() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        userJack.asObjectable().setActivation(null);
+        display("User before\n" + userJack.debugDump());
+        VariablesMap variables = createVariables(
+                ExpressionConstants.VAR_FOCUS, userJack, userJack.getDefinition()
+        );
+        List<PrismPropertyValue<String>> expressionResultList = evaluateExpression(
+                "expression-user-administrative-status.xml",
+                DOMUtil.XSD_STRING, true, variables);
+        PrismPropertyValue<String> expressionResult = asScalar(expressionResultList, getTestName());
+        displayValue("Expression result", expressionResult);
+        assertNull("Expression " + getTestName() + " resulted in NON null value" + expressionResult +
+                " while expecting null", expressionResult);
+    }
+
 
     @Test
     public void testExpressionQName() throws Exception {

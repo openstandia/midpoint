@@ -59,8 +59,10 @@ public class MelScriptEvaluator extends AbstractCachingScriptEvaluator<CelRuntim
 
     private final BasicExpressionFunctions basicExpressionFunctions;
     private final MidpointFunctions midpointExpressionFunctions;
-    private final CelOptions celOptions = CelOptions.current().
-            enableRegexPartialMatch(true).build();
+    private final CelOptions celOptions = CelOptions.current()
+            .enableRegexPartialMatch(true)
+            .enableOptionalSyntax(true)
+            .build();
 
     private CelTypeProvider typeProvider = null;
 
@@ -262,7 +264,7 @@ public class MelScriptEvaluator extends AbstractCachingScriptEvaluator<CelRuntim
         final Map<String, Object> scriptVariableMap = new HashMap<>();
         prepareScriptVariablesMap(context, scriptVariableMap, CelTypeMapper::convertVariableValue);
         if (!scriptVariableMap.containsKey(ExpressionConstants.VAR_NOW)) {
-            scriptVariableMap.put(ExpressionConstants.VAR_NOW, CelTypeMapper.toTimestamp(basicExpressionFunctions.currentDateTime()));
+            scriptVariableMap.put(ExpressionConstants.VAR_NOW, CelTypeMapper.toInstant(basicExpressionFunctions.currentDateTime()));
         }
         return scriptVariableMap;
     }

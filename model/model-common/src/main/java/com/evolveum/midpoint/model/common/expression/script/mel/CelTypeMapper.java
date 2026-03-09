@@ -17,15 +17,12 @@ import com.evolveum.midpoint.util.QNameUtil;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 
-import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
-import com.evolveum.prism.xml.ns._public.types_3.ItemPathType;
 import com.evolveum.prism.xml.ns._public.types_3.PolyStringType;
 
 import com.evolveum.prism.xml.ns._public.types_3.ProtectedStringType;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.protobuf.Timestamp;
 import dev.cel.common.types.*;
 import dev.cel.common.values.CelValue;
 import dev.cel.common.values.NullValue;
@@ -37,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.xml.datatype.Duration;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.*;
 
@@ -342,8 +338,8 @@ public class CelTypeMapper implements CelTypeProvider  {
         }
         if (celValue instanceof CelValue) {
             return toJavaValue((CelValue) celValue);
-        } else if (celValue instanceof Timestamp ts) {
-            return toXmlGregorianCalendar(ts);
+        } else if (celValue instanceof Instant i) {
+            return toXmlGregorianCalendar(i);
         } else if (celValue instanceof com.google.protobuf.Duration gDurantion) {
             return toXmlDuration(gDurantion);
         } else {
@@ -359,11 +355,9 @@ public class CelTypeMapper implements CelTypeProvider  {
         if (celValue instanceof MidPointValueProducer<?> mpCelValue) {
             return mpCelValue.getJavaValue();
         } else if (celValue instanceof OpaqueValue) {
-            return ((OpaqueValue) celValue).value();
+            return celValue.value();
         } else if (celValue instanceof List) {
             return toJavaValueList((List)celValue);
-//        } else if (celValue instanceof Map) {
-//            return celValue;
         } else {
             throw new IllegalArgumentException("Unknown CEL value "+celValue+" ("+celValue.getClass().getName()+")");
         }
@@ -383,7 +377,7 @@ public class CelTypeMapper implements CelTypeProvider  {
             return QNameCelValue.create(qname);
         }
         if (javaValue instanceof XMLGregorianCalendar xmlCal) {
-            return toTimestamp(xmlCal);
+            return toInstant(xmlCal);
         }
         if (javaValue instanceof Duration xmlDuration) {
             return toGoogleDuration(xmlDuration);
@@ -422,23 +416,26 @@ public class CelTypeMapper implements CelTypeProvider  {
                 return ReferenceCelValue.create(reference.getValue());
             }
         }
-        // TODO
         return null;
     }
 
 
     static <T> Object convertVariableValue(TypedValue<T> typedValue) {
-        if (typedValue == null || typedValue.getValue() == null) {
+        if (typedValue == null) {
+            // CEL has special type and value for null
+            return NullValue.NULL_VALUE;
+        }
+        Object value = typedValue.getValue();
+        if (value == null) {
             // CEL has special type and value for null
             return NullValue.NULL_VALUE;
         }
         ItemDefinition def = typedValue.getDefinition();
         if (def == null) {
-            return CelTypeMapper.toCelValue(typedValue.getValue());
+            return CelTypeMapper.toCelValue(value);
         }
         if (def instanceof PrismPropertyDefinition<?> propDef) {
             if (propDef.isEnum()) {
-                Object value = typedValue.getValue();
                 if (value instanceof TypeSafeEnum tse) {
                     return tse.value();
                 } else {
@@ -446,8 +443,8 @@ public class CelTypeMapper implements CelTypeProvider  {
                 }
             }
             if (QNameUtil.match(((PrismPropertyDefinition<?>)def).getTypeName(), PrismConstants.POLYSTRING_TYPE_QNAME)) {
-                Object value = typedValue.getValue();
                 if (value == null) {
+                    // TODO: is this correct?
                     return PolyStringCelValue.create(null);
                 }
                 if (value instanceof PolyString) {
@@ -461,31 +458,31 @@ public class CelTypeMapper implements CelTypeProvider  {
             }
         }
         if (def instanceof PrismObjectDefinition<?>) {
-            if (typedValue.getValue() instanceof PrismObject<?> o) {
+            if (value instanceof PrismObject<?> o) {
                 return ObjectCelValue.create(o);
-            } else if (typedValue.getValue() instanceof Objectable o) {
+            } else if (value instanceof Objectable o) {
                 return ObjectCelValue.create((PrismObject<?>)o.asPrismObject());
             }
         }
         if (def instanceof PrismContainerDefinition<?>) {
-            if (typedValue.getValue() instanceof PrismContainerValue<?> cval) {
+            if (value instanceof PrismContainerValue<?> cval) {
                 return ContainerValueCelValue.create(cval);
-            } else if (typedValue.getValue() instanceof Containerable c) {
+            } else if (value instanceof Containerable c) {
                 return ContainerValueCelValue.create((PrismContainerValue<?>)c.asPrismContainerValue());
             }
         }
         if (def instanceof PrismReferenceDefinition) {
-            if (typedValue.getValue() instanceof PrismReferenceValue rval) {
+            if (value instanceof PrismReferenceValue rval) {
                 return ReferenceCelValue.create(rval);
-            } else if (typedValue.getValue() instanceof Referencable r) {
+            } else if (value instanceof Referencable r) {
                 return ReferenceCelValue.create(r.asReferenceValue());
             }
         }
-        return CelTypeMapper.toCelValue(typedValue.getValue());
+        return CelTypeMapper.toCelValue(value);
     }
 
-    public static long toMillis(@NotNull Timestamp timestamp) {
-        return (timestamp.getSeconds() * 1000) + (timestamp.getNanos() / 1_000_000);
+    public static long toMillis(@NotNull Instant instant) {
+        return instant.toEpochMilli();
     }
 
     public static com.google.protobuf.Duration toGoogleDuration(Duration xmlDuration) {
@@ -496,12 +493,8 @@ public class CelTypeMapper implements CelTypeProvider  {
                 .build();
     }
 
-    public static Timestamp toTimestamp(XMLGregorianCalendar xmlCal) {
-        Instant instant = xmlCal.toGregorianCalendar().toInstant();
-        return Timestamp.newBuilder()
-                .setSeconds(instant.getEpochSecond())
-                .setNanos(instant.getNano())
-                .build();
+    public static Instant toInstant(XMLGregorianCalendar xmlCal) {
+        return xmlCal.toGregorianCalendar().toInstant();
     }
 
     public static @NotNull Duration toXmlDuration(@NotNull com.google.protobuf.Duration gDurantion) {
@@ -509,8 +502,7 @@ public class CelTypeMapper implements CelTypeProvider  {
         return XmlTypeConverter.createDuration(millis);
     }
 
-    public static @NotNull XMLGregorianCalendar toXmlGregorianCalendar(@NotNull Timestamp ts) {
-        Instant instant = Instant.ofEpochSecond(ts.getSeconds(), ts.getNanos());
+    public static @NotNull XMLGregorianCalendar toXmlGregorianCalendar(@NotNull Instant instant) {
         // Protobuf/CEL timestamps are always rooted in UTC ("Google epoch").
         GregorianCalendar gregorianCalendar = GregorianCalendar.from(instant.atZone(java.time.ZoneId.of("UTC")));
         return XmlTypeConverter.createXMLGregorianCalendar(gregorianCalendar);

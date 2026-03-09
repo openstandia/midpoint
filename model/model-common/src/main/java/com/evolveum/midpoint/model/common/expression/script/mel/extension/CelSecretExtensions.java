@@ -7,34 +7,17 @@ package com.evolveum.midpoint.model.common.expression.script.mel.extension;
 
 import com.evolveum.midpoint.model.common.expression.functions.BasicExpressionFunctions;
 import com.evolveum.midpoint.model.common.expression.script.mel.CelTypeMapper;
-import com.evolveum.midpoint.model.common.expression.script.mel.value.MidPointValueProducer;
-import com.evolveum.midpoint.model.common.expression.script.mel.value.PolyStringCelValue;
-import com.evolveum.midpoint.model.common.expression.script.mel.value.QNameCelValue;
-import com.evolveum.midpoint.prism.crypto.EncryptionException;
 import com.evolveum.midpoint.prism.crypto.Protector;
-import com.evolveum.midpoint.prism.polystring.PolyString;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.prism.xml.ns._public.types_3.ProtectedStringType;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.protobuf.Timestamp;
 import dev.cel.common.CelFunctionDecl;
 import dev.cel.common.CelOverloadDecl;
-import dev.cel.common.types.ListType;
-import dev.cel.common.types.NullableType;
 import dev.cel.common.types.SimpleType;
-import dev.cel.common.values.NullValue;
 import dev.cel.extensions.CelExtensionLibrary;
-import dev.cel.parser.Operator;
 import dev.cel.runtime.CelFunctionBinding;
-import org.jetbrains.annotations.Nullable;
-
-import java.time.*;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Extensions for CEL compiler and runtime implementing dealing with secret providers.

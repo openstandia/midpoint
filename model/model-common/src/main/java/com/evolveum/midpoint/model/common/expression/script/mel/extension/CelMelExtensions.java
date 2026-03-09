@@ -20,7 +20,6 @@ import com.evolveum.prism.xml.ns._public.types_3.ProtectedStringType;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.protobuf.Timestamp;
 import dev.cel.common.CelFunctionDecl;
 import dev.cel.common.CelOverloadDecl;
 import dev.cel.common.types.ListType;
@@ -28,9 +27,8 @@ import dev.cel.common.types.NullableType;
 import dev.cel.common.types.SimpleType;
 import dev.cel.common.values.NullValue;
 import dev.cel.extensions.CelExtensionLibrary;
-import dev.cel.parser.Operator;
+import dev.cel.common.Operator;
 import dev.cel.runtime.CelFunctionBinding;
-import dev.cel.runtime.CelRuntimeBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.*;
@@ -304,7 +302,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                                     SimpleType.TIMESTAMP,
                                     SimpleType.TIMESTAMP)),
                     CelFunctionBinding.from("timestamp_atStartOfDay",
-                            Timestamp.class, this::atStartOfDay)
+                            Instant.class, this::atStartOfDay)
             ),
 
             // timestamp.atStartOfDay(timezone)
@@ -317,7 +315,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                                     SimpleType.TIMESTAMP,
                                     SimpleType.TIMESTAMP, SimpleType.STRING)),
                     CelFunctionBinding.from("timestamp_atStartOfDay_string",
-                            Timestamp.class, String.class, this::atStartOfDay)
+                            Instant.class, String.class, this::atStartOfDay)
             ),
 
             // timestamp.atEndOfDay
@@ -330,7 +328,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                                     SimpleType.TIMESTAMP,
                                     SimpleType.TIMESTAMP)),
                     CelFunctionBinding.from("timestamp_atEndOfDay",
-                            Timestamp.class, this::atEndOfDay)
+                            Instant.class, this::atEndOfDay)
             ),
 
             // timestamp.atEndOfDay(timezone)
@@ -343,7 +341,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                                     SimpleType.TIMESTAMP,
                                     SimpleType.TIMESTAMP, SimpleType.STRING)),
                     CelFunctionBinding.from("timestamp_atEndOfDay_string",
-                            Timestamp.class, String.class, this::atEndOfDay)
+                            Instant.class, String.class, this::atEndOfDay)
             ),
 
             // timestamp.longAgo()
@@ -434,47 +432,34 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
         return QNameCelValue.create(localPart);
     }
 
-    private static Timestamp longAgo(Object[] args) {
-        return Timestamp.newBuilder()
-                .setSeconds(0)
-                .setNanos(0)
-                .build();
+    private static Instant longAgo(Object[] args) {
+        return Instant.ofEpochSecond(0);
     }
 
-    private Timestamp atStartOfDay(Timestamp timestamp) {
-        return atStartOfDay(timestamp, ZoneId.systemDefault());
+    private Instant atStartOfDay(Instant instant) {
+        return atStartOfDay(instant, ZoneId.systemDefault());
     }
 
-    private Timestamp atStartOfDay(Timestamp timestamp, String timezone) {
-        return atStartOfDay(timestamp, ZoneId.of(timezone));
+    private Instant atStartOfDay(Instant instant, String timezone) {
+        return atStartOfDay(instant, ZoneId.of(timezone));
     }
 
-    private Timestamp atStartOfDay(Timestamp timestamp, ZoneId zoneId) {
-        Instant instant = Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
+    private Instant atStartOfDay(Instant instant, ZoneId zoneId) {
         ZonedDateTime midnightZdt = LocalDate.ofInstant(instant, zoneId).atStartOfDay(zoneId);
-        Instant midnightInstant = midnightZdt.toInstant();
-        return Timestamp.newBuilder()
-                .setSeconds(midnightInstant.getEpochSecond())
-                .setNanos(midnightInstant.getNano())
-                .build();
+        return midnightZdt.toInstant();
     }
 
-    private Timestamp atEndOfDay(Timestamp timestamp) {
-        return atEndOfDay(timestamp, ZoneId.systemDefault());
+    private Instant atEndOfDay(Instant instant) {
+        return atEndOfDay(instant, ZoneId.systemDefault());
     }
 
-    private Timestamp atEndOfDay(Timestamp timestamp, String timezone) {
-        return atEndOfDay(timestamp, ZoneId.of(timezone));
+    private Instant atEndOfDay(Instant instant, String timezone) {
+        return atEndOfDay(instant, ZoneId.of(timezone));
     }
 
-    private Timestamp atEndOfDay(Timestamp timestamp, ZoneId zoneId) {
-        Instant instant = Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
+    private Instant atEndOfDay(Instant instant, ZoneId zoneId) {
         ZonedDateTime eodZdt = LocalDate.ofInstant(instant, zoneId).atTime(LocalTime.MAX).atZone(zoneId);
-        Instant eodInstant = eodZdt.toInstant();
-        return Timestamp.newBuilder()
-                .setSeconds(eodInstant.getEpochSecond())
-                .setNanos(eodInstant.getNano())
-                .build();
+        return eodZdt.toInstant();
     }
 
     // TODO: do we need this?
