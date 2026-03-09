@@ -426,15 +426,18 @@ public class CelTypeMapper implements CelTypeProvider  {
             return NullValue.NULL_VALUE;
         }
         Object value = typedValue.getValue();
-        if (value == null) {
-            // CEL has special type and value for null
-            return NullValue.NULL_VALUE;
-        }
+//        if (value == null) {
+//            // CEL has special type and value for null
+//            return NullValue.NULL_VALUE;
+//        }
         ItemDefinition def = typedValue.getDefinition();
         if (def == null) {
             return CelTypeMapper.toCelValue(value);
         }
         if (def instanceof PrismPropertyDefinition<?> propDef) {
+            if (value == null) {
+                return NullValue.NULL_VALUE;
+            }
             if (propDef.isEnum()) {
                 if (value instanceof TypeSafeEnum tse) {
                     return tse.value();
@@ -443,13 +446,8 @@ public class CelTypeMapper implements CelTypeProvider  {
                 }
             }
             if (QNameUtil.match(((PrismPropertyDefinition<?>)def).getTypeName(), PrismConstants.POLYSTRING_TYPE_QNAME)) {
-                if (value == null) {
-                    // TODO: is this correct?
-                    return PolyStringCelValue.create(null);
-                }
-                if (value instanceof PolyString) {
-
-                    return PolyStringCelValue.create((PolyString) value);
+                if (value instanceof PolyString pval) {
+                    return PolyStringCelValue.create(pval);
                 }
                 if (value instanceof PolyStringType) {
                     PolyStringType polystringtype = (PolyStringType) typedValue.getValue();
@@ -458,6 +456,9 @@ public class CelTypeMapper implements CelTypeProvider  {
             }
         }
         if (def instanceof PrismObjectDefinition<?>) {
+            if (value == null) {
+                return Optional.empty();
+            }
             if (value instanceof PrismObject<?> o) {
                 return ObjectCelValue.create(o);
             } else if (value instanceof Objectable o) {
@@ -465,6 +466,9 @@ public class CelTypeMapper implements CelTypeProvider  {
             }
         }
         if (def instanceof PrismContainerDefinition<?>) {
+            if (value == null) {
+                return Optional.empty();
+            }
             if (value instanceof PrismContainerValue<?> cval) {
                 return ContainerValueCelValue.create(cval);
             } else if (value instanceof Containerable c) {
@@ -472,6 +476,9 @@ public class CelTypeMapper implements CelTypeProvider  {
             }
         }
         if (def instanceof PrismReferenceDefinition) {
+            if (value == null) {
+                return Optional.empty();
+            }
             if (value instanceof PrismReferenceValue rval) {
                 return ReferenceCelValue.create(rval);
             } else if (value instanceof Referencable r) {

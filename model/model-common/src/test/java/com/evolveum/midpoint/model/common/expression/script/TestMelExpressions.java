@@ -79,6 +79,19 @@ public class TestMelExpressions extends AbstractScriptTest {
                 "Jack");
     }
 
+    @Test
+    public void testUserGivenNameNull() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        VariablesMap variables = createVariables(
+                ExpressionConstants.VAR_FOCUS, null, userJack.getDefinition()
+        );
+        List<PrismPropertyValue<String>> expressionResultList = evaluateExpression("expression-user-given-name.xml", DOMUtil.XSD_STRING, true, variables);
+        PrismPropertyValue<String> expressionResult = asScalar(expressionResultList, getTestName());
+        displayValue("Expression result", expressionResult);
+        assertNull("Expression " + getTestName() + " resulted in NON-null value " + expressionResult, expressionResult);
+    }
+
+
 
     @Test
     public void testExpressionPolyStringEquals101() throws Exception {
@@ -522,6 +535,66 @@ public class TestMelExpressions extends AbstractScriptTest {
                                 .findItemDefinition(ItemPath.create(UserType.F_ACTIVATION, ActivationType.F_ADMINISTRATIVE_STATUS))
                 ),
                 "FOOenabled");
+    }
+
+    @Test
+    public void testExpressionFooDefaultString() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-foo-default.xml",
+                createVariables(
+                        "foo", "FOO", PrimitiveType.STRING
+                ),
+               "FOO");
+    }
+
+    @Test
+    public void testExpressionFooDefaultStringNull() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-foo-default.xml",
+                createVariables(
+                        "foo", null, PrimitiveType.STRING
+                ),
+                "Meh");
+    }
+
+    @Test
+    public void testExpressionDefaultString() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-default.xml",
+                createVariables(
+                        "foo", "FOO", PrimitiveType.STRING
+                ),
+                "Behold the FOO");
+    }
+
+    @Test
+    public void testExpressionDefaultStringNull() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-default.xml",
+                createVariables(
+                        "foo", null, PrimitiveType.STRING
+                ),
+                "Behold the Meh");
+    }
+
+    @Test
+    public void testExpressionDefaultPolyString() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-default.xml",
+                createVariables(
+                        "foo", PrismTestUtil.createPolyStringType("polyFoo"), PolyStringType.COMPLEX_TYPE
+                ),
+                "Behold the polyFoo");
+    }
+
+    @Test
+    public void testExpressionDefaultPolyStringNull() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-default.xml",
+                createVariables(
+                        "foo", null, PolyStringType.COMPLEX_TYPE
+                ),
+                "Behold the Meh");
     }
 
     @Test

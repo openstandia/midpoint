@@ -22,9 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import dev.cel.common.CelFunctionDecl;
 import dev.cel.common.CelOverloadDecl;
-import dev.cel.common.types.ListType;
-import dev.cel.common.types.NullableType;
-import dev.cel.common.types.SimpleType;
+import dev.cel.common.types.*;
 import dev.cel.common.values.NullValue;
 import dev.cel.extensions.CelExtensionLibrary;
 import dev.cel.common.Operator;
@@ -35,6 +33,7 @@ import java.time.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Extensions for CEL compiler and runtime implementing behavior of "MEL" language.
@@ -57,6 +56,9 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
 
     @Override
     protected ImmutableSet<Function> initializeFunctions() {
+        final TypeParamType paramTypeV = TypeParamType.create("V");
+        final OptionalType optionalTypeV = OptionalType.create(paramTypeV);
+
         return ImmutableSet.of(
 
             // string + int
@@ -102,6 +104,19 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                 CelFunctionBinding.from(
                         "string_"+FUNC_CONTAINS_IGNORE_CASE_NAME, String.class, String.class,
                         basicExpressionFunctions::containsIgnoreCase)),
+
+            // default(x, defaultVal)
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "default",
+                            CelOverloadDecl.newGlobalOverload(
+                                    "default",
+                                    "Returns true if is null (includes processing of optionals).",
+                                    paramTypeV,
+                                    SimpleType.DYN, paramTypeV)),
+                    CelFunctionBinding.from(
+                            "default", Object.class, Object.class,
+                            CelMelExtensions::funcDefault)),
 
             // protectedString.decrypt()
             new Function(
@@ -207,6 +222,19 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                     CelFunctionBinding.from(
                             FUNC_IS_EMPTY_NAME+"_string", String.class,
                             CelMelExtensions::stringIsEmpty)),
+
+            // isNull(any)
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "isNull",
+                            CelOverloadDecl.newGlobalOverload(
+                                    "isNull_any",
+                                    "Returns true if is null (includes processing of optionals).",
+                                    SimpleType.BOOL,
+                                    SimpleType.ANY)),
+                    CelFunctionBinding.from(
+                            "isNull_any", Object.class,
+                            CelMelExtensions::isNull)),
 
             // list
             new Function(
@@ -359,6 +387,33 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
         );
     }
 
+    private static Object funcDefault(Object val, Object defaultVal) {
+        if (CelTypeMapper.isCellNull(val)) {
+            return defaultVal;
+        }
+        if (val instanceof Optional<?> opt && opt.isEmpty()) {
+            return defaultVal;
+        }
+        if (val instanceof Collection<?> col && col.isEmpty()) {
+            return defaultVal;
+        }
+        if (defaultVal instanceof String) {
+            // This is a hackish workaround for a common use case.
+            // Situation: the default value is string, therefore this method is supposed to return string,
+            // however, the val argument is polystring.
+            // If we returned the polystring as is, CEL runtime is going to fail
+            // as it will be looking for string overloads, but with polystring value.
+            // Therefore, let's proactively convert the value to string.
+            if (val instanceof PolyStringCelValue pval) {
+                return pval.getOrig();
+            }
+            if (val instanceof Optional<?> opt && opt.get() instanceof PolyStringCelValue pval) {
+                return pval.getOrig();
+            }
+        }
+        return val;
+    }
+
     private static boolean equalsUniversal(Object o1, Object o2) {
         return Objects.equals(o1,o2);
     }
@@ -422,6 +477,13 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
             return true;
         }
         return str.isBlank();
+    }
+
+    public static boolean isNull(Object o) {
+        if (isCellNull(o)) {
+            return true;
+        }
+        return o instanceof Optional<?> opt && opt.isEmpty();
     }
 
     private QNameCelValue qname(String namespace, String localPart) {

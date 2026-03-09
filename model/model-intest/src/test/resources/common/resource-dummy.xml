@@ -306,7 +306,7 @@
                             <script>
                                 <trace>true</trace>
                                 <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-                                <code>!focus.?activation.?validFrom.hasValue() &amp;&amp; !focus.?activation.?validTo.hasValue()</code>
+                                <code>isNull(focus.?activation.?validFrom) &amp;&amp; isNull(focus.?activation.?validTo)</code>
                             </script>
                         </condition>
                     </inbound>
@@ -607,7 +607,7 @@
                 <script>
                     <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
                     <code>
-                        'user: ' + ( focus == null ? 'null' : focus.name )
+                        'user: ' + default( focus.?name, 'null' )
                     </code>
                 </script>
                 <name>usr</name>
