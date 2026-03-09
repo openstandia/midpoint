@@ -71,7 +71,12 @@ public final class DropdownButtonUtil {
 
                 @Override
                 protected String getFilename() {
-                    return "AuditLogViewer_" + ColumnUtils.createStringResource("MainObjectListPanel.exportFileName").getString();
+                    return containerableListPanel.getType().getSimpleName() +
+                            "_" +
+                            ColumnUtils
+                                    .createStringResource("MainObjectListPanel.exportFileName")
+                                    .getString() +
+                            ".csv";
                 }
 
                 @Override
@@ -90,7 +95,12 @@ public final class DropdownButtonUtil {
 
                 @Override
                 protected String getFilename() {
-                    return "AuditLogViewer_" + ColumnUtils.createStringResource("MainObjectListPanel.exportFileName").getString();
+                    return containerableListPanel.getType().getSimpleName() +
+                            "_" +
+                            ColumnUtils
+                                    .createStringResource("MainObjectListPanel.exportFileName")
+                                    .getString() +
+                            ".xlsx";
                 }
 
                 @Override
