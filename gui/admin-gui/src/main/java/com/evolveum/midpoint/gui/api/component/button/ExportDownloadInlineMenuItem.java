@@ -12,6 +12,7 @@ import com.evolveum.midpoint.model.api.authentication.CompiledGuiProfile;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.AbstractAjaxDownloadBehavior;
+import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
 import com.evolveum.midpoint.web.component.dialog.ExportingPanel;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItemAction;
@@ -123,7 +124,22 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
         return component.getTable().getDataTable();
     }
 
-    protected abstract String getFilename();
+    protected String getFilename() {
+        return getPageName() +
+                "_" +
+                ColumnUtils
+                        .createStringResource("MainObjectListPanel.exportFileName")
+                        .getString() +
+                getFileExtension();
+    }
+
+    protected String getPageName() {
+        return "AuditEventRecordType".equals(component.getType().getSimpleName()) ?
+                "AuditLogViewer" :
+                component.getType().getSimpleName();
+    }
+
+    protected abstract String getFileExtension();
 
     protected abstract AbstractDataExporter getDataExporter();
 }

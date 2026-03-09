@@ -22,7 +22,6 @@ import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.prism.Referencable;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
-import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
 
 public class XlsxDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
 
@@ -34,13 +33,8 @@ public class XlsxDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
     }
 
     @Override
-    protected String getFilename() {
-        return component.getType().getSimpleName() +
-                "_" +
-                ColumnUtils
-                        .createStringResource("MainObjectListPanel.exportFileName")
-                        .getString() +
-                ".xlsx";
+    protected String getFileExtension() {
+        return ".xlsx";
     }
 
     @Override
