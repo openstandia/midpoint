@@ -51,6 +51,7 @@ public final class DropdownButtonUtil {
                 getButtonContainer().add(AttributeModifier.append("aria-label", "AssignmentTablePanel.operationMenu"));
             }
         };
+        downloadFormatMenu.setRenderBodyOnly(true);
         downloadFormatMenu.setVisible(
                 WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI) ||
                         WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_XLSX_EXPORT_ACTION_URI)
