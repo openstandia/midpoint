@@ -8,7 +8,10 @@ package com.evolveum.midpoint.gui.api.component.otp;
 
 import java.io.Serial;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import com.evolveum.midpoint.prism.delta.ItemDelta;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.wicket.ajax.AjaxRequestTarget;
@@ -34,6 +37,8 @@ import com.evolveum.midpoint.gui.impl.page.admin.focus.component.FocusOtpsMenuLi
 import com.evolveum.midpoint.model.api.AssignmentObjectRelation;
 import com.evolveum.midpoint.prism.PrismContainerValue;
 import com.evolveum.midpoint.prism.PrismObject;
+import com.evolveum.midpoint.prism.delta.ContainerDelta;
+import com.evolveum.midpoint.prism.equivalence.EquivalenceStrategy;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
@@ -80,13 +85,17 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
             ContainerPanelConfigurationType configuration) {
         this(
                 id,
-                () -> {
-                    var wrapper = objectModel.getObjectWrapper();
-                    try {
-                        return wrapper.getObjectApplyDelta().asObjectable();
-                    } catch (CommonException e) {
-                        LOGGER.debug("Cannot apply changes for report, returning original state");
-                        return wrapper.getObjectOld().asObjectable();
+                new LoadableModel<>(false) {
+
+                    @Override
+                    protected F load() {
+                        var wrapper = objectModel.getObjectWrapper();
+                        try {
+                            return wrapper.getObjectApplyDelta().asObjectable();
+                        } catch (CommonException e) {
+                            LOGGER.debug("Cannot apply changes for focus, returning old value. Reason: {}", e.getMessage(), e);
+                            return wrapper.getObjectOld().asObjectable();
+                        }
                     }
                 },
                 PrismContainerWrapperModel.fromContainerWrapper(
@@ -110,6 +119,41 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
             IModel<PrismContainerValueWrapper<OtpCredentialType>> rowModel,
             List<PrismContainerValueWrapper<OtpCredentialType>> listItems) {
 
+        IModel<OtpCredentialType> credentialModel = new LoadableModel<>(false) {
+
+            @Override
+            protected OtpCredentialType load() {
+                return rowModel.getObject().getNewValue().clone().asContainerable();    // todo maybe use old valueeeee
+            }
+        };
+
+        EditOtpPopupPanel<F> panel = new EditOtpPopupPanel<>(getPageBase().getMainPopupBodyId(), focusModel, credentialModel) {
+
+            @Override
+            protected void onConfirmPerformed(AjaxRequestTarget target) {
+                OtpCredentialType newValue = credentialModel.getObject();
+                PrismContainerValue<OtpCredentialType> oldValue = rowModel.getObject().getOldValue();
+
+                PrismContainerValue<OtpCredentialType> newValue1 = rowModel.getObject().getNewValue();
+
+//                rowModel.getObject().replaceContainerItemValue();addToDelta();
+//
+//                Collection<? extends ItemDelta> deltas = oldValue.asPrismContainerValue().diff(newValue, EquivalenceStrategy.IGNORE_METADATA);
+//                deltas.forEach(delta -> {
+//                    try {
+//                        rowModel.getObject().applyDelta(delta);
+//                    } catch (CommonException e) {
+//                        LOGGER.error("Error applying delta {} to OTP credential: {}", delta, e.getMessage(), e);
+//                    }
+//                });
+
+                onEditOtpConfirmPerformed(target, credentialModel.getObject());
+
+                super.onConfirmPerformed(target);
+            }
+        };
+
+        getPageBase().showMainPopup(panel, target);
     }
 
     @Override
@@ -182,7 +226,7 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
 
                     @Override
                     protected void onEditPerformed(AjaxRequestTarget target) {
-                        OtpListPanel.this.onEditPerformed(target, model);
+                        OtpListPanel.this.editItemPerformed(target, model, getSelectedItems());
                     }
                 };
                 item.add(panel);
@@ -233,13 +277,6 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
         OtpPopupPanel<F> panel = new OtpPopupPanel<>(getPageBase().getMainPopupBodyId(), focusModel, credentialModel) {
 
             @Override
-            protected void onCancelPerformed(AjaxRequestTarget target) {
-                onNewOtpCancelPerformed(target);
-
-                super.onCancelPerformed(target);
-            }
-
-            @Override
             protected void onConfirmPerformed(AjaxRequestTarget target) {
                 onNewOtpConfirmPerformed(target, credentialModel.getObject());
 
@@ -261,50 +298,14 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
         return false;
     }
 
-    private void onEditPerformed(AjaxRequestTarget target, IModel<PrismContainerValueWrapper<OtpCredentialType>> model) {
-        IModel<OtpCredentialType> credentialModel = new LoadableModel<>(false) {
-
-            @Override
-            protected OtpCredentialType load() {
-                return model.getObject().getNewValue().asContainerable();
-            }
-        };
-
-        EditOtpPopupPanel<F> panel = new EditOtpPopupPanel<>(getPageBase().getMainPopupBodyId(), focusModel, credentialModel) {
-
-            @Override
-            protected void onCancelPerformed(AjaxRequestTarget target) {
-                onEditOtpCancelPerformed(target);
-
-                super.onCancelPerformed(target);
-            }
-
-            @Override
-            protected void onConfirmPerformed(AjaxRequestTarget target) {
-                onEditOtpConfirmPerformed(target, credentialModel.getObject());
-
-                super.onConfirmPerformed(target);
-            }
-        };
-
-        getPageBase().showMainPopup(panel, target);
-    }
-
-    private void onEditOtpCancelPerformed(AjaxRequestTarget target) {
-        refreshTable(target); // todo
-    }
-
     private void onEditOtpConfirmPerformed(AjaxRequestTarget target, OtpCredentialType credentialModel) {
         refreshTable(target);   // todo
-    }
-
-    private void onNewOtpCancelPerformed(AjaxRequestTarget target) {
-        // nothing to do
     }
 
     private void onNewOtpConfirmPerformed(AjaxRequestTarget target, OtpCredentialType credential) {
         PrismContainerWrapper<OtpCredentialType> wrapper = model.getObject();
 
+        // noinspection unchecked
         createNewItemContainerValueWrapper(credential.asPrismContainerValue(), wrapper, target);
 
         refreshTable(target);

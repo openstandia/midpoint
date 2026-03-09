@@ -46,7 +46,7 @@ public class OtpModuleWebSecurityConfigurer
         super.configure(http);
 
         OtpAuthenticationFilter filter = new OtpAuthenticationFilter();
-        MidpointFormLoginConfigurer configurer = new MidpointFormLoginConfigurer(filter);
+        MidpointFormLoginConfigurer<HttpSecurity> configurer = new MidpointFormLoginConfigurer<>(filter);
 
         http.securityMatcher(AuthUtil.stripEndingSlashes(getPrefix()) + "/**");
 

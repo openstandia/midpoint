@@ -113,9 +113,10 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
 
             @Override
             protected String load() {
-                OtpManager manager = MidPointApplication.get().getOtpManager();
+                MidPointApplication app = MidPointApplication.get();
+                OtpManager manager = app.getOtpManager();
 
-                Task task = getPageBase().createSimpleTask(OPERATION_CREATE_AUTH_URL);
+                Task task = app.createSimpleTask(OPERATION_CREATE_AUTH_URL);
                 OperationResult result = task.getResult();
 
                 String url = manager.createOtpAuthUrl(focusModel.getObject().asPrismObject(), model.getObject(), task, result);
@@ -166,8 +167,9 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
                     return;
                 }
 
-                OtpManager manager = MidPointApplication.get().getOtpManager();
-                Task task = getPageBase().createSimpleTask(OPERATION_VERIFY_CODE);
+                MidPointApplication app = MidPointApplication.get();
+                OtpManager manager = app.getOtpManager();
+                Task task = app.createSimpleTask(OPERATION_VERIFY_CODE);
                 OperationResult result = task.getResult();
 
                 boolean correct = manager.verifyOtpCredential(
@@ -193,7 +195,7 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
 
     @Override
     public FormComponent<?> getBaseFormComponent() {
-        return (FormComponent<?>) get(ID_CODE);
+        return (FormComponent<?>) get(createComponentPath(ID_CODE_GROUP, ID_CODE));
     }
 
     public void onValidationError(AjaxRequestTarget target) {

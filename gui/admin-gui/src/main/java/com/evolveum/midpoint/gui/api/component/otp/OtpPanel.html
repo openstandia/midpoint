@@ -23,13 +23,17 @@
             </div>
         </div>
     </wicket:enclosure>
-        <div class="form-group">
-            <label><wicket:message key="OtpPanel.name.label"/></label>
-            <input class="form-control" wicket:message="placeholder:OtpPanel.name.placeholder" wicket:id="name"/>
-        </div>
-        <wicket:enclosure child="codeGroup">
+    <div class="form-group">
+        <label>
+            <wicket:message key="OtpPanel.name.label"/>
+        </label>
+        <input class="form-control" wicket:message="placeholder:OtpPanel.name.placeholder" wicket:id="name"/>
+    </div>
+    <wicket:enclosure child="codeGroup">
         <div class="form-group" wicket:id="codeGroup">
-            <label><wicket:message key="OtpPanel.code.label"/></label>
+            <label>
+                <wicket:message key="OtpPanel.code.label"/>
+            </label>
             <input class="form-control" wicket:message="placeholder:OtpPanel.code.placeholder" wicket:id="code"
                     autocomplete="off" type="text"/>
             <div wicket:id="codeFeedback"/>
@@ -44,10 +48,18 @@
                     <span><wicket:message key="OtpPanel.instructions"/></span>
                 </div>
                 <ul class="list-unstyled ml-4 text-sm gap-1 d-flex flex-column">
-                    <li><wicket:message key="OtpPanel.instructions.1"/></li>
-                    <li><wicket:message key="OtpPanel.instructions.2"/></li>
-                    <li><wicket:message key="OtpPanel.instructions.3"/></li>
-                    <li><wicket:message key="OtpPanel.instructions.4"/></li>
+                    <li>
+                        <wicket:message key="OtpPanel.instructions.1"/>
+                    </li>
+                    <li>
+                        <wicket:message key="OtpPanel.instructions.2"/>
+                    </li>
+                    <li>
+                        <wicket:message key="OtpPanel.instructions.3"/>
+                    </li>
+                    <li>
+                        <wicket:message key="OtpPanel.instructions.4"/>
+                    </li>
                 </ul>
             </div>
         </div>
