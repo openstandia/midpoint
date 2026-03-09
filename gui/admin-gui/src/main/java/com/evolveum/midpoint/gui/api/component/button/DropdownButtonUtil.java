@@ -13,9 +13,6 @@ import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
 
 import org.apache.wicket.AttributeModifier;
-import org.apache.wicket.extensions.markup.html.repeater.data.table.DataTable;
-
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,51 +60,21 @@ public final class DropdownButtonUtil {
         List<InlineMenuItem> items = new ArrayList<>();
 
         if (WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI)) {
-            items.add(new CsvDownloadInlineMenuItem(
-                    ColumnUtils.createStringResource("CsvDownloadButtonPanel.export"),
-                    containerableListPanel.getPageBase()
-            ) {
-                @Serial private static final long serialVersionUID = 1L;
-
-                @Override
-                protected String getFilename() {
-                    return containerableListPanel.getType().getSimpleName() +
-                            "_" +
-                            ColumnUtils
-                                    .createStringResource("MainObjectListPanel.exportFileName")
-                                    .getString() +
-                            ".csv";
-                }
-
-                @Override
-                protected DataTable<?, ?> getDataTable() {
-                    return containerableListPanel.getTable().getDataTable();
-                }
-            });
+            items.add(
+                    new CsvDownloadInlineMenuItem(
+                            ColumnUtils.createStringResource("CsvDownloadButtonPanel.export"),
+                            containerableListPanel
+                    )
+            );
         }
 
         if (WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_XLSX_EXPORT_ACTION_URI)) {
-            items.add(new XlsxDownloadInlineMenuItem(
-                    ColumnUtils.createStringResource("XlsxDownloadButtonPanel.export"),
-                    containerableListPanel.getPageBase()
-            ) {
-                @Serial private static final long serialVersionUID = 1L;
-
-                @Override
-                protected String getFilename() {
-                    return containerableListPanel.getType().getSimpleName() +
-                            "_" +
-                            ColumnUtils
-                                    .createStringResource("MainObjectListPanel.exportFileName")
-                                    .getString() +
-                            ".xlsx";
-                }
-
-                @Override
-                protected DataTable<?, ?> getDataTable() {
-                    return containerableListPanel.getTable().getDataTable();
-                }
-            });
+            items.add(
+                    new XlsxDownloadInlineMenuItem(
+                            ColumnUtils.createStringResource("XlsxDownloadButtonPanel.export"),
+                            containerableListPanel
+                    )
+            );
         }
         return items;
     }

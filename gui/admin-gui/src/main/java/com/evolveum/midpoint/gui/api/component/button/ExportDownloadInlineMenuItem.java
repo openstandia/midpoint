@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.gui.api.component.button;
 
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
+import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.model.api.authentication.CompiledGuiProfile;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
@@ -16,7 +17,6 @@ import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItemAction;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.DataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
@@ -35,7 +35,7 @@ import java.util.List;
 public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
 
     private static final Trace LOGGER = TraceManager.getTrace(ExportDownloadInlineMenuItem.class);
-    protected final Component component;
+    protected final ContainerableListPanel component;
     private AbstractAjaxDownloadBehavior ajaxDownloadBehavior;
     private IModel<String> name;
     List<Integer> exportableColumnsIndex = new ArrayList<>();
@@ -43,7 +43,7 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    public ExportDownloadInlineMenuItem(IModel<String> label, Component component) {
+    public ExportDownloadInlineMenuItem(IModel<String> label, ContainerableListPanel component) {
         super(label);
         this.component = component;
         initLayout();
@@ -119,7 +119,9 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
         return exportableColumns;
     }
 
-    protected abstract DataTable<?, ?> getDataTable();
+    protected DataTable<?, ?> getDataTable() {
+        return component.getTable().getDataTable();
+    }
 
     protected abstract String getFilename();
 

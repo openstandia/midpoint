@@ -9,7 +9,6 @@ package com.evolveum.midpoint.gui.api.component.button;
 import java.io.OutputStream;
 import java.util.List;
 
-import org.apache.wicket.Component;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.export.AbstractDataExporter;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.export.CSVDataExporter;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.export.IExportableColumn;
@@ -20,17 +19,29 @@ import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.api.util.WebModelServiceUtils;
 import com.evolveum.midpoint.gui.impl.component.data.provider.BaseSortableDataProvider;
 import com.evolveum.midpoint.gui.impl.component.data.provider.SelectableBeanContainerDataProvider;
+import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.prism.Referencable;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
+import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
 
-public abstract class CsvDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
+public class CsvDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
 
     private static final Trace LOGGER = TraceManager.getTrace(CsvDownloadInlineMenuItem.class);
     private static final long serialVersionUID = 1L;
 
-    public CsvDownloadInlineMenuItem(IModel<String> label, Component component) {
+    public CsvDownloadInlineMenuItem(IModel<String> label, ContainerableListPanel component) {
         super(label, component);
+    }
+
+    @Override
+    protected String getFilename() {
+        return component.getType().getSimpleName() +
+                "_" +
+                ColumnUtils
+                        .createStringResource("MainObjectListPanel.exportFileName")
+                        .getString() +
+                ".csv";
     }
 
     @Override
