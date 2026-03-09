@@ -310,16 +310,8 @@ public abstract class AttributeMappingsTableWizardPanel<P extends Containerable>
             @NotNull AjaxRequestTarget target,
             @NotNull SerializableBiConsumer<AjaxRequestTarget,
                     IModel<List<ConfirmationOption<DataAccessPermission>>>> action) {
-        final ConfirmationWithOptionsDto<DataAccessPermission> confirmationWithOptionsDto =
-                ConfirmationWithOptionsDto.<DataAccessPermission>builder()
-                        .confirmationTitle(createStringResource("SmartSuggestConfirmationPanel.title"))
-                        .confirmationSubtitle(createStringResource("SmartSuggestConfirmationPanel.subtitle"))
-                        .confirmationOptionsTitle(createStringResource("SmartSuggestConfirmationPanel.request.component.title"))
-                        .confirmationInfoMessage(createStringResource("SmartSuggestConfirmationPanel.infoMessage"))
-                        .confirmationOptions(ConfirmationOption.mappingPermissionsOptions())
-                        .build();
         ConfirmationWithOptionsPanel<DataAccessPermission> dialog = new ConfirmationWithOptionsPanel<>(
-                pageBase.getMainPopupBodyId(), () -> confirmationWithOptionsDto) {
+                pageBase.getMainPopupBodyId(), this::mappingsConfirmationPanelConfig) {
 
             @Override
             public void confirmationPerformed(AjaxRequestTarget target,
@@ -412,25 +404,19 @@ public abstract class AttributeMappingsTableWizardPanel<P extends Containerable>
             }
 
             @Override
-            protected void onFinishActionPerform(AjaxRequestTarget target) {
+            protected void onSuggestionFinish(AjaxRequestTarget target) {
                 getTable().refreshAndDetach(target);
             }
 
             @Override
-            protected @NotNull IModel<ConfirmationWithOptionsDto<DataAccessPermission>> getConfirmationOptionsDataModel() {
-                final ConfirmationWithOptionsDto<DataAccessPermission> confirmationWithOptionsDto =
-                        ConfirmationWithOptionsDto.<DataAccessPermission>builder()
-                                .confirmationTitle(createStringResource("SmartSuggestConfirmationPanel.title"))
-                                .confirmationSubtitle(createStringResource("SmartSuggestConfirmationPanel.subtitle"))
-                                .confirmationOptionsTitle(createStringResource("SmartSuggestConfirmationPanel.request.component.title"))
-                                .confirmationInfoMessage(createStringResource("SmartSuggestConfirmationPanel.infoMessage"))
-                                .confirmationOptions(ConfirmationOption.mappingPermissionsOptions())
-                                .build();
-                return () -> confirmationWithOptionsDto;
+            protected IModel<List<ConfirmationOption<DataAccessPermission>>> getConfirmationOptions() {
+                final List<ConfirmationOption<DataAccessPermission>> confirmationOptions =
+                        ConfirmationOption.mappingPermissionsOptions();
+                return () -> confirmationOptions;
             }
 
             @Override
-            protected void refreshAssociatedComponents(@NotNull AjaxRequestTarget target) {
+            protected void onRefresh(@NotNull AjaxRequestTarget target) {
                 SmartMappingTable<?> smartMappingTable = getTable();
                 smartMappingTable.refreshAndDetach(target);
             }
@@ -440,6 +426,16 @@ public abstract class AttributeMappingsTableWizardPanel<P extends Containerable>
         aiPanel.setOutputMarkupPlaceholderTag(true);
         aiPanel.add(new VisibleBehaviour(() -> getSwitchToggleModel().getObject().equals(Boolean.TRUE)));
         return aiPanel;
+    }
+
+    private @NotNull ConfirmationWithOptionsDto<DataAccessPermission> mappingsConfirmationPanelConfig() {
+        return ConfirmationWithOptionsDto.<DataAccessPermission>builder()
+                .confirmationTitle(createStringResource("SmartSuggestConfirmationPanel.title"))
+                .confirmationSubtitle(createStringResource("SmartSuggestConfirmationPanel.subtitle"))
+                .confirmationOptionsTitle(createStringResource("SmartSuggestConfirmationPanel.request.component.title"))
+                .confirmationInfoMessage(createStringResource("SmartSuggestConfirmationPanel.infoMessage"))
+                .confirmationOptions(ConfirmationOption.mappingPermissionsOptions())
+                .build();
     }
 
     protected void performSuggestOperation(AjaxRequestTarget target,
