@@ -1102,10 +1102,8 @@ public class ColumnUtils {
                         decidedPercent = allOpenItems != 0 ? (decidedItems * 100) / allOpenItems : 0;
                     }
 
-                    progressBars.add(new ProgressBar(decidedItems,
-                            ProgressBar.State.PRIMARY));
-                    progressBars.add(new ProgressBar(openNotDecidedItems,
-                            ProgressBar.State.SECONDARY, new SingleLocalizableMessage(String.valueOf(decidedPercent))));
+                    progressBars.add(new ProgressBar(decidedPercent,
+                            ProgressBar.State.INFO, new SingleLocalizableMessage(String.valueOf(decidedPercent))));
                 } catch (Exception e) {
                     LOGGER.error("Couldn't count certification work items for certification campaign {}", campaign.getName());
                 }
@@ -1122,11 +1120,6 @@ public class ColumnUtils {
                         .filter(s -> Objects.equals(s.campaign().getOid(), campaignOid))
                         .findFirst()
                         .orElse(null);
-            }
-
-            @Override
-            protected boolean isPercentageBar() {
-                return false;
             }
 
             protected @NotNull IModel<String> createTextModel(IModel<SelectableBean<AccessCertificationCampaignType>> rowModel,
