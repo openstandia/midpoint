@@ -109,6 +109,11 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
                     public void exportPerformed(AjaxRequestTarget target) {
                         ajaxDownloadBehavior.initiate(target);
                     }
+
+                    @Override
+                    protected IModel<String> getConfirmationMessage(final Long exportSizeLimit) {
+                        return ExportDownloadInlineMenuItem.this.getConfirmationMessage(exportSizeLimit);
+                    }
                 };
                 WebComponentUtil.getPageBase(component).showMainPopup(exportingPanel, target);
             }
@@ -140,6 +145,8 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
     protected abstract String getFileExtension();
 
     protected abstract AbstractDataExporter getDataExporter();
+
+    protected abstract IModel<String> getConfirmationMessage(final Long exportSizeLimit);
 
     protected <T> IModel<T> getModel(IModel<T> model) {
         if (model == null || model.getObject() == null) {
