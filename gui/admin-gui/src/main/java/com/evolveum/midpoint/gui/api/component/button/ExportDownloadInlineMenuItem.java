@@ -41,7 +41,7 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
     protected final ContainerableListPanel component;
     private AbstractAjaxDownloadBehavior ajaxDownloadBehavior;
     private IModel<String> name;
-    List<Integer> exportableColumnsIndex = new ArrayList<>();
+    protected List<Integer> exportableColumnsIndex = new ArrayList<>();
 
     @Serial
     private static final long serialVersionUID = 1L;
