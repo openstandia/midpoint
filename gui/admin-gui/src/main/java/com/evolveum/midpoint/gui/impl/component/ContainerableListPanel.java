@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.evolveum.midpoint.gui.api.component.BasePanel;
 import com.evolveum.midpoint.gui.api.component.MainObjectListPanel;
-import com.evolveum.midpoint.gui.api.component.button.CsvDownloadButtonPanel;
+import com.evolveum.midpoint.gui.api.component.button.DropdownButtonUtil;
 import com.evolveum.midpoint.gui.api.component.data.provider.ISelectableDataProvider;
 import com.evolveum.midpoint.gui.api.model.LoadableModel;
 import com.evolveum.midpoint.gui.api.page.PageBase;
@@ -80,7 +80,6 @@ import com.evolveum.midpoint.schema.expression.VariablesMap;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.schema.util.ObjectQueryUtil;
 import com.evolveum.midpoint.schema.util.ObjectTypeUtil;
-import com.evolveum.midpoint.security.api.AuthorizationConstants;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.util.QNameUtil;
 import com.evolveum.midpoint.util.exception.*;
@@ -1265,32 +1264,8 @@ public abstract class ContainerableListPanel<C extends Serializable, PO extends 
 
     protected List<Component> createToolbarButtonsList(String idButton) {
         List<Component> buttonsList = new ArrayList<>();
-        buttonsList.add(createDownloadButton(idButton));
+        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(idButton, this, getType().getSimpleName()));
         return buttonsList;
-    }
-
-    protected CsvDownloadButtonPanel createDownloadButton(String buttonId) {
-
-        CsvDownloadButtonPanel exportDataLink = new CsvDownloadButtonPanel(buttonId) {
-            @Override
-            protected DataTable<?, ?> getDataTable() {
-                return getTable().getDataTable();
-            }
-
-            @Override
-            protected String getFilename() {
-                return getType().getSimpleName() +
-                        "_" + createStringResource("MainObjectListPanel.exportFileName").getString();
-            }
-
-        };
-        exportDataLink.add(new VisibleBehaviour(this::isExportDataLinkVisible));
-        return exportDataLink;
-    }
-
-    private boolean isExportDataLinkVisible() {
-        return !WebComponentUtil.hasPopupableParent(ContainerableListPanel.this)
-                && WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI);
     }
 
     protected String getStorageKey() {
