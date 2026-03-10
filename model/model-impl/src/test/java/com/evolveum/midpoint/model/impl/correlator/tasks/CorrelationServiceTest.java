@@ -26,6 +26,12 @@ import com.evolveum.midpoint.model.api.correlation.CompleteCorrelationResult;
 import com.evolveum.midpoint.model.api.correlation.CorrelationService;
 import com.evolveum.midpoint.model.impl.AbstractEmptyInternalModelTest;
 import com.evolveum.midpoint.prism.path.ItemPath;
+import com.evolveum.midpoint.prism.util.CloneUtil;
+import com.evolveum.midpoint.provisioning.api.ProvisioningService;
+import com.evolveum.midpoint.schema.processor.ResourceObjectTypeDefinition;
+import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
+import com.evolveum.midpoint.schema.processor.ResourceSchemaExtender;
+import com.evolveum.midpoint.schema.processor.ResourceSchemaFactory;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.test.DummyTestResource;
@@ -53,6 +59,8 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
 
     @Autowired
     private CorrelationService correlationService;
+    @Autowired
+    private ProvisioningService provisioningService;
     private DummyTestResource resource;
 
     @DataProvider
@@ -102,9 +110,14 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
 
         when("Correlation with particular definition is run on the account's shadow.");
         final CorrelationDefinitionType correlationDefinition = createCorrelationDefinition(CORRELATOR);
+        final ShadowType shadow = allAccounts.iterator().next();
+        final ResourceType resourceType = provisioningService.getObject(
+                ResourceType.class, this.resource.oid, null, task, result).asObjectable();
+        final ResourceObjectTypeDefinition objectTypeDef = computeObjectTypeDefinition(
+                resourceType, shadow, correlationDefinition, Collections.emptyList());
 
         final CompleteCorrelationResult correlationResult = this.correlationService.correlate(
-                allAccounts.iterator().next(), correlationDefinition, Collections.emptyList(), task, result);
+                shadow, resourceType, objectTypeDef, correlationDefinition, task, result);
 
         then("User should be correlated as shadow's candidate owner.");
         final List<UserType> candidates = correlationResult.getAllCandidates(UserType.class);
@@ -138,9 +151,14 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         final AdditionalCorrelationItemMappingType additionalMapping = mappingInPhase(mappingPhase)
                 .fromAttribute("familyName")
                 .toItem("familyName");
+        final ShadowType shadow = allAccounts.iterator().next();
+        final ResourceType resourceType = provisioningService.getObject(
+                ResourceType.class, this.resource.oid, null, task, result).asObjectable();
+        final ResourceObjectTypeDefinition objectTypeDef = computeObjectTypeDefinition(
+                resourceType, shadow, correlationDefinition, List.of(additionalMapping));
 
         final CompleteCorrelationResult correlationResult = this.correlationService.correlate(
-                allAccounts.iterator().next(), correlationDefinition, List.of(additionalMapping), task, result);
+                shadow, resourceType, objectTypeDef, correlationDefinition, task, result);
 
         then("User should be correlated as shadow's candidate owner.");
         final List<UserType> candidates = correlationResult.getAllCandidates(UserType.class);
@@ -171,9 +189,14 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         final AdditionalCorrelationItemMappingType additionalMapping = mappingWithoutPhase()
                 .fromAttribute("employeeNumber")
                 .toItem("personalNumber");
+        final ShadowType shadow = allAccounts.iterator().next();
+        final ResourceType resourceType = provisioningService.getObject(
+                ResourceType.class, this.resource.oid, null, task, result).asObjectable();
+        final ResourceObjectTypeDefinition objectTypeDef = computeObjectTypeDefinition(
+                resourceType, shadow, correlationDefinition, List.of(additionalMapping));
 
         final CompleteCorrelationResult correlationResult = this.correlationService.correlate(
-                allAccounts.iterator().next(), correlationDefinition, List.of(additionalMapping), task, result);
+                shadow, resourceType, objectTypeDef, correlationDefinition, task, result);
 
         then("User should be correlated as shadow's candidate owner.");
         final List<UserType> candidates = correlationResult.getAllCandidates(UserType.class);
@@ -233,6 +256,25 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         return defaultEvalPhaseConfig == null
                 ? "not defined"
                 : defaultEvalPhaseConfig.getInbound().getDefaultEvaluationPhases().getPhase().toString();
+    }
+
+    private ResourceObjectTypeDefinition computeObjectTypeDefinition(
+            ResourceType resource,
+            ShadowType shadow,
+            CorrelationDefinitionType correlationDefinition,
+            List<AdditionalCorrelationItemMappingType> additionalMappings) throws SchemaException, ConfigurationException {
+        final ResourceObjectTypeIdentification objectTypeId = ResourceObjectTypeIdentification.of(
+                shadow.getKind(), shadow.getIntent());
+        final ResourceSchemaExtender schemaExtender = ResourceSchemaFactory.schemaExtenderFor(resource);
+        for (AdditionalCorrelationItemMappingType additionalMapping : additionalMappings) {
+            final ResourceAttributeDefinitionType attrDef = new ResourceAttributeDefinitionType().ref(
+                    additionalMapping.getRef());
+            CloneUtil.cloneMembersToCollection(attrDef.getInbound(), additionalMapping.getInbound());
+            schemaExtender.addAttributeDefinition(objectTypeId, attrDef);
+        }
+        return schemaExtender.addCorrelationDefinition(objectTypeId, correlationDefinition)
+                .extend()
+                .getObjectTypeDefinitionRequired(objectTypeId);
     }
 
 }
