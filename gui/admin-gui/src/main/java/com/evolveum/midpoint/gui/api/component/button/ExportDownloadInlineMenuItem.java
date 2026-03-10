@@ -7,8 +7,10 @@
 package com.evolveum.midpoint.gui.api.component.button;
 
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
+import com.evolveum.midpoint.gui.api.util.WebModelServiceUtils;
 import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.model.api.authentication.CompiledGuiProfile;
+import com.evolveum.midpoint.prism.Referencable;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.AbstractAjaxDownloadBehavior;
@@ -142,4 +144,20 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
     protected abstract String getFileExtension();
 
     protected abstract AbstractDataExporter getDataExporter();
+
+    protected <T> IModel<T> getModel(IModel<T> model) {
+        if (model == null || model.getObject() == null) {
+            return () -> (T) "";
+        }
+        if (model.getObject() instanceof Referencable) {
+            return () -> {
+                String value = WebModelServiceUtils.resolveReferenceName(
+                        (Referencable) model.getObject(),
+                        WebComponentUtil.getPageBase(component)
+                );
+                return (T) (value == null ? "" : value);
+            };
+        }
+        return model;
+    }
 }

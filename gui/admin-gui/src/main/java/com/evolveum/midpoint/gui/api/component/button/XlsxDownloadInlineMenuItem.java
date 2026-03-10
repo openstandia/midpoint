@@ -14,12 +14,9 @@ import org.apache.wicket.extensions.markup.html.repeater.data.table.export.IExpo
 import org.apache.wicket.markup.repeater.data.IDataProvider;
 import org.apache.wicket.model.IModel;
 
-import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
-import com.evolveum.midpoint.gui.api.util.WebModelServiceUtils;
 import com.evolveum.midpoint.gui.impl.component.data.provider.BaseSortableDataProvider;
 import com.evolveum.midpoint.gui.impl.component.data.provider.SelectableBeanContainerDataProvider;
 import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
-import com.evolveum.midpoint.prism.Referencable;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
@@ -64,19 +61,7 @@ public class XlsxDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
 
             @Override
             protected <T> IModel<T> wrapModel(IModel<T> model) {
-                if (model == null || model.getObject() == null) {
-                    return () -> (T) "";
-                }
-                if (model.getObject() instanceof Referencable) {
-                    return () -> {
-                        String value = WebModelServiceUtils.resolveReferenceName(
-                                (Referencable) model.getObject(),
-                                WebComponentUtil.getPageBase(component)
-                        );
-                        return (T) (value == null ? "" : value);
-                    };
-                }
-                return super.wrapModel(model);
+                return super.wrapModel(getModel(model));
             }
         };
     }
