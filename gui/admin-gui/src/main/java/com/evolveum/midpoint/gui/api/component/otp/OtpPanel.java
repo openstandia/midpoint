@@ -20,13 +20,17 @@ import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.validation.IValidatable;
 import org.apache.wicket.validation.IValidator;
 import org.apache.wicket.validation.ValidationError;
+import org.jetbrains.annotations.NotNull;
 
 import com.evolveum.midpoint.authentication.api.OtpManager;
 import com.evolveum.midpoint.gui.api.page.PageAdminLTE;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
+import com.evolveum.midpoint.gui.impl.factory.panel.ItemRealValueModel;
 import com.evolveum.midpoint.prism.crypto.Protector;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
+import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.message.SimpleFeedbackPanel;
@@ -42,6 +46,13 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
 
     private static final Trace LOGGER = TraceManager.getTrace(OtpPanel.class);
 
+    private enum Mode {
+
+        PRISM_WRAPPER,
+
+        REAL_VALUE
+    }
+
     private static final String DOT_CLASS = OtpPanel.class.getName() + ".";
     private static final String OPERATION_CREATE_AUTH_URL = DOT_CLASS + "createAuthUrl";
     private static final String OPERATION_VERIFY_CODE = DOT_CLASS + "verifyCode";
@@ -56,17 +67,55 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
 
     private boolean editMode = false;
 
+    private Mode mode;
+
     private final IModel<F> focusModel;
 
-    private final IModel<OtpCredentialType> model;
+    private IModel<PrismContainerValueWrapper<OtpCredentialType>> wrapperModel;
+
+    private IModel<OtpCredentialType> model;
 
     private final IModel<Integer> codeModel = Model.of();
 
-    public OtpPanel(String id, IModel<F> focusModel, IModel<OtpCredentialType> model) {
+    private OtpPanel(String id, @NotNull IModel<F> focusModel) {
         super(id);
 
         this.focusModel = focusModel;
+    }
+
+    public static <F extends FocusType> OtpPanel<F> createPanelForWrapper(
+            @NotNull String id, @NotNull IModel<F> focusModel, @NotNull IModel<PrismContainerValueWrapper<OtpCredentialType>> model) {
+
+        OtpPanel<F> panel = new OtpPanel<>(id, focusModel);
+        panel.useWrapperModel(model);
+
+        return panel;
+    }
+
+    public static <F extends FocusType> OtpPanel<F> createPanel(
+            @NotNull String id, @NotNull IModel<F> focusModel, @NotNull IModel<OtpCredentialType> model) {
+
+        OtpPanel<F> panel = new OtpPanel<>(id, focusModel);
+        panel.useModel(model);
+
+        return panel;
+    }
+
+    private void useWrapperModel(IModel<PrismContainerValueWrapper<OtpCredentialType>> model) {
+        this.mode = Mode.PRISM_WRAPPER;
+        this.wrapperModel = model;
+    }
+
+    private void useModel(IModel<OtpCredentialType> model) {
+        this.mode = Mode.REAL_VALUE;
         this.model = model;
+    }
+
+    private OtpCredentialType getReadOnlyOtpCredential() {
+        return switch (mode) {
+            case PRISM_WRAPPER -> wrapperModel.getObject().getRealValue();
+            case REAL_VALUE -> model.getObject();
+        };
     }
 
     @Override
@@ -76,10 +125,24 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
         initLayout();
     }
 
-    private void initLayout() {
-        IModel<String> nameModel = new PropertyModel<>(model, OtpCredentialType.F_NAME.getLocalPart());
+    private IModel<?> createNameModel() {
+        if (mode == Mode.REAL_VALUE) {
+            return new PropertyModel<>(model, OtpCredentialType.F_NAME.getLocalPart());
+        }
 
-        TextField<String> name = new TextField<>(ID_NAME, nameModel);
+        // wrapper mode
+        return new ItemRealValueModel<>(() -> {
+            try {
+                return wrapperModel.getObject().findProperty(OtpCredentialType.F_NAME).getValue();
+            } catch (SchemaException ex) {
+                LOGGER.debug("Cannot get property value for otp credential name", ex);
+                return null;
+            }
+        });
+    }
+
+    private void initLayout() {
+        TextField<?> name = new TextField<>(ID_NAME, createNameModel());
         name.add(new AjaxFormComponentUpdatingBehavior("blur") {
 
             @Override
@@ -93,7 +156,7 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
 
             @Override
             protected String load() {
-                OtpCredentialType otpCredential = model.getObject();
+                OtpCredentialType otpCredential = getReadOnlyOtpCredential();
                 ProtectedStringType protectedString = otpCredential.getSecret();
                 if (protectedString == null) {
                     return null;
@@ -121,7 +184,9 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
                 Task task = createSimpleTask(OPERATION_CREATE_AUTH_URL);
                 OperationResult result = task.getResult();
 
-                String url = manager.createOtpAuthUrl(focusModel.getObject().asPrismObject(), model.getObject(), task, result);
+                OtpCredentialType credential = getReadOnlyOtpCredential();
+
+                String url = manager.createOtpAuthUrl(focusModel.getObject().asPrismObject(), credential, task, result);
                 return url != null ? QRCodeUtils.generateSvg(url) : "";
             }
         };
@@ -174,8 +239,10 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
                 Task task = createSimpleTask(OPERATION_VERIFY_CODE);
                 OperationResult result = task.getResult();
 
+                OtpCredentialType credential = getReadOnlyOtpCredential();
+
                 boolean correct = manager.verifyOtpCredential(
-                        focusModel.getObject().asPrismObject(), model.getObject(), code, task, result);
+                        focusModel.getObject().asPrismObject(), credential, code, task, result);
                 if (!correct) {
                     ValidationError error = new ValidationError(this);
                     error.addKey("OtpPanel.verifyFailed");

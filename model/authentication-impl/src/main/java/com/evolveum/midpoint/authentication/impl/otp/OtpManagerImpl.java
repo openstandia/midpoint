@@ -6,7 +6,6 @@
 
 package com.evolveum.midpoint.authentication.impl.otp;
 
-import org.jetbrains.annotations.NotNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -135,7 +134,7 @@ public class OtpManagerImpl implements OtpManager {
     }
 
     private <F extends FocusType> String evaluateAccountName(PrismObject<F> focus, OtpAuthenticationModuleType module) {
-        String defaultName = focus.getName().getOrig();
+        String defaultName = focus.getName() != null ? focus.getName().getOrig() : "";
 
         ItemPathType pathType = module.getLabel();
         ItemPath path = pathType != null ? pathType.getItemPath() : null;
@@ -171,6 +170,7 @@ public class OtpManagerImpl implements OtpManager {
         return createOtpService(otp);
     }
 
+    // todo improve - load correct module
     private <F extends FocusType> OtpAuthenticationModuleType findOtpModuleConfigurationForFocus(
             PrismObject<F> focus, Task task, OperationResult result) {
         try {
@@ -233,25 +233,14 @@ public class OtpManagerImpl implements OtpManager {
         return modules.getTotp().get(0);
     }
 
-    @NotNull
     private FocusType getCurrentUserFocus() {
-        return getCurrentUserFocus(false);
-    }
-
-    private FocusType getCurrentUserFocus(boolean noException) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!(auth instanceof MidpointAuthentication ma)) {
-            if (noException) {
-                return null;
-            }
-            throw new IllegalStateException("Authentication in security context is not MidpointAuthentication");
+            return null;
         }
 
         if (!(ma.getPrincipal() instanceof MidPointPrincipal principal)) {
-            if (noException) {
-                return null;
-            }
-            throw new IllegalStateException("Principal in authentication is not MidPointPrincipal");
+            return null;
         }
 
         PrismObject<? extends FocusType> focus = principal.getFocusPrismObject();

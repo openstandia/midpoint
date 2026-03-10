@@ -8,6 +8,8 @@ package com.evolveum.midpoint.gui.api.component.otp;
 
 import java.io.Serial;
 
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
+
 import org.apache.wicket.model.IModel;
 
 import com.evolveum.midpoint.xml.ns._public.common.common_3.FocusType;
@@ -17,7 +19,7 @@ public class EditOtpPopupPanel<F extends FocusType> extends OtpPopupPanel<F> {
 
     @Serial private static final long serialVersionUID = 1L;
 
-    public EditOtpPopupPanel(String id, IModel<F> focusModel, IModel<OtpCredentialType> model) {
+    public EditOtpPopupPanel(String id, IModel<F> focusModel, IModel<PrismContainerValueWrapper<OtpCredentialType>> model) {
         super(id, focusModel, model);
 
         setEditMode(true);

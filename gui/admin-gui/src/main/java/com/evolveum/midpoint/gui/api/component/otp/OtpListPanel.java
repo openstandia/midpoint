@@ -117,21 +117,21 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
             IModel<PrismContainerValueWrapper<OtpCredentialType>> rowModel,
             List<PrismContainerValueWrapper<OtpCredentialType>> listItems) {
 
-        IModel<OtpCredentialType> credentialModel = new LoadableModel<>(false) {
-
-            @Override
-            protected OtpCredentialType load() {
-                return rowModel.getObject().getNewValue().asContainerable();    // todo maybe use old valueeeee
-            }
-        };
-
-        EditOtpPopupPanel<F> panel = new EditOtpPopupPanel<>(getPageBase().getMainPopupBodyId(), focusModel, credentialModel) {
+        EditOtpPopupPanel<F> panel = new EditOtpPopupPanel<>(
+                getPageBase().getMainPopupBodyId(), focusModel, Model.of(rowModel.getObject())) {
 
             @Override
             protected void onConfirmPerformed(AjaxRequestTarget target) {
-                onEditOtpConfirmPerformed(target, credentialModel.getObject());
+                onEditOtpConfirmPerformed(target, rowModel.getObject());
 
                 super.onConfirmPerformed(target);
+            }
+
+            @Override
+            protected void onCancelPerformed(AjaxRequestTarget target) {
+                onEditOtpCancelPerformed(target, rowModel.getObject());
+
+                super.onCancelPerformed(target);
             }
         };
 
@@ -235,34 +235,34 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
             AssignmentObjectRelation relationSpec,
             boolean isDuplicate) {
 
-        IModel<OtpCredentialType> credentialModel = new LoadableModel<>(false) {
+        PrismContainerValue<OtpCredentialType> newValue = value;
+        if (newValue == null) {
+            Task task = getPageBase().createSimpleTask("createOtpCredential");
+            OperationResult result = task.getResult();
 
-            @Serial private static final long serialVersionUID = 1L;
+            PrismObject<? extends FocusType> obj = focusModel.getObject().asPrismObject();
+            OtpCredentialType credentialType = MidPointApplication.get().getOtpManager().createOtpCredential(obj, task, result);
+            // noinspection unchecked
+            newValue = credentialType.asPrismContainerValue();
+        }
 
-            @Override
-            protected OtpCredentialType load() {
-                PrismContainerValue<OtpCredentialType> newValue = value;
-                if (newValue == null) {
-                    Task task = getPageBase().createSimpleTask("createOtpCredential");
-                    OperationResult result = task.getResult();
+        PrismContainerValueWrapper<OtpCredentialType> credential =
+                createNewItemContainerValueWrapper(newValue, getContainerModel().getObject(), target);
 
-                    PrismObject<? extends FocusType> obj = focusModel.getObject().asPrismObject();
-                    OtpCredentialType credentialType = MidPointApplication.get().getOtpManager().createOtpCredential(obj, task, result);
-                    // noinspection unchecked
-                    newValue = credentialType.asPrismContainerValue();
-                }
-
-                return newValue.asContainerable();
-            }
-        };
-
-        OtpPopupPanel<F> panel = new OtpPopupPanel<>(getPageBase().getMainPopupBodyId(), focusModel, credentialModel) {
+        OtpPopupPanel<F> panel = new OtpPopupPanel<>(getPageBase().getMainPopupBodyId(), focusModel, Model.of(credential)) {
 
             @Override
             protected void onConfirmPerformed(AjaxRequestTarget target) {
-                onNewOtpConfirmPerformed(target, credentialModel.getObject());
+                onNewOtpConfirmPerformed(target, credential);
 
                 super.onConfirmPerformed(target);
+            }
+
+            @Override
+            protected void onCancelPerformed(AjaxRequestTarget target) {
+                onNewOtpCancelPerformed(target, credential);
+
+                super.onCancelPerformed(target);
             }
         };
 
@@ -280,15 +280,29 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
         return false;
     }
 
-    private void onEditOtpConfirmPerformed(AjaxRequestTarget target, OtpCredentialType credentialModel) {
+    private void onEditOtpConfirmPerformed(
+            AjaxRequestTarget target, PrismContainerValueWrapper<OtpCredentialType> credential) {
+        refreshTable(target);
+    }
+
+    private void onEditOtpCancelPerformed(
+            AjaxRequestTarget target, PrismContainerValueWrapper<OtpCredentialType> credential) {
         refreshTable(target);   // todo
     }
 
-    private void onNewOtpConfirmPerformed(AjaxRequestTarget target, OtpCredentialType credential) {
-        PrismContainerWrapper<OtpCredentialType> wrapper = model.getObject();
+    private void onNewOtpConfirmPerformed(
+            AjaxRequestTarget target, PrismContainerValueWrapper<OtpCredentialType> credential) {
+        refreshTable(target);
+    }
 
-        // noinspection unchecked
-        createNewItemContainerValueWrapper(credential.asPrismContainerValue(), wrapper, target);
+    private void onNewOtpCancelPerformed(
+            AjaxRequestTarget target, PrismContainerValueWrapper<OtpCredentialType> credential) {
+
+        try {
+            getContainerModel().getObject().remove(credential, getPageBase());
+        } catch (CommonException e) {
+            LOGGER.error("Error removing OTP credential after canceling creation: {}", e.getMessage(), e);  // todo show error somewhere
+        }
 
         refreshTable(target);
     }

@@ -16,13 +16,14 @@ import org.apache.wicket.model.IModel;
 import org.jetbrains.annotations.NotNull;
 
 import com.evolveum.midpoint.gui.api.component.BasePanel;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.web.component.AjaxSubmitButton;
 import com.evolveum.midpoint.web.component.dialog.Popupable;
 import com.evolveum.midpoint.web.component.form.MidpointForm;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.FocusType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.OtpCredentialType;
 
-public class OtpPopupPanel<F extends FocusType> extends BasePanel<OtpCredentialType> implements Popupable {
+public class OtpPopupPanel<F extends FocusType> extends BasePanel<PrismContainerValueWrapper<OtpCredentialType>> implements Popupable {
 
     @Serial private static final long serialVersionUID = 1L;
 
@@ -36,7 +37,7 @@ public class OtpPopupPanel<F extends FocusType> extends BasePanel<OtpCredentialT
 
     private boolean editMode;
 
-    public OtpPopupPanel(String id, IModel<F> focusModel, IModel<OtpCredentialType> model) {
+    public OtpPopupPanel(String id, IModel<F> focusModel, IModel<PrismContainerValueWrapper<OtpCredentialType>> model) {
         super(id, model);
 
         this.focusModel = focusModel;
@@ -53,7 +54,7 @@ public class OtpPopupPanel<F extends FocusType> extends BasePanel<OtpCredentialT
         MidpointForm<?> form = new MidpointForm<>(ID_FORM);
         add(form);
 
-        OtpPanel<F> otp = new OtpPanel<>(ID_OTP, focusModel, getModel());
+        OtpPanel<F> otp = OtpPanel.createPanelForWrapper(ID_OTP, focusModel, getModel());
         otp.setEditMode(editMode);
         form.add(otp);
     }
