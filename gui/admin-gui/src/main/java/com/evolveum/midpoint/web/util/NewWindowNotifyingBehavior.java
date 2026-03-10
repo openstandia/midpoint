@@ -14,8 +14,6 @@ import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.request.mapper.parameter.PageParameters;
 
-import static com.evolveum.midpoint.web.security.BrowserWindowIdentifierFilter.PARAM_NEW_WINDOW_FLAG;
-
 /**
  * Created by lazyman on 13/03/2017.
  */
@@ -39,8 +37,6 @@ public class NewWindowNotifyingBehavior extends AjaxNewWindowNotifyingBehavior {
         if (pageParameters.getPosition("w") > -1 ){
             pageParameters = pageParameters.remove("w");
         }
-        pageParameters.add(PARAM_NEW_WINDOW_FLAG, true);
-
         page.setResponsePage(page.getPageClass(), pageParameters);
     }
 }
