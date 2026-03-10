@@ -22,6 +22,8 @@ import org.apache.wicket.validation.IValidator;
 import org.apache.wicket.validation.ValidationError;
 
 import com.evolveum.midpoint.authentication.api.OtpManager;
+import com.evolveum.midpoint.gui.api.page.PageAdminLTE;
+import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.prism.crypto.Protector;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
@@ -116,7 +118,7 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
                 MidPointApplication app = MidPointApplication.get();
                 OtpManager manager = app.getOtpManager();
 
-                Task task = app.createSimpleTask(OPERATION_CREATE_AUTH_URL);
+                Task task = createSimpleTask(OPERATION_CREATE_AUTH_URL);
                 OperationResult result = task.getResult();
 
                 String url = manager.createOtpAuthUrl(focusModel.getObject().asPrismObject(), model.getObject(), task, result);
@@ -169,7 +171,7 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
 
                 MidPointApplication app = MidPointApplication.get();
                 OtpManager manager = app.getOtpManager();
-                Task task = app.createSimpleTask(OPERATION_VERIFY_CODE);
+                Task task = createSimpleTask(OPERATION_VERIFY_CODE);
                 OperationResult result = task.getResult();
 
                 boolean correct = manager.verifyOtpCredential(
@@ -191,6 +193,11 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
         WebMarkupContainer codeHelp = new WebMarkupContainer(ID_CODE_HELP);
         codeHelp.add(new VisibleBehaviour(() -> code.getFeedbackMessages().isEmpty()));
         codeGroup.add(codeHelp);
+    }
+
+    private Task createSimpleTask(String operation) {
+        PageAdminLTE page = WebComponentUtil.getPage(this, PageAdminLTE.class);
+        return page.createSimpleTask(operation);
     }
 
     @Override

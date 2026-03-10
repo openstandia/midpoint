@@ -8,10 +8,7 @@ package com.evolveum.midpoint.gui.api.component.otp;
 
 import java.io.Serial;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-
-import com.evolveum.midpoint.prism.delta.ItemDelta;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.wicket.ajax.AjaxRequestTarget;
@@ -37,8 +34,6 @@ import com.evolveum.midpoint.gui.impl.page.admin.focus.component.FocusOtpsMenuLi
 import com.evolveum.midpoint.model.api.AssignmentObjectRelation;
 import com.evolveum.midpoint.prism.PrismContainerValue;
 import com.evolveum.midpoint.prism.PrismObject;
-import com.evolveum.midpoint.prism.delta.ContainerDelta;
-import com.evolveum.midpoint.prism.equivalence.EquivalenceStrategy;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
@@ -105,7 +100,10 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
     }
 
     public OtpListPanel(
-            String id, IModel<F> focusModel, PrismContainerWrapperModel<F, OtpCredentialType> model, ContainerPanelConfigurationType configuration) {
+            String id,
+            IModel<F> focusModel,
+            PrismContainerWrapperModel<F, OtpCredentialType> model,
+            ContainerPanelConfigurationType configuration) {
 
         super(id, OtpCredentialType.class, configuration);
 
@@ -123,7 +121,7 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
 
             @Override
             protected OtpCredentialType load() {
-                return rowModel.getObject().getNewValue().clone().asContainerable();    // todo maybe use old valueeeee
+                return rowModel.getObject().getNewValue().asContainerable();    // todo maybe use old valueeeee
             }
         };
 
@@ -131,22 +129,6 @@ public class OtpListPanel<F extends FocusType> extends MultivalueContainerListPa
 
             @Override
             protected void onConfirmPerformed(AjaxRequestTarget target) {
-                OtpCredentialType newValue = credentialModel.getObject();
-                PrismContainerValue<OtpCredentialType> oldValue = rowModel.getObject().getOldValue();
-
-                PrismContainerValue<OtpCredentialType> newValue1 = rowModel.getObject().getNewValue();
-
-//                rowModel.getObject().replaceContainerItemValue();addToDelta();
-//
-//                Collection<? extends ItemDelta> deltas = oldValue.asPrismContainerValue().diff(newValue, EquivalenceStrategy.IGNORE_METADATA);
-//                deltas.forEach(delta -> {
-//                    try {
-//                        rowModel.getObject().applyDelta(delta);
-//                    } catch (CommonException e) {
-//                        LOGGER.error("Error applying delta {} to OTP credential: {}", delta, e.getMessage(), e);
-//                    }
-//                });
-
                 onEditOtpConfirmPerformed(target, credentialModel.getObject());
 
                 super.onConfirmPerformed(target);

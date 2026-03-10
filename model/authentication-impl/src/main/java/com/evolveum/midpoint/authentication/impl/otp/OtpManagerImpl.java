@@ -192,7 +192,13 @@ public class OtpManagerImpl implements OtpManager {
     }
 
     private boolean isCurrentPrincipal(PrismObject<? extends FocusType> focus) {
+        if (focus == null) {
+            return false;
+        }
         FocusType principal = getCurrentUserFocus();
+        if (principal == null) {
+            return false;
+        }
         return focus.getOid().equals(principal.getOid());
     }
 
