@@ -7,10 +7,7 @@
 package com.evolveum.midpoint.web.security;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.UUID;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,15 +17,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Filter checks existence of "w" query parameter in URL, if not present, it redirects to the same URL with "w" parameter added.
- * This is used to distinguish different browser windows/tabs and prevent session sharing between them.
+ * Filter checks existence of "w" query parameter in URL, if not present, it wraps the request into custom
+ * {@link ParameterRequestWrapper} with "w" parameter added.
  *
  * @author Viliam Repan
  */
 public class BrowserWindowIdentifierFilter extends OncePerRequestFilter {
 
     public static final String PARAM_WI = "w";
-    public static final String PARAM_NEW_WINDOW_FLAG = "newWindow";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -56,37 +52,17 @@ public class BrowserWindowIdentifierFilter extends OncePerRequestFilter {
 
         // If parameter present and non-empty, continue normally
         String existing = request.getParameter(PARAM_WI);
-        String wi = getWindowParameterFromRefererHeader(request);
-//        if (StringUtils.isEmpty(wi)) {
-//            wi = URLEncoder.encode(UUID.randomUUID().toString().substring(0, 8), StandardCharsets.UTF_8);
-//        }
-//        if (StringUtils.isEmpty(wi)) {
-//            existing = null;
-//        }
-
         if (existing != null && !existing.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Build redirect URL with appended wi parameter
-        String requestURL = request.getRequestURL().toString();
-        String query = request.getQueryString(); // may be null
-
+        // Try to get parameter from Referer header value and wrap the request
+        String wi = getWindowParameterFromRefererHeader(request);
         if (!StringUtils.isEmpty(wi)) {
-
-            request.setAttribute(PARAM_WI, wi);
-
-            StringBuilder newUrl = new StringBuilder(requestURL);
-            if (StringUtils.isNotEmpty(query)) {
-                newUrl.append("?").append(query).append("&");
-            } else {
-                newUrl.append("?");
-            }
-
-            newUrl.append(PARAM_WI).append("=").append(wi);
-
-            response.sendRedirect(newUrl.toString());
+            HttpServletRequest wrappedRequest =
+                    new ParameterRequestWrapper(request, PARAM_WI, wi);
+            filterChain.doFilter(wrappedRequest, response);
         } else {
             filterChain.doFilter(request, response);
         }
@@ -105,9 +81,6 @@ public class BrowserWindowIdentifierFilter extends OncePerRequestFilter {
     }
 
     private String getWindowParameterFromRefererHeader(HttpServletRequest request) {
-        if (isNewWindow(request)) {
-            return null;
-        }
         String referer = request.getHeader("Referer");
         if (referer != null && referer.contains("w=")) {
             return referer.split("w=")[1].split("&")[0];
@@ -115,15 +88,4 @@ public class BrowserWindowIdentifierFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private boolean isNewWindow(HttpServletRequest request) {
-        String newWindowFlag = request.getParameter(PARAM_NEW_WINDOW_FLAG);
-//        if (StringUtils.isNotEmpty(newWindowFlag)) {
-//            clearNewWindowFlag(request);
-//        }
-        return "true".equals(newWindowFlag);
-    }
-
-    private void clearNewWindowFlag(HttpServletRequest request) {
-        request.getParameterMap().remove(PARAM_NEW_WINDOW_FLAG);
-    }
 }

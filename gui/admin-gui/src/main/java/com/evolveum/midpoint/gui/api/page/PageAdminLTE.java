@@ -41,8 +41,8 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.StringResourceModel;
+import org.apache.wicket.protocol.http.servlet.ServletWebRequest;
 import org.apache.wicket.request.cycle.RequestCycle;
-import org.apache.wicket.request.http.WebResponse;
 import org.apache.wicket.request.mapper.parameter.PageParameters;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.apache.wicket.util.string.StringValue;
@@ -336,8 +336,7 @@ public abstract class PageAdminLTE extends WebPage implements ModelServiceLocato
             @Override
             public void renderHead(final Component component, final IHeaderResponse response) {
                 super.renderHead(component, response);
-                CharSequence callbackUrl = getCallbackUrl();
-                String js = "MidPointTheme.initTabId('" + callbackUrl + "');";
+                String js = "MidPointTheme.initTabId();";
                 response.render(OnDomReadyHeaderItem.forScript(js));
             }
 
@@ -1233,7 +1232,14 @@ public abstract class PageAdminLTE extends WebPage implements ModelServiceLocato
         LOGGER.info("Page Admin LTE: {}", tabId);
 
         if (tabId == null) {
-            return new BrowserTabSessionStorage();
+            //try to get tabId from Referer header
+            String referer = ((ServletWebRequest)RequestCycle.get().getRequest()).getHeader("Referer");
+            if (referer != null && referer.contains("w=")) {
+                tabId = referer.split("w=")[1].split("&")[0];
+            }
+            if (tabId == null) {
+                return new BrowserTabSessionStorage();
+            }
         }
 
         return MidPointAuthWebSession.get().getBrowserTabSessionStorage(tabId);

@@ -565,10 +565,12 @@ export default class MidPointTheme {
         });
     }
 
-    initTabId(callbackUrl) {
+    initTabId() {
+        let isFirstLoad = false;
         if (!sessionStorage.getItem('w')) {
             const windowId = encodeURIComponent(crypto.randomUUID().substring(0, 8));
             console.log('windowId initialized:', windowId);
+            isFirstLoad = true;
             sessionStorage.setItem('w', windowId);
         }
 
@@ -579,22 +581,22 @@ export default class MidPointTheme {
         var url = new URL(window.location.href);
         var wParam = url.searchParams.get('w');
 
-        if (wParam !== tabId) {
+        if (isFirstLoad) {
            url.searchParams.set('w', tabId);
            console.log('redirect to url ' + url.toString());
            window.location.replace(url);
         }
 
         if (!url.searchParams.has('w')) {
+            console.log('tabId added to URL');
             url.searchParams.set('w', tabId);
             window.history.replaceState({}, '', url);
-            console.log('tabId added to URL');
         }
 
         if (window.Wicket && Wicket.Event) {
             // Subscribe to all Wicket Ajax calls before they are sent
             Wicket.Event.subscribe('/ajax/call/before', function(jqEvent, attrs, jqXHR, settings) {
-            if (!attrs) return;
+                if (!attrs) return;
                 attrs.ep = attrs.ep || {};
                 attrs.ep.w = tabId;
             });
