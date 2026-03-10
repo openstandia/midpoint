@@ -80,6 +80,7 @@ public class CelTypeMapper implements CelTypeProvider  {
 
     private static void initXsdTypeMap() {
         addXsdMapping(SimpleType.STRING, DOMUtil.XSD_STRING, true);
+        addXsdMapping(SimpleType.STRING, DOMUtil.XSD_ANYURI, false);
         addXsdMapping(SimpleType.INT, DOMUtil.XSD_INT, true);
         addXsdMapping(SimpleType.INT, DOMUtil.XSD_INTEGER, false);
         addXsdMapping(SimpleType.DOUBLE, DOMUtil.XSD_DECIMAL, false);
@@ -272,12 +273,10 @@ public class CelTypeMapper implements CelTypeProvider  {
         for (int i = 0; i < args.length; i++) {
             if (args[i] == null) {
                 javaArgs[i] = null;
-            } else if (args[i] instanceof CelValue) {
-                javaArgs[i] = toJavaValue((CelValue) args[i]);
             } else if (args[i] instanceof List) {
                 javaArgs[i] = toJavaValueList((List<?>)args[i]);
             } else {
-                javaArgs[i] = args[i];
+                javaArgs[i] = toJavaValue(args[i]);
             }
         }
         return javaArgs;
@@ -292,12 +291,10 @@ public class CelTypeMapper implements CelTypeProvider  {
             Object nextJava;
             if (next == null) {
                 nextJava = null;
-            } else if (next instanceof CelValue) {
-                nextJava = toJavaValue((CelValue) next);
             } else if (next instanceof List) {
                 nextJava = toJavaValueList((List<?>)next);
             } else {
-                nextJava = next;
+                nextJava = toJavaValue(next);
             }
             javaArgs.add(nextJava);
         }
@@ -432,6 +429,18 @@ public class CelTypeMapper implements CelTypeProvider  {
 //        }
         ItemDefinition def = typedValue.getDefinition();
         if (def == null) {
+            if (typedValue.getTypeClass() != null && Objectable.class.isAssignableFrom(typedValue.getTypeClass())) {
+                // Some (legacy) code is using typeClass instead of definition.
+                // E.g. this happens when resolving references (see TestMelExpressions.testExpressionObjectRefVariablesNonExistingObject()
+                if (value == null) {
+                    return Optional.empty();
+                }
+                if (value instanceof PrismObject<?> o) {
+                    return ObjectCelValue.create(o);
+                } else if (value instanceof Objectable o) {
+                    return ObjectCelValue.create((PrismObject<?>)o.asPrismObject());
+                }
+            }
             return CelTypeMapper.toCelValue(value);
         }
         if (def instanceof PrismPropertyDefinition<?> propDef) {

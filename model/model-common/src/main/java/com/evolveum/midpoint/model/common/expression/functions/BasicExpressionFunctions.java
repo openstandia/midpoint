@@ -41,6 +41,7 @@ import com.evolveum.midpoint.prism.*;
 import com.evolveum.midpoint.prism.crypto.SecretsResolver;
 import com.evolveum.midpoint.prism.path.ItemName;
 import com.evolveum.midpoint.prism.path.ItemPath;
+import com.evolveum.midpoint.repo.common.expression.ExpressionUtil;
 import com.evolveum.midpoint.util.MiscUtil;
 import com.evolveum.midpoint.util.QNameUtil;
 import com.evolveum.midpoint.util.annotation.Experimental;
@@ -329,77 +330,7 @@ public class BasicExpressionFunctions {
      * Never returns null. Returns empty string instead.
      */
     public String stringify(Object whatever) {
-
-        if (whatever == null) {
-            return "";
-        }
-
-        if (whatever instanceof String) {
-            return (String) whatever;
-        }
-
-        if (whatever instanceof PolyString) {
-            return ((PolyString) whatever).getOrig();
-        }
-
-        if (whatever instanceof PolyStringType) {
-            return ((PolyStringType) whatever).getOrig();
-        }
-
-        if (whatever instanceof Collection<?> collection) {
-            if (collection.isEmpty()) {
-                return "";
-            }
-            if (collection.size() > 1) {
-                throw new IllegalArgumentException("Cannot stringify collection because it has " + collection.size() + " values");
-            }
-            whatever = collection.iterator().next();
-        }
-
-        Class<?> whateverClass = whatever.getClass();
-        if (whateverClass.isArray()) {
-            Object[] array = (Object[]) whatever;
-            if (array.length == 0) {
-                return "";
-            }
-            if (array.length > 1) {
-                throw new IllegalArgumentException("Cannot stringify array because it has " + array.length + " values");
-            }
-            whatever = array[0];
-        }
-
-        if (whatever == null) {
-            return "";
-        }
-
-        if (whatever instanceof String) {
-            return (String) whatever;
-        }
-
-        if (whatever instanceof PolyString) {
-            return ((PolyString) whatever).getOrig();
-        }
-
-        if (whatever instanceof PolyStringType) {
-            return ((PolyStringType) whatever).getOrig();
-        }
-
-        if (whatever instanceof Element element) {
-            Element origElement = DOMUtil.getChildElement(element, PolyString.F_ORIG);
-            //noinspection ReplaceNullCheck
-            if (origElement != null) {
-                // This is most likely a PolyStringType
-                return origElement.getTextContent();
-            } else {
-                return element.getTextContent();
-            }
-        }
-
-        if (whatever instanceof Node) {
-            return ((Node) whatever).getTextContent();
-        }
-
-        return whatever.toString();
+        return ExpressionUtil.stringify(whatever, "");
     }
 
     public Collection<String> getOids(Collection<ObjectReferenceType> refs) {

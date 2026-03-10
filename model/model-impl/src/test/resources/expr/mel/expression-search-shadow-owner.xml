@@ -8,8 +8,6 @@
 <script xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3">
     <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
     <code>
-        cel.bind(owner, midpoint.searchShadowOwner(oid),
-            owner == null ? null : owner.name
-        )
+        midpoint.searchShadowOwner(oid).?name
     </code>
 </script>

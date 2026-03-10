@@ -91,7 +91,36 @@ public class TestMelExpressions extends AbstractScriptTest {
         assertNull("Expression " + getTestName() + " resulted in NON-null value " + expressionResult, expressionResult);
     }
 
+    @Test
+    public void testUserStringFormat() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-user-string-format.xml",
+                createUserScriptVariables(),
+                "user user:c0c010c0-d34d-b33f-f00d-111111111111(jack) : Jack Sparrow");
+    }
 
+    @Test
+    public void testUserStringFormatNull() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        evaluateAndAssertStringScalarExpression(
+                "expression-user-string-format.xml",
+                createVariables(
+                        ExpressionConstants.VAR_FOCUS, null, userJack.getDefinition()
+                ),
+                "user null : null");
+    }
+
+    @Test
+    public void testUserStringFormatNullFullName() throws Exception {
+        PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
+        userJack.asObjectable().setFullName(null);
+        evaluateAndAssertStringScalarExpression(
+                "expression-user-string-format.xml",
+                createVariables(
+                        ExpressionConstants.VAR_FOCUS, userJack, userJack.getDefinition()
+                ),
+                "user user:c0c010c0-d34d-b33f-f00d-111111111111(jack) : null");
+    }
 
     @Test
     public void testExpressionPolyStringEquals101() throws Exception {

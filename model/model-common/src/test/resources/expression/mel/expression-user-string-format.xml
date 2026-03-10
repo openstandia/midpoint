@@ -7,5 +7,7 @@
 
 <script xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3">
     <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-    <code>'%s %s'.format([foo, default(jack.?employeeNumber, '')])</code>
+    <code>
+        'user %s : %s'.format([focus, focus.?fullName])
+    </code>
 </script>

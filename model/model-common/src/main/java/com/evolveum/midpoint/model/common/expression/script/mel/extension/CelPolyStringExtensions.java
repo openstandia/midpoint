@@ -143,6 +143,35 @@ public class CelPolyStringExtensions extends AbstractMidPointCelExtensions {
 
                 ),
 
+                // bool ? string : polystring
+                new Function(
+                        CelFunctionDecl.newFunctionDeclaration(
+                                Operator.CONDITIONAL.getFunction(),
+                                CelOverloadDecl.newGlobalOverload(
+                                        "conditional-string-polystring",
+                                        "Concatenation of int into string.",
+                                        SimpleType.STRING,
+                                        SimpleType.BOOL, NullableType.create(SimpleType.STRING), NullableType.create(PolyStringCelValue.CEL_TYPE))),
+                        CelFunctionBinding.from("conditional-string-polystring",
+                                ImmutableList.of(Boolean.class, Object.class, Object.class),
+                                CelPolyStringExtensions::conditionalPolystring)
+
+                ),
+
+                // bool ? polystring : string
+                new Function(
+                        CelFunctionDecl.newFunctionDeclaration(
+                                Operator.CONDITIONAL.getFunction(),
+                                CelOverloadDecl.newGlobalOverload(
+                                        "conditional-polystring-string",
+                                        "Concatenation of int into string.",
+                                        SimpleType.STRING,
+                                        SimpleType.BOOL, NullableType.create(PolyStringCelValue.CEL_TYPE), NullableType.create(SimpleType.STRING))),
+                        CelFunctionBinding.from("conditional-polystring-string",
+                                ImmutableList.of(Boolean.class, Object.class, Object.class),
+                                CelPolyStringExtensions::conditionalPolystring)
+                ),
+
                 // charAt
                 new Function(
                         CelFunctionDecl.newFunctionDeclaration(
@@ -263,19 +292,7 @@ public class CelPolyStringExtensions extends AbstractMidPointCelExtensions {
                                 "polystring_"+CelMelExtensions.FUNC_IS_EMPTY_NAME, PolyStringCelValue.class,
                                 CelPolyStringExtensions::polystringIsEmpty)),
 
-                // isEmpty(string)
-                new Function(
-                        CelFunctionDecl.newFunctionDeclaration(
-                                CelMelExtensions.FUNC_IS_EMPTY_NAME,
-                                CelOverloadDecl.newGlobalOverload(
-                                        CelMelExtensions.FUNC_IS_EMPTY_NAME+"_polystring",
-                                        "Returns true if string is empty (has zero length) or it is null.",
-                                        SimpleType.BOOL,
-                                        NullableType.create(PolyStringCelValue.CEL_TYPE))),
-                        CelFunctionBinding.from(
-                                CelMelExtensions.FUNC_IS_EMPTY_NAME+"_polystring", PolyStringCelValue.class,
-                                CelPolyStringExtensions::polystringIsEmpty)),
-
+                // isEmpty(any) is specified in CelMelExtension, it takes care of isEmpty(polystring) case.
 
                 // TODO: JOIN? Does it make sense?
 
@@ -484,6 +501,27 @@ public class CelPolyStringExtensions extends AbstractMidPointCelExtensions {
 
                 )
         );
+    }
+
+    private static Object conditionalPolystring(Object[] args) {
+        if ((boolean) args[0]) {
+            return celStringify(args[1]);
+        } else {
+            return celStringify(args[2]);
+        }
+    }
+
+    private static Object celStringify(Object arg) {
+        if (CelTypeMapper.isCellNull(arg)) {
+            return arg;
+        }
+        if (arg instanceof String) {
+            return arg;
+        }
+        if (arg instanceof PolyStringCelValue ps) {
+            return ps.getOrig();
+        }
+        return arg.toString();
     }
 
     private static final class Library implements CelExtensionLibrary<CelPolyStringExtensions> {

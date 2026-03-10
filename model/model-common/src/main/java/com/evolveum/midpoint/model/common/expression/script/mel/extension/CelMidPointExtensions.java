@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.xml.namespace.QName;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Extensions for CEL compiler and runtime implementing access to midPoint functionality.
@@ -657,7 +658,7 @@ public class CelMidPointExtensions extends AbstractMidPointCelExtensions {
 
 
     @Nullable
-    private <F extends FocusType> CelValue searchShadowOwner(String accountOid) {
+    private <F extends FocusType> Object searchShadowOwner(String accountOid) {
         try {
             return toCelObjectPrism(midpointExpressionFunctions.searchShadowOwner(accountOid));
         } catch (CommonException e) {
@@ -674,9 +675,9 @@ public class CelMidPointExtensions extends AbstractMidPointCelExtensions {
         return ObjectCelValue.create((PrismObject<O>)o.asPrismObject());
     }
 
-    private static <O extends ObjectType> CelValue toCelObjectPrism(PrismObject<O> o) {
+    private static <O extends ObjectType> Object toCelObjectPrism(PrismObject<O> o) {
         if (o == null) {
-            return NullValue.NULL_VALUE;
+            return Optional.empty();
         }
         //noinspection unchecked
         return ObjectCelValue.create(o);

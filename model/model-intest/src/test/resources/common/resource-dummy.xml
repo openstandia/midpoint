@@ -100,21 +100,16 @@
                 </outbound>
                 <inbound>
                     <strength>weak</strength>
-                    <expression>
-                        <allowEmptyValues>true</allowEmptyValues>
-                        <script>
-                            <description>
-                                This is ugly. However, this kind of expression should not be common.
-                            </description>
-                            <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-                            <code>
-                                input == null ? null : input.contains('#') ? null : input
-                            </code>
-                        </script>
-                    </expression>
                     <target>
                         <path>$user/fullName</path>
                     </target>
+                    <condition>
+                        <script>
+                            <includeNullInputs>false</includeNullInputs>
+                            <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
+                            <code>input.contains('#')</code>
+                        </script>
+                    </condition>
                 </inbound>
             </attribute>
             <attribute>
@@ -168,7 +163,7 @@
                     <condition>
                         <script>
                             <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-                            <code>input != null</code>
+                            <code>isPresent(input)</code>
                         </script>
                     </condition>
                 </inbound>
@@ -419,7 +414,7 @@
                     <condition>
                         <script>
                             <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-                            <code>input != null</code>
+                            <code>isPresent(input)</code>
                         </script>
                     </condition>
                 </inbound>
@@ -614,24 +609,19 @@
             </argument>
             <argument>
                 <script>
+                    <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
                     <!-- Note: We cannot test for account name as name is only assigned in provisioning -->
                     <code>
-                    'account: ' + account?.getActivation()?.getAdministrativeStatus()
+                    'account: ' + default( projection.?activation.?administrativeStatus, 'null' )
                     </code>
                 </script>
-                <!--<script>-->
-                <!--    &lt;!&ndash; Note: We cannot test for account name as name is only assigned in provisioning &ndash;&gt;-->
-                <!--    <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>-->
-                <!--    <code>-->
-                <!--        'account: ' + ( projection == null ? 'null' : projection.activation.administrativeStatus)-->
-                <!--    </code>-->
-                <!--</script>-->
                 <name>acc</name>
             </argument>
             <argument>
                 <script>
+                    <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
                     <code>
-                    'resource: ' + resource?.getName()
+                    'resource: %s'.format(resource.?name)
                     </code>
                 </script>
                 <name>res</name>
@@ -722,7 +712,8 @@ end
             <enabled>true</enabled>
             <condition>
                 <script>
-                    <code>!basic.getAttributeValue(shadow, 'http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3', 'name').startsWith("T")</code>
+                    <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
+                    <code>!projection.attributes.name.startsWith('T')</code>
                 </script>
             </condition>
             <correlation>
@@ -767,7 +758,8 @@ end
             <enabled>true</enabled>
             <condition>
                 <script>
-                    <code>basic.getAttributeValue(shadow, 'http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3', 'name').startsWith("T")</code>
+                    <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
+                    <code>projection.attributes.name.startsWith('T')</code>
                 </script>
             </condition>
             <correlation>
@@ -775,7 +767,8 @@ end
                     <q:path>name</q:path>
                     <expression>
                         <script>
-                            <code>basic.getAttributeValue(shadow, 'http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3', 'name').substring(1)</code>
+                            <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
+                            <code>projection.attributes.name.substring(1)</code>
                         </script>
                     </expression>
                 </q:equal>

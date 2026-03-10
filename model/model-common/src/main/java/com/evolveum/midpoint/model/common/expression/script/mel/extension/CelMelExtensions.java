@@ -7,12 +7,14 @@ package com.evolveum.midpoint.model.common.expression.script.mel.extension;
 
 import com.evolveum.midpoint.model.common.expression.functions.BasicExpressionFunctions;
 import com.evolveum.midpoint.model.common.expression.script.mel.CelTypeMapper;
+import com.evolveum.midpoint.model.common.expression.script.mel.value.AbstractContainerValueCelValue;
 import com.evolveum.midpoint.model.common.expression.script.mel.value.MidPointValueProducer;
 import com.evolveum.midpoint.model.common.expression.script.mel.value.PolyStringCelValue;
 import com.evolveum.midpoint.model.common.expression.script.mel.value.QNameCelValue;
 import com.evolveum.midpoint.prism.crypto.EncryptionException;
 import com.evolveum.midpoint.prism.crypto.Protector;
 import com.evolveum.midpoint.prism.polystring.PolyString;
+import com.evolveum.midpoint.repo.common.expression.ExpressionUtil;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 
@@ -210,18 +212,20 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                             "string_"+FUNC_IS_EMPTY_NAME, String.class,
                             CelMelExtensions::stringIsEmpty)),
 
-            // isEmpty(string)
+            // isEmpty(any)
             new Function(
                     CelFunctionDecl.newFunctionDeclaration(
                             FUNC_IS_EMPTY_NAME,
                             CelOverloadDecl.newGlobalOverload(
                                     FUNC_IS_EMPTY_NAME+"_string",
-                                    "Returns true if string is empty (has zero length) or it is null.",
+                                    "Returns true if argument is empty or null. " +
+                                            "In case of string, return true if string is empty (has zero length). " +
+                                            "I case of list, returns true if list is empty.",
                                     SimpleType.BOOL,
-                                    SimpleType.STRING)),
+                                    SimpleType.ANY)),
                     CelFunctionBinding.from(
-                            FUNC_IS_EMPTY_NAME+"_string", String.class,
-                            CelMelExtensions::stringIsEmpty)),
+                            FUNC_IS_EMPTY_NAME+"_string", Object.class,
+                            CelMelExtensions::isEmpty)),
 
             // isNull(any)
             new Function(
@@ -229,12 +233,25 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                             "isNull",
                             CelOverloadDecl.newGlobalOverload(
                                     "isNull_any",
-                                    "Returns true if is null (includes processing of optionals).",
+                                    "Returns true if argument is null (includes processing of optionals).",
                                     SimpleType.BOOL,
                                     SimpleType.ANY)),
                     CelFunctionBinding.from(
                             "isNull_any", Object.class,
                             CelMelExtensions::isNull)),
+
+            // isPresent(any)
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "isPresent",
+                            CelOverloadDecl.newGlobalOverload(
+                                    "isPresent_any",
+                                    "Returns true if argument is present, i.e. not null (includes processing of optionals).",
+                                    SimpleType.BOOL,
+                                    SimpleType.ANY)),
+                    CelFunctionBinding.from(
+                            "isPresent_any", Object.class,
+                            CelMelExtensions::isPresent)),
 
             // list
             new Function(
@@ -299,7 +316,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                             CelOverloadDecl.newGlobalOverload(
                                     "mel-single",
                                     "TODO",
-                                    SimpleType.ANY,
+                                    SimpleType.DYN,
                                     SimpleType.ANY)),
                     CelFunctionBinding.from("mel-single", Object.class,
                             this::single)
@@ -397,19 +414,14 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
         if (val instanceof Collection<?> col && col.isEmpty()) {
             return defaultVal;
         }
-        if (defaultVal instanceof String) {
+        if (!(val instanceof String) && defaultVal instanceof String) {
             // This is a hackish workaround for a common use case.
             // Situation: the default value is string, therefore this method is supposed to return string,
-            // however, the val argument is polystring.
-            // If we returned the polystring as is, CEL runtime is going to fail
+            // however, the val argument is non-string.
+            // E.g. if we returned the polystring val as is, CEL runtime is going to fail
             // as it will be looking for string overloads, but with polystring value.
             // Therefore, let's proactively convert the value to string.
-            if (val instanceof PolyStringCelValue pval) {
-                return pval.getOrig();
-            }
-            if (val instanceof Optional<?> opt && opt.get() instanceof PolyStringCelValue pval) {
-                return pval.getOrig();
-            }
+            return ExpressionUtil.stringify(toJava(val), "null");
         }
         return val;
     }
@@ -472,11 +484,41 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
         return str.isEmpty();
     }
 
+    public static boolean isEmpty(Object whatever) {
+        if (isCellNull(whatever)) {
+            return true;
+        }
+        if (whatever instanceof Optional<?> opt) {
+            if (opt.isEmpty()) {
+                return true;
+            }
+            whatever = opt.get();
+        }
+        if (whatever instanceof String str) {
+            return str.isEmpty();
+        }
+        if (whatever instanceof PolyStringCelValue ps) {
+            return ps.getOrig().isEmpty();
+        }
+        if (whatever instanceof Collection<?> col) {
+            return col.isEmpty();
+        }
+        if (whatever instanceof AbstractContainerValueCelValue<?> cval) {
+            return cval.isEmpty();
+        }
+        return false;
+    }
+
     public static boolean stringIsBlank(String str) {
         if (isCellNull(str)) {
             return true;
         }
         return str.isBlank();
+    }
+
+
+    public static boolean isPresent(Object o) {
+        return !isNull(o);
     }
 
     public static boolean isNull(Object o) {
@@ -536,6 +578,12 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
     private Object single(Object o) {
         if (isCellNull(o)) {
             return o;
+        }
+        if (o instanceof Optional<?> opt) {
+            if (opt.isEmpty()) {
+                return o;
+            }
+            o = opt.get();
         }
         if (o instanceof Collection<?> col) {
             if (col.isEmpty()) {
