@@ -188,7 +188,7 @@ public class AuditLogViewerPanel extends ContainerableListPanel<AuditEventRecord
     protected List<Component> createToolbarButtonsList(String idButton) {
         List<Component> buttonsList = new ArrayList<>();
 
-        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(idButton, this));
+        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(idButton, this, "AuditLogViewer"));
 
         AjaxCompositedIconButton createReport = new AjaxCompositedIconButton(idButton, WebComponentUtil.createCreateReportIcon(),
                 getPageBase().createStringResource("MainObjectListPanel.createReport")) {
@@ -200,7 +200,7 @@ public class AuditLogViewerPanel extends ContainerableListPanel<AuditEventRecord
                 createReportPerformed(target);
             }
         };
-        createReport.add(AttributeAppender.append("class", "mr-2 ml-2 btn btn-default btn-sm"));
+        createReport.add(AttributeAppender.append("class", "mx-2 btn btn-default btn-sm"));
         createReport.add(new VisibleBehaviour(() -> WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CREATE_REPORT_BUTTON_URI)));
         buttonsList.add(createReport);
         return buttonsList;

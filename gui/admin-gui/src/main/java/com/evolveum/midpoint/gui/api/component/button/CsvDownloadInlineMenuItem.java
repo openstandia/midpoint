@@ -27,8 +27,8 @@ public class CsvDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
     private static final Trace LOGGER = TraceManager.getTrace(CsvDownloadInlineMenuItem.class);
     private static final long serialVersionUID = 1L;
 
-    public CsvDownloadInlineMenuItem(ContainerableListPanel component) {
-        super(ColumnUtils.createStringResource("CsvDownloadButtonPanel.export"), component);
+    public CsvDownloadInlineMenuItem(ContainerableListPanel component, String fileNamePrefix) {
+        super(ColumnUtils.createStringResource("CsvDownloadButtonPanel.export"), component, fileNamePrefix);
     }
 
     @Override

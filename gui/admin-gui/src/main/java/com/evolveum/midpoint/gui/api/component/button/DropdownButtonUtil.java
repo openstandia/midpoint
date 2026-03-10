@@ -23,12 +23,15 @@ import java.util.List;
  * @author matisovaa
  */
 public final class DropdownButtonUtil {
-    public static DropdownButtonPanel createDownloadButtonPanel(String buttonId, ContainerableListPanel containerableListPanel) {
+    public static DropdownButtonPanel createDownloadButtonPanel(
+            String buttonId,
+            ContainerableListPanel containerableListPanel,
+            String fileNamePrefix) {
         DropdownButtonDto model = new DropdownButtonDto(
                 null,
                 "fa fa-download",
                 null,
-                DropdownButtonUtil.createDownloadFormatMenu(containerableListPanel)
+                DropdownButtonUtil.createDownloadFormatMenu(containerableListPanel, fileNamePrefix)
         );
         DropdownButtonPanel downloadFormatMenu = new DropdownButtonPanel(buttonId, model) {
             private static final long serialVersionUID = 1L;
@@ -54,15 +57,17 @@ public final class DropdownButtonUtil {
         return downloadFormatMenu;
     }
 
-    private static List<InlineMenuItem> createDownloadFormatMenu(ContainerableListPanel containerableListPanel) {
+    private static List<InlineMenuItem> createDownloadFormatMenu(
+            ContainerableListPanel containerableListPanel,
+            String fileNamePrefix) {
         List<InlineMenuItem> items = new ArrayList<>();
 
         if (isAuthorizedCsv()) {
-            items.add(new CsvDownloadInlineMenuItem(containerableListPanel));
+            items.add(new CsvDownloadInlineMenuItem(containerableListPanel, fileNamePrefix));
         }
 
         if (isAuthorizedXlsx()) {
-            items.add(new XlsxDownloadInlineMenuItem(containerableListPanel));
+            items.add(new XlsxDownloadInlineMenuItem(containerableListPanel, fileNamePrefix));
         }
         return items;
     }

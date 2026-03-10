@@ -39,6 +39,7 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
 
     private static final Trace LOGGER = TraceManager.getTrace(ExportDownloadInlineMenuItem.class);
     protected final ContainerableListPanel component;
+    private final String fileNamePrefix;
     private AbstractAjaxDownloadBehavior ajaxDownloadBehavior;
     private IModel<String> name;
     protected List<Integer> exportableColumnsIndex = new ArrayList<>();
@@ -46,9 +47,10 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    public ExportDownloadInlineMenuItem(IModel<String> label, ContainerableListPanel component) {
+    public ExportDownloadInlineMenuItem(IModel<String> label, ContainerableListPanel component, String fileNamePrefix) {
         super(label);
         this.component = component;
+        this.fileNamePrefix = fileNamePrefix;
         initLayout();
     }
 
@@ -127,18 +129,12 @@ public abstract class ExportDownloadInlineMenuItem extends InlineMenuItem {
     }
 
     protected String getFilename() {
-        return getPageName() +
+        return fileNamePrefix +
                 "_" +
                 ColumnUtils
                         .createStringResource("MainObjectListPanel.exportFileName")
                         .getString() +
                 getFileExtension();
-    }
-
-    protected String getPageName() {
-        return "AuditEventRecordType".equals(component.getType().getSimpleName()) ?
-                "AuditLogViewer" :
-                component.getType().getSimpleName();
     }
 
     protected abstract String getFileExtension();

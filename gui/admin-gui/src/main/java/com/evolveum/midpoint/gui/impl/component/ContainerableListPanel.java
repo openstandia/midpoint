@@ -1264,7 +1264,7 @@ public abstract class ContainerableListPanel<C extends Serializable, PO extends 
 
     protected List<Component> createToolbarButtonsList(String idButton) {
         List<Component> buttonsList = new ArrayList<>();
-        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(idButton, this));
+        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(idButton, this, getType().getSimpleName()));
         return buttonsList;
     }
 

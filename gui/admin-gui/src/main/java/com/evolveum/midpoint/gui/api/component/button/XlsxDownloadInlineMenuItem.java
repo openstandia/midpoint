@@ -26,8 +26,8 @@ public class XlsxDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
     private static final Trace LOGGER = TraceManager.getTrace(XlsxDownloadInlineMenuItem.class);
     private static final long serialVersionUID = 1L;
 
-    public XlsxDownloadInlineMenuItem(ContainerableListPanel component) {
-        super(ColumnUtils.createStringResource("XlsxDownloadButtonPanel.export"), component);
+    public XlsxDownloadInlineMenuItem(ContainerableListPanel component, String fileNamePrefix) {
+        super(ColumnUtils.createStringResource("XlsxDownloadButtonPanel.export"), component, fileNamePrefix);
     }
 
     @Override

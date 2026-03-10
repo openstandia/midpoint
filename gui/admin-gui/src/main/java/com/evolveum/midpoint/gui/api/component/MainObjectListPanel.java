@@ -227,7 +227,7 @@ public abstract class MainObjectListPanel<O extends ObjectType> extends ObjectLi
 
         buttonsList.add(createNewObjectButton(buttonId));
         buttonsList.add(createImportObjectButton(buttonId));
-        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(buttonId, this));
+        buttonsList.add(DropdownButtonUtil.createDownloadButtonPanel(buttonId, this, getType().getSimpleName()));
         buttonsList.add(createCreateReportButton(buttonId));
         buttonsList.add(createRefreshButton(buttonId));
         buttonsList.add(createPlayPauseButton(buttonId));
@@ -420,7 +420,7 @@ public abstract class MainObjectListPanel<O extends ObjectType> extends ObjectLi
                 createReportPerformed(target);
             }
         };
-        createReport.add(AttributeAppender.append("class", "mr-2 ml-2 btn btn-default btn-sm"));
+        createReport.add(AttributeAppender.append("class", "mx-2 btn btn-default btn-sm"));
         createReport.add(new VisibleBehaviour(this::isReportObjectButtonVisible));
         return createReport;
     }
