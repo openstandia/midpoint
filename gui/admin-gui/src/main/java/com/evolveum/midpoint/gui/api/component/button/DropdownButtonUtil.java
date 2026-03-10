@@ -10,6 +10,7 @@ import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.security.api.AuthorizationConstants;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
+import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
 
 import org.apache.wicket.AttributeModifier;
 
@@ -49,23 +50,28 @@ public final class DropdownButtonUtil {
             }
         };
         downloadFormatMenu.setRenderBodyOnly(true);
-        downloadFormatMenu.setVisible(
-                WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI) ||
-                        WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_XLSX_EXPORT_ACTION_URI)
-        );
+        downloadFormatMenu.add(new VisibleBehaviour(() -> isAuthorizedCsv() || isAuthorizedXlsx()));
         return downloadFormatMenu;
     }
 
     private static List<InlineMenuItem> createDownloadFormatMenu(ContainerableListPanel containerableListPanel) {
         List<InlineMenuItem> items = new ArrayList<>();
 
-        if (WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI)) {
+        if (isAuthorizedCsv()) {
             items.add(new CsvDownloadInlineMenuItem(containerableListPanel));
         }
 
-        if (WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_XLSX_EXPORT_ACTION_URI)) {
+        if (isAuthorizedXlsx()) {
             items.add(new XlsxDownloadInlineMenuItem(containerableListPanel));
         }
         return items;
+    }
+
+    private static boolean isAuthorizedCsv() {
+        return WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI);
+    }
+
+    private static boolean isAuthorizedXlsx() {
+        return WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_XLSX_EXPORT_ACTION_URI);
     }
 }
