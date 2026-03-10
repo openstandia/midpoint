@@ -17,7 +17,10 @@ import java.io.Serial;
 import java.util.List;
 
 import com.evolveum.midpoint.gui.api.GuiStyleConstants;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismObjectWrapper;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils;
+import com.evolveum.midpoint.prism.*;
+import com.evolveum.midpoint.util.exception.CommonException;
 import com.evolveum.midpoint.web.component.AjaxIconButton;
 import com.evolveum.midpoint.web.component.dialog.ConfirmationPanel;
 
@@ -49,9 +52,6 @@ import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schem
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.dto.SmartGeneratingAlertDto;
 import com.evolveum.midpoint.gui.impl.page.admin.simulation.component.SimulationActionTaskButton;
 import com.evolveum.midpoint.model.api.AssignmentObjectRelation;
-import com.evolveum.midpoint.prism.Containerable;
-import com.evolveum.midpoint.prism.PrismContainer;
-import com.evolveum.midpoint.prism.PrismContainerValue;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 import com.evolveum.midpoint.schema.result.OperationResult;
@@ -266,8 +266,18 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
             }
 
             @Override
-            protected ResourceType getResourceType() {
-                return getAssignmentHolderDetailsModel().getObjectType();
+            protected @NotNull ResourceType getResourceType() {
+                ResourceDetailsModel resourceDetailsModel = getAssignmentHolderDetailsModel();
+                PrismObjectWrapper<ResourceType> objectWrapper = resourceDetailsModel.getObjectWrapper();
+                PrismObject<ResourceType> objectApplyDelta;
+                try {
+                    objectApplyDelta = objectWrapper.getObjectApplyDelta();
+                } catch (CommonException e) {
+                    LOGGER.error("Couldn't get resource object with applied delta, returning the original object. Details: {}", e.getMessage(), e);
+                    return objectWrapper.getObject().asObjectable();
+                }
+
+                return objectApplyDelta.asObjectable();
             }
 
             @SuppressWarnings("unchecked")
