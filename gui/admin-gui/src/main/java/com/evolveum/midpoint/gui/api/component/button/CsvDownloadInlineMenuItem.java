@@ -18,6 +18,7 @@ import org.apache.wicket.model.IModel;
 import com.evolveum.midpoint.gui.impl.component.data.provider.BaseSortableDataProvider;
 import com.evolveum.midpoint.gui.impl.component.data.provider.SelectableBeanContainerDataProvider;
 import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
+import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
@@ -34,6 +35,13 @@ public class CsvDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
     @Override
     protected String getFileExtension() {
         return ".csv";
+    }
+
+    protected IModel<String> getConfirmationMessage(final Long exportSizeLimit) {
+        return WebComponentUtil.getPageBase(component).createStringResource(
+                "CsvDownloadButtonPanel.confirmationMessage",
+                exportSizeLimit
+        );
     }
 
     @Override

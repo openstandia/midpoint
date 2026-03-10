@@ -45,7 +45,7 @@ import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
 /**
  * @author lskublik
  */
-public class ExportingPanel extends BasePanel<ExportingPanel> implements Popupable {
+public abstract class ExportingPanel extends BasePanel<ExportingPanel> implements Popupable {
 
     private static final Trace LOGGER = TraceManager.getTrace(ExportingPanel.class);
 
@@ -151,9 +151,7 @@ public class ExportingPanel extends BasePanel<ExportingPanel> implements Popupab
         return null;
     }
 
-    protected IModel<String> getConfirmationMessage(final Long exportSizeLimit) {
-        return getPageBase().createStringResource("CsvDownloadButtonPanel.confirmationMessage", exportSizeLimit);
-    }
+    protected abstract IModel<String> getConfirmationMessage(final Long exportSizeLimit);
 
     public void exportPerformed(AjaxRequestTarget target) {
     }
