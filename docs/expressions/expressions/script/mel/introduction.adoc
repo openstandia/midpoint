@@ -125,6 +125,28 @@ focus.activation.administrativeStatus
 
 Structure of the data is dictated by xref:/midpoint/reference/schema/common-data-model/[midPoint schema].
 
+CEL interpreter that evaluates MEL expressions assumes that the data structures accessed by the expression exist when the expression is evaluated.
+E.g. the expression above assumes that variable `focus` contains structured data value, which has field `activation`, which has field `administrativeStatus`.
+The expression fails if any of that assumptions is false, e.g. if variable `focus` does not contain a value (is `null`).
+
+However, data are seldom complete.
+The data are only partially populated in a common case.
+E.g. a focus may not have activation at all, and objects with `administrativeStatus` explicitly defined are quite rare.
+MEL allows specification of _optional resolution_ by adding question mark (`?`) after the dot when working with incomplete data.
+
+[source,mel]
+----
+focus.?activation.?administrativeStatus
+----
+
+The expression above does not fail when variable `focus` does not contain any value, or in case that there is no `activation` container or `administrativeStatus` property.
+In such cases the expression evaluates to `null`.
+
+.Optionals
+TIP: Strictly speaking, expressions such as these are not evaluating to `null`, but they are evaluating to _optionals_.
+Optionals are quite complex matter.
+Luckily, optionals are almost invisible for simple expressions.
+
 == Creating Expressions
 
 Simple computations can be executed on the data provided to the expression using the variables.
@@ -208,7 +230,7 @@ MEL provides several functions for regular expression matching and replacement:
 telephoneNumber.matches('^[0-9]+$')
 ----
 
-TODO: describe regex extension
+// TODO: describe regex extension
 
 MEL regular expressions are following link:https://github.com/google/re2/blob/main/README.md[RE2] syntax, which is basically a simplified Perl-compatible regular expression syntax.
 
@@ -222,6 +244,18 @@ However, these can be easily manipulated in MEL using the usual string conventio
 ----
 focus.familyName + ', ' + focus.givenName   // Returns: Semančík, Radovan
 ----
+
+[TIP]
+====
+Use `format()` function whenever possible.
+It is more reliable and robust method to format strings.
+E.g. the code above should be written as:
+
+[source,mel]
+----
+'%s, %s'.format([focus.familyName, focus.givenName])   // Returns: Semančík, Radovan
+----
+====
 
 Polystrings also work as structured object, with `orig` and `norm` parts.
 E.g. the following expression is using `norm` part of the polystrings to generate a username:
@@ -238,9 +272,15 @@ Strictly speaking, expressions do not have a "flow", therefore there are no flow
 
 * No flow control, but we have conditional
 
+* Use stringify() with conditionals?
+
+Use other means, e.g. `.?`, `default()`, `single()`, etc.
+
+WARNING: The conditional may be evaluating both options.
+
 == Lists and Multivalue Data
 
-TODO: multivalued properties: size, [], map, filter
+TODO: multivalued properties: size, [], map, filter, single()
 
 == Language Extensions
 

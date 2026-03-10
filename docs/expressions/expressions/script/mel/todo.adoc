@@ -33,5 +33,7 @@ Solution: `input.?orig`
 
 `found no matching overload for '_?_:_' applied to '(bool, optional_type(string), string)' (candidates: (bool, %A8, %A8))`
 
-
 CEL is evaluating *both* options in conditional (`?:`) before making a decision.
+
+// TODO: has() function - tricky: do not use with conditionals
+
