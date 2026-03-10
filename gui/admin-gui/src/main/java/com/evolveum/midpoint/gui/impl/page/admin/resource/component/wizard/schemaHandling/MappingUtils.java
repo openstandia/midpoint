@@ -470,12 +470,7 @@ public class MappingUtils {
         }
 
         container.getValues().add(newValueWrapper);
-        newValueWrapper.findProperty(ResourceAttributeDefinitionType.F_REF)
-                .getValue().setRealValue(null);
-        pcv.findProperty(ResourceAttributeDefinitionType.F_REF).getValue().setValue(null);
-        pcv.getValue().setRef(null);
     }
-
     /**
      * Filters the given list in place, keeping only mappings matching the specified usage type.
      * Mappings whose {@code use} value differs from {@code usedFor} are removed.
