@@ -9,10 +9,10 @@ package com.evolveum.midpoint.gui.api.component.button;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.security.api.AuthorizationConstants;
-import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
 
 import org.apache.wicket.AttributeModifier;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,25 +56,15 @@ public final class DropdownButtonUtil {
         return downloadFormatMenu;
     }
 
-    public static List<InlineMenuItem> createDownloadFormatMenu(ContainerableListPanel containerableListPanel) {
+    private static List<InlineMenuItem> createDownloadFormatMenu(ContainerableListPanel containerableListPanel) {
         List<InlineMenuItem> items = new ArrayList<>();
 
         if (WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_CSV_EXPORT_ACTION_URI)) {
-            items.add(
-                    new CsvDownloadInlineMenuItem(
-                            ColumnUtils.createStringResource("CsvDownloadButtonPanel.export"),
-                            containerableListPanel
-                    )
-            );
+            items.add(new CsvDownloadInlineMenuItem(containerableListPanel));
         }
 
         if (WebComponentUtil.isAuthorized(AuthorizationConstants.AUTZ_UI_ADMIN_XLSX_EXPORT_ACTION_URI)) {
-            items.add(
-                    new XlsxDownloadInlineMenuItem(
-                            ColumnUtils.createStringResource("XlsxDownloadButtonPanel.export"),
-                            containerableListPanel
-                    )
-            );
+            items.add(new XlsxDownloadInlineMenuItem(containerableListPanel));
         }
         return items;
     }

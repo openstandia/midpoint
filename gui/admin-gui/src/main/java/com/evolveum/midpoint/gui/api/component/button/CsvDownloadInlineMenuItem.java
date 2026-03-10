@@ -23,14 +23,15 @@ import com.evolveum.midpoint.gui.impl.component.ContainerableListPanel;
 import com.evolveum.midpoint.prism.Referencable;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
+import com.evolveum.midpoint.web.component.data.column.ColumnUtils;
 
 public class CsvDownloadInlineMenuItem extends ExportDownloadInlineMenuItem {
 
     private static final Trace LOGGER = TraceManager.getTrace(CsvDownloadInlineMenuItem.class);
     private static final long serialVersionUID = 1L;
 
-    public CsvDownloadInlineMenuItem(IModel<String> label, ContainerableListPanel component) {
-        super(label, component);
+    public CsvDownloadInlineMenuItem(ContainerableListPanel component) {
+        super(ColumnUtils.createStringResource("CsvDownloadButtonPanel.export"), component);
     }
 
     @Override
