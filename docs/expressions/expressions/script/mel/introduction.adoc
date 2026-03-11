@@ -265,22 +265,155 @@ E.g. the following expression is using `norm` part of the polystrings to generat
 focus.givenName.norm.substring(0,1) + focus.familyName.norm
 ----
 
-== Flow Control
+== No Flow Control
 
 MEL is an expression language.
 Strictly speaking, expressions do not have a "flow", therefore there are no flow control mechanisms in MEL.
+Flow control is not necessary for expression evaluation.
+MEL functions are supposed to be free of any side effects, therefore exact order of their execution or repetition of execution is not important.
+Individual operators, functions and macros are executed in the order dictated by the structure of the expression, determined by CEL compiler and runtime.
 
-* No flow control, but we have conditional
+However, the fact that there is no flow control does not mean that the expressions are useless.
+There is a _conditional_ operator (`?:`) which can be used to branch evaluation of expression according to condition.
 
-* Use stringify() with conditionals?
+.Conditional operator
+[source]
+----
+condition ? true branch : false branch
+----
 
-Use other means, e.g. `.?`, `default()`, `single()`, etc.
+If the condition evaluates to true, the first branch will be evaluated and that value will be provided as a result of the conditional statement.
+If the condition evaluates to false, the other branch will be evaluated.
+Conditionals can be used for variety of purposes, such as conditional formatting:
 
-WARNING: The conditional may be evaluating both options.
+[source,mel]
+----
+isPresent(givenName) ? familyName + ', ' + givenName : familyName
+----
+
+This expression formats name in "reversed" form, such as `Doe, John`.
+However, it also handles case of mononyms, correctly formatting names such as `Teller`.
+
+Conditional expressions can be confusing, especially if it contains several nested conditionals.
+However, MEL expressions can be written as multi-line expressions.
+Clever indentation of the expression can make it much more readable:
+
+[source,mel]
+----
+isPresent(givenName)
+    ? familyName + ', ' + givenName
+    : familyName
+----
+
+[NOTE]
+====
+Conditional operator needs to have the same datatype in both branches.
+E.g. both the _true_ branch and _false_ branch must return string value.
+While this usually does not make any problems, there may be issues in MEL expressions that combine _strings_ and _polystrings_ in the branches.
+E.g. following expression would fail:
+
+.Wrong expression
+[source,mel]
+----
+isPresent(fullName) ? fullName : 'John Doe'
+----
+
+The reason for the failure is that the type of `fullName` is _polystring_, which causes a mismatch of conditional branches data types.
+This can be solved by explicitly converting `fullName` to string:
+
+.Correct expression
+[source,mel]
+----
+isPresent(fullName) ? str(fullName) : 'John Doe'
+----
+
+However, in this case it is even easier to take advantage of the `default()` function:
+
+[source,mel]
+----
+default(fullName, 'John Doe')
+----
+
+====
+
+While conditionals look straightforward, they tend to complicate the expressions.
+Especially if several nested conditionals are used in an expression, the code tends to become unreadable.
+It is recommended to avoid use of conditionals whenever possible.
+Safe (null-resistant) navigation can be achieved by using `.?` operator:
+
+[source,mel]
+----
+focus.?activation.?administrativeStatus
+----
+
+Default values can be set by using `default()` or `stringify()` functions:
+
+[source,mel]
+----
+default(fullName, 'John Doe')
+stringify(fullName, 'John Doe')
+----
+
+If an expression expects a single-value list, such list can be converted to scalar value using `single()` function without additional checks:
+
+[source,mel]
+----
+single(focus.assignment)
+----
+
+[NOTE]
+====
+Safe navigation operator (`.?`) can be used to safely navigate structured data.
+However, it cannot be used to "safely invoke" a function.
+E.g. following expression produces and error:
+
+.Wrong expression
+[source,mel]
+----
+input.?contains('#')
+----
+
+In this case variable `input` contains a primitive, non-structured value (e.g. a string).
+CEL implementation does not support the `.?` operator for invocation of functions on such values.
+If the variable `input` may be null, using a conditional is perhaps the only practical option in this case:
+
+.Correct expression
+[source,mel]
+----
+isPresent(input) ? input.contains('#') : false
+----
+====
+
+Conditional operator can handle branching of expression evaluation.
+Then there are special mechanisms that can process lists and multi-valued items (see below).
+However, MEL has no mechanisms for implementing _iteration_, such as loops.
+Loops are potentially dangerous, as they can form infinite loop, which may cripple the system.
+List operations (e.g. `map` and `filter`) could be used to implement some form of iteration.
+However, such iteration needs to be based on finite list (e.g. search results or a list of fixed number of attempts),
+which guarantees that expression evaluation terminates eventually.
+
+Even though MEL does not have loops, midPoint can iterate it for you.
+xref:/midpoint/reference/concepts/iteration/[Native midPoint iterative mechanisms] should be used whenever possible,
+which avoids the need for iteration inside MEL expression.
+If iteration in the expression is still necessary, different scripting language must be used (e.g. Groovy),
+which may bring security, reliability and performance consequences.
 
 == Lists and Multivalue Data
 
 TODO: multivalued properties: size, [], map, filter, single()
+
+== Null Values
+
+Trouble with nulls and optionals.
+
+.?
+
+isNull() isPresent(), default()
+
+do not use foo == null, it is not reliable
+
+Cannot use .? for functions.
+
 
 == Language Extensions
 
