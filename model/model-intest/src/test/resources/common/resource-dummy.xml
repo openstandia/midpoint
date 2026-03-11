@@ -108,7 +108,11 @@
                             </description>
                             <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
                             <code>
-                                input == null ? null : input.contains('#') ? null : input
+                                input == null
+                                    ? null
+                                    : input.contains('#')
+                                        ? null
+                                        : input
                             </code>
                         </script>
                     </expression>
