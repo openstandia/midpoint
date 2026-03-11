@@ -392,7 +392,9 @@ public class CelTypeMapper implements CelTypeProvider  {
     }
 
     public static boolean isCellNull(@Nullable Object object) {
-        return object == null || object instanceof NullValue || object instanceof com.google.protobuf.NullValue;
+        return object == null || object instanceof NullValue
+                || object instanceof com.google.protobuf.NullValue
+                || (object instanceof Optional<?> opt && opt.isEmpty());
     }
 
     public static <IV extends PrismValue, ID extends ItemDefinition<?>> Object toListMapValue(Item<IV, ID> item) {

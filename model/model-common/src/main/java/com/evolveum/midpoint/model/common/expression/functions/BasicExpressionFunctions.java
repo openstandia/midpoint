@@ -333,6 +333,15 @@ public class BasicExpressionFunctions {
         return ExpressionUtil.stringify(whatever, "");
     }
 
+    /**
+     * Converts whatever it gets to a string. But it does it in a sensitive way.
+     * E.g. it tries to detect collections and returns the first element (if there is only one).
+     * Never returns null, returns value provided as second argument instead.
+     */
+    public String stringify(Object whatever, String nullRepresentation) {
+        return ExpressionUtil.stringify(whatever, nullRepresentation);
+    }
+
     public Collection<String> getOids(Collection<ObjectReferenceType> refs) {
         if (refs == null) {
             return null;

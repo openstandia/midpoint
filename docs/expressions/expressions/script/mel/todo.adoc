@@ -26,14 +26,17 @@ doc-type: intro
 
 * Gotchas/FAQ
 
+`stringify` vs `str` vs `string`
+
 `Field selections must be performed on messages or maps.`
 This means that the value may be null.
 E.g. for code `input.orig`, variable `input` may be null.
 Solution: `input.?orig`
 
-`found no matching overload for '_?_:_' applied to '(bool, optional_type(string), string)' (candidates: (bool, %A8, %A8))`
+`found no matching overload for '_?_:_' applied to ... (candidates: (bool, %A8, %A8))`
+Conditional must have the same data type in both branches.
+Use string() or stringify().
 
-CEL is evaluating *both* options in conditional (`?:`) before making a decision.
 
 // TODO: has() function - tricky: do not use with conditionals
 

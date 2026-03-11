@@ -66,7 +66,7 @@
                     <name>name</name>
                     <strength>strong</strength>
                     <source>
-                        <path>$user/name</path>
+                        <path>$focus/name</path>
                     </source>
                     <expression>
                         <script>
@@ -81,7 +81,7 @@
                     <!-- This avoids "kickback" of a name from account to a user. -->
                     <strength>weak</strength>
                     <target>
-                        <path>$user/name</path>
+                        <path>$focus/name</path>
                     </target>
                 </inbound>
             </attribute>
@@ -100,16 +100,21 @@
                 </outbound>
                 <inbound>
                     <strength>weak</strength>
-                    <target>
-                        <path>$user/fullName</path>
-                    </target>
-                    <condition>
+                    <expression>
+                        <allowEmptyValues>true</allowEmptyValues>
                         <script>
-                            <includeNullInputs>false</includeNullInputs>
+                            <description>
+                                This is ugly. However, this kind of expression should not be common.
+                            </description>
                             <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
-                            <code>input.contains('#')</code>
+                            <code>
+                                input == null ? null : input.contains('#') ? null : input
+                            </code>
                         </script>
-                    </condition>
+                    </expression>
+                    <target>
+                        <path>$focus/fullName</path>
+                    </target>
                 </inbound>
             </attribute>
             <attribute>
@@ -123,7 +128,7 @@
                     <name>locality</name>
                     <strength>strong</strength>
                     <source>
-                        <path>$user/locality</path>
+                        <path>$focus/locality</path>
                     </source>
                 </outbound>
                 <inbound>
@@ -192,7 +197,7 @@
                     <source>
                         <path>
                             declare namespace piracy = "http://midpoint.evolveum.com/xml/ns/samples/piracy";
-                            $user/extension/piracy:weapon
+                            $focus/extension/piracy:weapon
                         </path>
                     </source>
                 </outbound>
@@ -249,7 +254,7 @@
                         <value>very FISHY</value>
                     </expression>
                     <target>
-                        <path>$user/fullName</path>
+                        <path>$focus/fullName</path>
                     </target>
                 </inbound>
             </attribute>
@@ -340,7 +345,7 @@
                 <outbound>
                     <strength>strong</strength>
                     <source>
-                        <path>$user/name</path>
+                        <path>$focus/name</path>
                     </source>
                     <expression>
                         <script>
@@ -363,7 +368,7 @@
                         </script>
                     </expression>
                     <target>
-                        <path>$user/name</path>
+                        <path>$focus/name</path>
                     </target>
                 </inbound>
             </attribute>
@@ -371,7 +376,7 @@
                 <ref>ri:fullname</ref>
                 <outbound>
                     <source>
-                        <path>$user/fullName</path>
+                        <path>$focus/fullName</path>
                     </source>
                     <expression>
                         <script>
@@ -383,7 +388,7 @@
                 <inbound>
                     <strength>weak</strength>
                     <target>
-                        <path>$user/fullName</path>
+                        <path>$focus/fullName</path>
                     </target>
                 </inbound>
             </attribute>
@@ -393,7 +398,7 @@
                     <strength>strong</strength>
                     <source>
                         <path>
-                            $user/locality
+                            $focus/locality
                         </path>
                     </source>
                 </outbound>
@@ -645,7 +650,7 @@ end
             <host>resource</host>
             <language>Gibberish</language>
             <argument>
-                <path>$user/costCenter</path>
+                <path>$focus/costCenter</path>
                 <name>howMuch</name>
             </argument>
             <argument>
@@ -653,11 +658,11 @@ end
                 <name>howLong</name>
             </argument>
             <argument>
-                <path>$user/name</path>
+                <path>$focus/name</path>
                 <name>who</name>
             </argument>
             <argument>
-                <path>$user/fullName</path>
+                <path>$focus/fullName</path>
                 <name>whatchacallit</name>
             </argument>
             <code>Beware the Jabberwock, my son!</code>

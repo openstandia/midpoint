@@ -29,6 +29,7 @@ import dev.cel.common.values.NullValue;
 import dev.cel.extensions.CelExtensionLibrary;
 import dev.cel.common.Operator;
 import dev.cel.runtime.CelFunctionBinding;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.*;
@@ -323,19 +324,48 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
 
             ),
 
-            // stringify
+            // str(any)
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "str",
+                            CelOverloadDecl.newGlobalOverload(
+                                    "mel-str",
+                                    "Converts its argument to string. " +
+                                            "This function is nullable. If the argument is null, null is returned.",
+                                    SimpleType.STRING,
+                                    NullableType.create(SimpleType.ANY))),
+                    CelFunctionBinding.from(
+                            "mel-str", Object.class,
+                            CelMelExtensions::string)),
+
+
+            // stringify(any)
             new Function(
                     CelFunctionDecl.newFunctionDeclaration(
                             "stringify",
                             CelOverloadDecl.newGlobalOverload(
                                     "mel-stringify",
-                                    "Converts provided value to string.",
+                                    "Converts its argument to string. " +
+                                            "Always return non-null string. If the argument is null, empty string is returned.",
                                     SimpleType.STRING,
-                                    SimpleType.ANY)),
-                    CelFunctionBinding.from("mel-stringify", Object.class,
-                            this::stringify)
+                                    NullableType.create(SimpleType.ANY))),
+                    CelFunctionBinding.from(
+                            "mel-stringify", Object.class,
+                            arg -> stringify(arg, ""))),
 
-            ),
+            // stringify(any, nullValue)
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "stringify",
+                            CelOverloadDecl.newGlobalOverload(
+                                    "mel-stringify-default",
+                                    "Converts its argument to string. " +
+                                            "Always return non-null string. If the argument is null, string provided as second argument is returned.",
+                                    SimpleType.STRING,
+                                    NullableType.create(SimpleType.ANY), SimpleType.STRING)),
+                    CelFunctionBinding.from(
+                            "mel-stringify-default", Object.class, String.class,
+                            CelMelExtensions::stringify)),
 
             // timestamp.atStartOfDay
             new Function(
@@ -424,10 +454,6 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
             return ExpressionUtil.stringify(toJava(val), "null");
         }
         return val;
-    }
-
-    private static boolean equalsUniversal(Object o1, Object o2) {
-        return Objects.equals(o1,o2);
     }
 
     private static String stringPlusInt(String s, Long aLong) {
@@ -598,8 +624,16 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
         }
     }
 
-    private String stringify(Object o) {
-        return basicExpressionFunctions.stringify(toJava(o));
+    @NotNull
+    private static String stringify(Object arg, String nullRepresentation) {
+        return ExpressionUtil.stringify(CelTypeMapper.toJavaValue(arg), nullRepresentation);
+    }
+
+    private static Object string(Object arg) {
+        if (CelTypeMapper.isCellNull(arg)) {
+            return NullValue.NULL_VALUE;
+        }
+        return ExpressionUtil.stringify(CelTypeMapper.toJavaValue(arg), "");
     }
 
     private String norm(Object o) {
@@ -615,7 +649,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
         if (o instanceof PolyString ps) {
             return basicExpressionFunctions.norm(ps);
         }
-        return basicExpressionFunctions.norm(stringify(o));
+        return basicExpressionFunctions.norm(stringify(o, ""));
     }
 
     @Nullable

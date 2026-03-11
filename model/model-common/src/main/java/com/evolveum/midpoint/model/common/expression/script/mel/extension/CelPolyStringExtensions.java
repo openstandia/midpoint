@@ -9,6 +9,7 @@ import com.evolveum.midpoint.model.common.expression.functions.BasicExpressionFu
 import com.evolveum.midpoint.model.common.expression.script.mel.CelTypeMapper;
 import com.evolveum.midpoint.model.common.expression.script.mel.value.PolyStringCelValue;
 
+
 import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -21,6 +22,7 @@ import dev.cel.common.internal.CelCodePointArray;
 import dev.cel.common.types.ListType;
 import dev.cel.common.types.NullableType;
 import dev.cel.common.types.SimpleType;
+import dev.cel.common.values.NullValue;
 import dev.cel.extensions.CelExtensionLibrary;
 import dev.cel.common.Operator;
 import dev.cel.runtime.*;
@@ -141,35 +143,6 @@ public class CelPolyStringExtensions extends AbstractMidPointCelExtensions {
                         CelFunctionBinding.from("mel-polystring-plus-int", PolyStringCelValue.class, Long.class,
                                 this::polystringPlusInt)
 
-                ),
-
-                // bool ? string : polystring
-                new Function(
-                        CelFunctionDecl.newFunctionDeclaration(
-                                Operator.CONDITIONAL.getFunction(),
-                                CelOverloadDecl.newGlobalOverload(
-                                        "conditional-string-polystring",
-                                        "Concatenation of int into string.",
-                                        SimpleType.STRING,
-                                        SimpleType.BOOL, NullableType.create(SimpleType.STRING), NullableType.create(PolyStringCelValue.CEL_TYPE))),
-                        CelFunctionBinding.from("conditional-string-polystring",
-                                ImmutableList.of(Boolean.class, Object.class, Object.class),
-                                CelPolyStringExtensions::conditionalPolystring)
-
-                ),
-
-                // bool ? polystring : string
-                new Function(
-                        CelFunctionDecl.newFunctionDeclaration(
-                                Operator.CONDITIONAL.getFunction(),
-                                CelOverloadDecl.newGlobalOverload(
-                                        "conditional-polystring-string",
-                                        "Concatenation of int into string.",
-                                        SimpleType.STRING,
-                                        SimpleType.BOOL, NullableType.create(PolyStringCelValue.CEL_TYPE), NullableType.create(SimpleType.STRING))),
-                        CelFunctionBinding.from("conditional-polystring-string",
-                                ImmutableList.of(Boolean.class, Object.class, Object.class),
-                                CelPolyStringExtensions::conditionalPolystring)
                 ),
 
                 // charAt
@@ -446,6 +419,20 @@ public class CelPolyStringExtensions extends AbstractMidPointCelExtensions {
                                 "polystring_startswith", PolyStringCelValue.class, String.class,
                                 (polystring, s) -> polystring.getOrig().startsWith(s))),
 
+                // string(polystring)
+                new Function(
+                        CelFunctionDecl.newFunctionDeclaration(
+                                "string",
+                                CelOverloadDecl.newGlobalOverload(
+                                        "string-polystring",
+                                        "Converts its argument to string. " +
+                                                "This function is not nullable, it cannot be called with null or optional value.",
+                                        SimpleType.STRING,
+                                        PolyStringCelValue.CEL_TYPE)),
+                        CelFunctionBinding.from(
+                                "string-polystring", PolyStringCelValue.class,
+                                CelPolyStringExtensions::string)),
+
                 // substring
                 new Function(
                         CelFunctionDecl.newFunctionDeclaration(
@@ -503,25 +490,11 @@ public class CelPolyStringExtensions extends AbstractMidPointCelExtensions {
         );
     }
 
-    private static Object conditionalPolystring(Object[] args) {
-        if ((boolean) args[0]) {
-            return celStringify(args[1]);
-        } else {
-            return celStringify(args[2]);
+    private static String string(PolyStringCelValue pval) {
+        if (CelTypeMapper.isCellNull(pval)) {
+            return null;
         }
-    }
-
-    private static Object celStringify(Object arg) {
-        if (CelTypeMapper.isCellNull(arg)) {
-            return arg;
-        }
-        if (arg instanceof String) {
-            return arg;
-        }
-        if (arg instanceof PolyStringCelValue ps) {
-            return ps.getOrig();
-        }
-        return arg.toString();
+        return pval.getOrig();
     }
 
     private static final class Library implements CelExtensionLibrary<CelPolyStringExtensions> {
