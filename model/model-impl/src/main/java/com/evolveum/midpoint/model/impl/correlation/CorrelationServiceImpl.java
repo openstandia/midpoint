@@ -652,22 +652,4 @@ public class CorrelationServiceImpl implements CorrelationService {
         return ResourceObjectTypeIdentification.of(shadow.getKind(), shadow.getIntent());
     }
 
-    private static @NotNull ResourceObjectTypeDefinition getObjectTypeDefinition(@NotNull ResourceType resource,
-            @NotNull ResourceObjectTypeIdentification objectTypeId,
-            @NotNull List<AdditionalCorrelationItemMappingType> additionalCorrelationMappings,
-            @NotNull CorrelationDefinitionType correlationDefinition)
-            throws ConfigurationException, SchemaException {
-        final ResourceSchemaExtender schemaExtenders = ResourceSchemaFactory.schemaExtenderFor(resource);
-        for (AdditionalCorrelationItemMappingType additionalMapping : additionalCorrelationMappings) {
-            final ResourceAttributeDefinitionType attrDef = new ResourceAttributeDefinitionType().ref(
-                    additionalMapping.getRef());
-            // Without the cloning it throws exception about resetting parent of a value.
-            CloneUtil.cloneMembersToCollection(attrDef.getInbound(), additionalMapping.getInbound());
-            schemaExtenders.addAttributeDefinition(objectTypeId, attrDef);
-        }
-        return schemaExtenders.addCorrelationDefinition(objectTypeId, correlationDefinition)
-                .extend()
-                .getObjectTypeDefinitionRequired(objectTypeId);
-    }
-
 }
