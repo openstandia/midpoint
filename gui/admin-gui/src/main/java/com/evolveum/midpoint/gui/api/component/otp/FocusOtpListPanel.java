@@ -96,7 +96,7 @@ public class FocusOtpListPanel extends BasePanel<FocusType> {
                 PrismContainerWrapperModel.fromContainerWrapper(
                         objectWrapperModel,
                         ItemPath.create(FocusType.F_CREDENTIALS, CredentialsType.F_OTPS, OtpCredentialsType.F_TOTP),
-                        () -> WebComponentUtil.getPageBase(getPage()));
+                        () -> getPageBase());
 
         OtpListPanel otp = new OtpListPanel(ID_OTP, getModel(), credentialModel, null);
         form.add(otp);
@@ -115,7 +115,7 @@ public class FocusOtpListPanel extends BasePanel<FocusType> {
         });
     }
 
-    private void onSavePerformed(AjaxRequestTarget target) {
+    protected void onSavePerformed(AjaxRequestTarget target) {
         PageBase page = getPageBase();
 
         Task task = page.createSimpleTask(OPERATION_SAVE_OTP_CREDENTIALS);
@@ -132,6 +132,7 @@ public class FocusOtpListPanel extends BasePanel<FocusType> {
             WebModelServiceUtils.save(delta, result, task, getParentPage());
         } catch (CommonException ex) {
             LoggingUtils.logException(LOGGER, "Cannot save OTP credentials, reason: {}", ex, ex.getMessage());
+            page.error(getString("FocusOtpListPanel.errorSavingOtpCredentials", ex.getMessage()));
         } finally {
             result.computeStatusIfUnknown();
             if (result.isSuccess()) {

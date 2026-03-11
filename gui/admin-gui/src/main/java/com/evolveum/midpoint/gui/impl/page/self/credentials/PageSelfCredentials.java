@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.extensions.markup.html.tabs.AbstractTab;
 import org.apache.wicket.extensions.markup.html.tabs.ITab;
 import org.apache.wicket.markup.html.WebMarkupContainer;
@@ -103,7 +104,7 @@ public class PageSelfCredentials extends PageSelf {
         return tabs;
     }
 
-    private IModel<FocusType> createFocusModel() {
+    private LoadableDetachableModel<FocusType> createFocusModel() {
         return new LoadableDetachableModel<>() {
 
             @Override
@@ -178,9 +179,17 @@ public class PageSelfCredentials extends PageSelf {
 
             @Override
             public WebMarkupContainer createPanel(String panelId) {
-                IModel<FocusType> focusModel = createFocusModel();
+                LoadableDetachableModel<FocusType> focusModel = createFocusModel();
 
-                return new FocusOtpListPanel(panelId, focusModel);
+                return new FocusOtpListPanel(panelId, focusModel) {
+
+                    @Override
+                    protected void onSavePerformed(AjaxRequestTarget target) {
+                        super.onSavePerformed(target);
+
+                        focusModel.detach();
+                    }
+                };
             }
         };
     }

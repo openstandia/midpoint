@@ -25,9 +25,12 @@ import org.jetbrains.annotations.NotNull;
 import com.evolveum.midpoint.authentication.api.OtpManager;
 import com.evolveum.midpoint.gui.api.page.PageAdminLTE;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismPropertyWrapper;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.impl.factory.panel.ItemRealValueModel;
+import com.evolveum.midpoint.gui.impl.prism.wrapper.PrismPropertyValueWrapper;
 import com.evolveum.midpoint.prism.crypto.Protector;
+import com.evolveum.midpoint.prism.impl.PrismPropertyValueImpl;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.util.exception.SchemaException;
@@ -133,7 +136,14 @@ public class OtpPanel<F extends FocusType> extends InputPanel {
         // wrapper mode
         return new ItemRealValueModel<>(() -> {
             try {
-                return wrapperModel.getObject().findProperty(OtpCredentialType.F_NAME).getValue();
+                PrismPropertyWrapper<?> name = wrapperModel.getObject().findProperty(OtpCredentialType.F_NAME);
+                PrismPropertyValueWrapper<?> value = name.getValue();
+                if (value == null) {
+                    name.add(new PrismPropertyValueImpl<>(null), getPageBase());
+                    value = name.getValue();
+                }
+
+                return value;
             } catch (SchemaException ex) {
                 LOGGER.debug("Cannot get property value for otp credential name", ex);
                 return null;
