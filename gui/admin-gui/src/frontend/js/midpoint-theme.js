@@ -585,6 +585,7 @@ export default class MidPointTheme {
            url.searchParams.set('w', tabId);
            console.log('redirect to url ' + url.toString());
            window.location.replace(url);
+           return;
         }
 
         if (!url.searchParams.has('w')) {
