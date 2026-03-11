@@ -364,7 +364,7 @@ public class ProcessedObjectImpl<O extends ObjectType> implements ProcessedObjec
         ShadowType shadowAfter = shadowBefore.clone();
         delta.applyTo(shadowAfter.asPrismObject());
 
-        List<String> marks = determineCorrelationEventMarks(shadowAfter);
+        List<String> marks = determineCorrelationEventMarks(shadowBefore, shadowAfter);
 
         var processedObject = new ProcessedObjectImpl<>(
                 simulationTransaction.getTransactionId(),
@@ -468,8 +468,11 @@ public class ProcessedObjectImpl<O extends ObjectType> implements ProcessedObjec
         return marks;
     }
 
-    private static List<String> determineCorrelationEventMarks(ShadowType after) {
+    private static List<String> determineCorrelationEventMarks(ShadowType before, ShadowType after) {
         final List<String> marks = new ArrayList<>();
+        if (isCorrelationStateChanged(before, after)) {
+            marks.add(SystemObjectsType.MARK_SHADOW_CORRELATION_STATE_CHANGED.value());
+        }
         if (after.getCorrelation().getSituation() == CorrelationSituationType.EXISTING_OWNER) {
             marks.add(SystemObjectsType.MARK_SHADOW_CORRELATION_OWNER_FOUND.value());
         } else if (after.getCorrelation().getSituation() == CorrelationSituationType.NO_OWNER) {
