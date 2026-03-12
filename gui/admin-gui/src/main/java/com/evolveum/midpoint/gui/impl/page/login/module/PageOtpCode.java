@@ -8,6 +8,8 @@ package com.evolveum.midpoint.gui.impl.page.login.module;
 
 import java.io.Serial;
 
+import com.evolveum.midpoint.gui.api.component.otp.OtpCodeValidator;
+
 import org.apache.wicket.markup.head.IHeaderResponse;
 import org.apache.wicket.markup.head.OnDomReadyHeaderItem;
 import org.apache.wicket.markup.html.form.TextField;
@@ -37,6 +39,7 @@ public class PageOtpCode extends PageAbstractAuthenticationModule<ModuleAuthenti
     @Serial private static final long serialVersionUID = 1L;
 
     private static final String DEFAULT_FORM_URL = "./spring_security_login";
+
     private static final String OTP_FORM_URL = "/otp_verify";
 
     private static final String ID_CODE = "code";
@@ -84,21 +87,7 @@ public class PageOtpCode extends PageAbstractAuthenticationModule<ModuleAuthenti
 
     @Override
     protected IModel<String> getDefaultLoginPanelDescriptionModel() {
-        return severalLoginFormModulesExist() ?
-                createStringResource("PageOtpCode.panelDescriptionWithModuleName", getProcessingModuleName())
-                : createStringResource("PageOtpCode.enterAccountDetails");
-    }
-
-    private boolean severalLoginFormModulesExist() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (!(authentication instanceof MidpointAuthentication ma)) {
-            return false;
-        }
-
-        int otpModulesCount = (int) ma.getAuthModules().stream()
-                .filter(module -> module != null && isModuleApplicable(module.getBaseModuleAuthentication()))
-                .count();
-        return otpModulesCount > 1;
+        return createStringResource("PageOtpCode.enterAccountDetails");
     }
 
     private String getProcessingModuleName() {
