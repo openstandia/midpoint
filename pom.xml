@@ -230,6 +230,7 @@
         <!-- Groovy 4.0.24 is also default for Spring Boot 3.4.0 -->
         <groovy.version>4.0.24</groovy.version>
 
+        <cel.version>0.12.0</cel.version>
 
         <!-- START of Spring Boot dependencies overrides (temporary/security fixes, revise regularly!) -->
         <commons-lang3.version>3.18.0</commons-lang3.version>
@@ -249,7 +250,7 @@
         <!-- NOTE: also update the version number in TestConnectorManager -->
         <connid.version>1.7.0.0-SNAPSHOT</connid.version>
 
-        <poi.version>5.2.3</poi.version>
+        <poi.version>5.5.1</poi.version>
         <!-- Version for classgraph must the one declared in Prism -->
         <classgraph.version>4.8.162</classgraph.version>
         <guava.version>32.1.2-jre</guava.version>
@@ -454,6 +455,32 @@
                 <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy</artifactId>
                 <version>${groovy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cel</groupId>
+                <artifactId>cel</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cel</groupId>
+                <artifactId>compiler</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cel</groupId>
+                <artifactId>runtime</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cel</groupId>
+                <artifactId>common</artifactId>
+                <version>${cel.version}</version>
+            </dependency>
+            <dependency>
+                <!-- Required by CEL. Need to match version used in CEL. -->
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>4.33.5</version>
             </dependency>
             <dependency>
                 <groupId>org.hibernate</groupId>
@@ -1893,7 +1920,6 @@
                                 <ignoredUsedUndeclaredDependency>org.javasimon:javasimon-core</ignoredUsedUndeclaredDependency>
                                 <ignoredUsedUndeclaredDependency>jakarta.xml.bind:jakarta.xml.bind-api</ignoredUsedUndeclaredDependency>
                                 <ignoredUsedUndeclaredDependency>jakarta.annotation:jakarta.annotation-api</ignoredUsedUndeclaredDependency>
-
                             </ignoredNonTestScopedDependencies>
                         </configuration>
                     </execution>
