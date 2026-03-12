@@ -6,6 +6,10 @@
 
 package com.evolveum.midpoint.authentication.impl.otp;
 
+import java.util.List;
+import java.util.Objects;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -22,6 +26,7 @@ import com.evolveum.midpoint.prism.crypto.EncryptionException;
 import com.evolveum.midpoint.prism.crypto.Protector;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.repo.common.SystemObjectCache;
+import com.evolveum.midpoint.schema.constants.SchemaConstants;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.security.api.MidPointPrincipal;
 import com.evolveum.midpoint.task.api.Task;
@@ -215,22 +220,54 @@ public class OtpManagerImpl implements OtpManager {
         return principal.getApplicableSecurityPolicy();
     }
 
-    /**
-     * TODO this is not checking TOTP module usage in sequences, also not checking whether there's TOTP and
-     *  other OTP (HOTP) module defined in the same policy
-     */
     private OtpAuthenticationModuleType findOtpModuleInSecurityPolicy(SecurityPolicyType securityPolicy) {
+        LOGGER.trace("Looking for OTP authentication module in security policy {}", securityPolicy != null ? securityPolicy.getName() : null);
+
         if (securityPolicy == null || securityPolicy.getAuthentication() == null) {
             return null;
         }
 
         AuthenticationsPolicyType authentication = securityPolicy.getAuthentication();
-        AuthenticationModulesType modules = authentication.getModules();
-        if (modules == null || modules.getTotp().isEmpty()) {
+        if (authentication == null) {
             return null;
         }
 
-        return modules.getTotp().get(0);
+        AuthenticationModulesType modules = authentication.getModules();
+        if (modules == null || modules.getTotp().size() != 1) {
+            return null;
+        }
+
+        OtpAuthenticationModuleType module = modules.getTotp().get(0);
+        String identifier = module.getIdentifier();
+        if (StringUtils.isEmpty(identifier)) {
+            return null;
+        }
+
+        boolean found = false;
+
+        List<AuthenticationSequenceType> sequences = authentication.getSequence();
+        for (AuthenticationSequenceType sequence : sequences) {
+            AuthenticationSequenceChannelType channel = sequence.getChannel();
+            if (channel == null) {
+                continue;
+            }
+
+            if (!SchemaConstants.CHANNEL_USER_URI.equals(channel.getChannelId())) {
+                continue;
+            }
+
+            if (sequence.getModule().stream()
+                    .noneMatch(m -> Objects.equals(identifier, m.getIdentifier()))) {
+                continue;
+            }
+
+            found = true;
+            break;
+        }
+
+        LOGGER.trace("Found OTP authentication module {} in security policy {}", identifier, securityPolicy.getName());
+
+        return found ? module : null;
     }
 
     private FocusType getCurrentUserFocus() {
