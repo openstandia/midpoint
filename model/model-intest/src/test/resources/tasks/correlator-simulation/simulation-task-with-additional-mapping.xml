@@ -11,9 +11,8 @@
       xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3"
 >
 
-    <name>Correlator Simulation with additional mapping</name>
+    <name>Correlator Simulation with additional mapping of attribute already defined in resource xml</name>
 
-    <taskIdentifier>10000000-0000-0000-5656-56560000a206</taskIdentifier>
     <ownerRef oid="00000000-0000-0000-0000-000000000002"/>
     <executionState>closed</executionState>
 

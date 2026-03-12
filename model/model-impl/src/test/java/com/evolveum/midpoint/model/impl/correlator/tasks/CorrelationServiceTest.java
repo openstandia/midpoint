@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -24,9 +25,9 @@ import com.evolveum.midpoint.model.api.correlation.CompleteCorrelationResult;
 import com.evolveum.midpoint.model.api.correlation.CorrelationService;
 import com.evolveum.midpoint.model.impl.AbstractEmptyInternalModelTest;
 import com.evolveum.midpoint.prism.path.ItemPath;
-import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
-import com.evolveum.midpoint.schema.processor.ResourceSchemaFactory;
+import com.evolveum.midpoint.schema.processor.ResourceObjectTypeDefinition;
 import com.evolveum.midpoint.schema.result.OperationResult;
+import com.evolveum.midpoint.schema.util.Resource;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.test.DummyTestResource;
 import com.evolveum.midpoint.test.util.MidPointTestConstants;
@@ -48,7 +49,6 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
             "correlator/correlation/task");
     private static final File ACCOUNT = new File(TEST_DIR, "account.csv");
     private static final File USERS = new File(TEST_DIR, "users.xml");
-    private static final File CORRELATOR = new File(TEST_DIR, "item-correlator.xml");
 
     @Autowired
     private CorrelationService correlationService;
@@ -84,8 +84,12 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         this.resource.initWithOverwrite(this, getTestTask(), getTestOperationResult());
     }
 
+    /**
+     * Tests whether the correlation works also with mappings which obey default mappings phase configuration (such
+     * which allows usage by correlators)
+     */
     @Test(dataProvider = "defaultEvalPhases")
-    void ShadowHasOneFocusCounterpart_correlateShadow_focusShouldBeInCandidateOwners(
+    void defaultMappingsPhaseIsSpecified_correlateShadowUsingCorrelationMapping_focusShouldBeInCandidateOwners(
             ResourceMappingsEvaluationConfigurationType defaultEvalPhaseConfig) throws IOException, CommonException {
         final Task task = getTestTask();
         final OperationResult result = getTestOperationResult();
@@ -100,15 +104,12 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         importObjectsFromFileNotRaw(USERS, task, result);
 
         when("Correlation with particular definition is run on the account's shadow.");
-        final CorrelationDefinitionType correlationDefinition = createCorrelationDefinition(CORRELATOR);
         final ShadowType shadow = allAccounts.iterator().next();
         final ResourceType resourceType = this.resource.get().asObjectable();
-        final ResourceObjectTypeIdentification objectTypeId = ResourceObjectTypeIdentification.of(
-                shadow.getKind(), shadow.getIntent());
-        final var objectTypeDef = ResourceSchemaFactory.schemaExtenderFor(resourceType)
-                .addCorrelationDefinition(objectTypeId, correlationDefinition)
-                .extend()
-                .getObjectTypeDefinitionRequired(objectTypeId);
+        final CorrelationDefinitionType correlationDefinition = resourceType.getSchemaHandling().getObjectType().get(0)
+                .getCorrelation();
+        final ResourceObjectTypeDefinition objectTypeDef = Objects.requireNonNull(Resource.of(resourceType)
+                .getCompleteSchemaRequired().getObjectTypeDefinition(shadow.getKind(), shadow.getIntent()));
 
         final CompleteCorrelationResult correlationResult = this.correlationService.correlate(
                 shadow, resourceType, objectTypeDef, correlationDefinition, task, result);
@@ -119,8 +120,12 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         assertEquals(candidates.get(0).getName().getOrig(), "smith1");
     }
 
+    /**
+     * Tests whether the correlation work also with mappings which have explicitly configured mapping phase (such which
+     * allows usage by correlators)
+     */
     @Test(dataProvider = "mappingPhases")
-    void givenNameInboundMappingWithPhase_correlateShadow_candidateOwnerShouldBeFound(
+    void explicitMappingPhaseInCorrelationMapping_correlateShadowUsingCorrelationMapping_candidateOwnerShouldBeFound(
             InboundMappingEvaluationPhaseType mappingPhase) throws IOException, CommonException {
         final Task task = getTestTask();
         final OperationResult result = getTestOperationResult();
@@ -136,15 +141,12 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         importObjectsFromFileNotRaw(USERS, task, result);
 
         when("Correlation with givenName definition is run on the account's shadow.");
-        final CorrelationDefinitionType correlationDefinition = createCorrelationDefinition(CORRELATOR);
         final ShadowType shadow = allAccounts.iterator().next();
         final ResourceType resourceType = this.resource.get().asObjectable();
-        final ResourceObjectTypeIdentification objectTypeId = ResourceObjectTypeIdentification.of(
-                shadow.getKind(), shadow.getIntent());
-        final var objectTypeDef = ResourceSchemaFactory.schemaExtenderFor(resourceType)
-                .addCorrelationDefinition(objectTypeId, correlationDefinition)
-                .extend()
-                .getObjectTypeDefinitionRequired(objectTypeId);
+        final CorrelationDefinitionType correlationDefinition = resourceType.getSchemaHandling().getObjectType().get(0)
+                .getCorrelation();
+        final ResourceObjectTypeDefinition objectTypeDef = Objects.requireNonNull(Resource.of(resourceType)
+                .getCompleteSchemaRequired().getObjectTypeDefinition(shadow.getKind(), shadow.getIntent()));
 
         final CompleteCorrelationResult correlationResult = this.correlationService.correlate(
                 shadow, resourceType, objectTypeDef, correlationDefinition, task, result);
@@ -153,13 +155,6 @@ public class CorrelationServiceTest extends AbstractEmptyInternalModelTest {
         final List<UserType> candidates = correlationResult.getAllCandidates(UserType.class);
         assertEquals(candidates.size(), 1);
         assertEquals(candidates.get(0).getName().getOrig(), "smith1");
-    }
-
-    private CorrelationDefinitionType createCorrelationDefinition(File correlatorFile) throws IOException,
-            SchemaException {
-        final ItemsSubCorrelatorType correlator = this.prismContext.parserFor(correlatorFile)
-                .parseRealValue(ItemsSubCorrelatorType.class);
-        return new CorrelationDefinitionType().correlators(new CompositeCorrelatorType().items(correlator));
     }
 
     private void configureDefaultEvalPhase(ResourceMappingsEvaluationConfigurationType defaultEvalPhase, Task task,
