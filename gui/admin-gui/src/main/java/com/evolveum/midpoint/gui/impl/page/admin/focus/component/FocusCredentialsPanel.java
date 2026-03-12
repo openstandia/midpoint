@@ -10,6 +10,13 @@ import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.evolveum.midpoint.authentication.api.OtpManager;
+import com.evolveum.midpoint.schema.result.OperationResult;
+import com.evolveum.midpoint.task.api.Task;
+import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
+
+import com.evolveum.midpoint.web.security.MidPointApplication;
+
 import org.apache.wicket.extensions.markup.html.tabs.ITab;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.model.IModel;
@@ -76,17 +83,29 @@ public class FocusCredentialsPanel<F extends FocusType, FDM extends FocusDetails
         tabs.add(
                 createTab(
                         createStringResource("FocusCredentialsPanel.tab.password"),
+                        new VisibleBehaviour(() -> true),
                         id -> createPasswordPanel(id)));
         tabs.add(
                 createTab(
                         createStringResource("FocusCredentialsPanel.tab.otp"),
+                        new VisibleBehaviour(() -> isOtpConfigured()),
                         id -> createOtpsPanel(id)));
 
         return tabs;
     }
 
-    private ITab createTab(IModel<String> title, SerializableFunction<String, WebMarkupContainer> panelSupplier) {
-        return new PanelTab(title) {
+    private boolean isOtpConfigured() {
+        FocusType focus = getObjectDetailsModels().getObjectType();
+
+        Task task =  getPageBase().createSimpleTask("checkOtpConfiguration");
+        OperationResult result = task.getResult();
+
+        OtpManager manager = MidPointApplication.get().getOtpManager();
+        return manager.isOtpAvailable(focus.asPrismObject(), task, result);
+    }
+
+    private ITab createTab(IModel<String> title, VisibleBehaviour visible, SerializableFunction<String, WebMarkupContainer> panelSupplier) {
+        return new PanelTab(title, visible) {
 
             @Override
             public WebMarkupContainer createPanel(String panelId) {
