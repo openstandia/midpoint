@@ -19,6 +19,7 @@ TODO: table of operators with precedence
 
 Following _operators_ can be used in MEL expressions:
 
+[%autowidth]
 |====
 | Operator | Meaning
 
@@ -198,6 +199,19 @@ This function can be especially useful when combined with logging functions:
 log.trace('Focus object: {}', debugDump(focus))
 ----
 
+=== default
+
+`default(any, defaultValue)` -> any
+
+Returns a value provided as a first argument as long as that value is non-null.
+If `null` (or equivalent) value is provided, it returns default value (second argument) instead.
+
+.Example
+[source,mel]
+----
+'Hello ' + default(foo, 'world')    // Returns 'Hello world' if value of foo is null
+----
+
 === endsWith
 
 `string.endsWith(suffix)` -> bool
@@ -269,11 +283,16 @@ Format specification follows https://docs.oracle.com/en/java/javase/21/docs/api/
 '%s has %d apples'.format(['Jack', 3])
 ----
 
+It is strongly recommended to use `format()` function instead of add operator (`\+`) for string concatenation.
+Unlike the add operator (`+`), the `format()` function can work reliably with all data types and values, including `null` values.
+
 === has
 
 `has(variable.item)` -> bool
 
 Macro that checks whether the item exists within a data structure.
+
+In MEL, it is recommended to use `isPresent()` function instead of `has()`.
 
 .Example
 [source,mel]
@@ -315,9 +334,11 @@ Returns true if string is blank (has zero length or contains only white characte
 === isEmpty
 
 `isEmpty(string)` -> bool +
+`isEmpty(list)` -> bool +
 `string.isEmpty()` -> bool
 
-Returns true if string is empty (has zero length) or it is null.
+Returns true if string is empty (has zero length), or if it is null.
+Also returns true if the argument is an empty list.
 
 .Example
 [source,mel]
@@ -325,7 +346,67 @@ Returns true if string is empty (has zero length) or it is null.
 'foo'.isEmpty()  // Returns false
 '   '.isEmpty()  // Returns false
 ''.isEmpty()     // Returns true
+isEmpty([])      // Returns true
 ----
+
+=== isNull
+
+`isNull(any)` -> bool
+
+Returns true if the argument is `null` or any of its equivalents.
+This function works reliably in all the cases when a test for "nullness" would be done.
+E.g. it works with variables as well as _optionals_ that are result of `.?` operator use.
+
+Use of this function is strongly recommended for null checks in all places.
+
+.Example
+[source,mel]
+----
+isNull(null)     // Returns true
+isNull('foo')    // Returns false
+----
+
+Function `isNull()` can be used with structured data as well.
+The following expression returns `false` only if (non-null) value of `validFrom` property is present.
+It returns `true` in all other cases, such as when `focus` variable contains `null`, if the object in `focus` variable does not have `activation` container, if the container does not contain `validFrom` property or if that property is `null`.
+
+.Example
+[source,mel]
+----
+isNull(focus.?activation.?validFrom)
+----
+
+It is strongly recommended to use `isNull()` function instead of `null` equality check (e.g. `foo == null`) in all cases.
+
+=== isPresent
+
+`isPresent(any)` -> bool
+
+Returns true if the argument is present, i.e. if it is not `null` nor any of its equivalents.
+This function works reliably in all the cases when a test for presence would be done.
+E.g. it works with variables as well as _optionals_ that are result of `.?` operator use.
+
+Use of this function is strongly recommended for presence checks in all places.
+
+.Example
+[source,mel]
+----
+isPresent(null)     // Returns false
+isPresent('foo')    // Returns true
+----
+
+Function `isPresent()` can be used with structured data as well.
+The following expression returns `true` only if (non-null) value of `validFrom` property is present.
+It returns `false` in all other cases, such as when `focus` variable contains `null`, if the object in `focus` variable does not have `activation` container, if the container does not contain `validFrom` property or if that property is `null`.
+
+.Example
+[source,mel]
+----
+isPresent(focus.?activation.?validFrom)
+----
+
+It is strongly recommended to use `isPresent()` function instead of `null` inequality check (e.g. `foo != null`) in all cases.
+
 
 === join
 
@@ -546,21 +627,46 @@ Works on strings as well as polystrings.
 focus.fullName.startsWith('Ing.')
 ----
 
-=== stringify
+=== str
 
-`stringify(any)` -> string
+`str(any)` -> string
 
 Converts any value provided as an argument to string.
+This function is nullable.
+If a `null` argument is provided as an input, `null` value is returned.
+
+This function is useful for type conversion and unification (e.g. converting string, polystring and numbers to basic string).
+For a function suitable for string formatting see `stringify()`.
+
+.Example
+[source,mel]
+----
+str(['foo','bar'])        // Returns '["foo","bar"]'
+str(3)                    // Returns '3'
+str(null)                 // Returns null
+----
+
+=== stringify
+
+`stringify(any)` -> string +
+`stringify(any, default)`
+
+Formats any value provided as an argument to string.
 The value is converted to string in a sensitive way.
 E.g. the function tries to detect collections and returns the first element (if there is only one).
+This function always provides non-null output.
+If `null` value is presented as an argument, the function returns the default value instead.
+If no default value is explicitly specified, empty string is returned.
 
-This function is useful for diagnostics, as well as type unification (e.g. converting string, polystring and numbers to basic string).
+This function is useful for string formatting and diagnostics.
+For type conversion function see `str()`.
 
 .Example
 [source,mel]
 ----
 stringify(['foo','bar'])  // Returns '["foo","bar"]'
 stringify(3)              // Returns '3'
+stringify(null, '?')      // Returns '*'
 ----
 
 === substring
