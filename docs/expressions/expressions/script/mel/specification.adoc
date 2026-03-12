@@ -1798,7 +1798,7 @@ Use correct variables names instead (`focus` and `projection`).
 These variables are not present in MEL environment.
 Equivalent functionality is available to MEL expressions in a form of native MEL language extensions,
 e.g. as `norm`, `log.debug(...)` or `midpoint.getObject(...)` functions.
-See xref:migration[migration guide] for more details.
+See xref:../migration/[migration guide] for more details.
 
 There is additional variable available to all MEL expressions:
 

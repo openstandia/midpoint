@@ -56,7 +56,7 @@ E.g. the usual variables such as `focus` and `projection` are available in xref:
 A relatively rich set of _operators_ and _functions_ is available in MEL expressions.
 There are the usual operators for algebra (`+`, `-`, etc.), comparison (`==`, `<`, `>`, etc.) and logic (`&&`, `||`, etc.)
 The functions deal with string operations (`substring`, `contains`, etc.), list processing (`filter`, `map`, etc.), parsing, formatting, pattern matching, timestamp manipulation and many other things.
-These are documented in xref:specification[MEL language specification].
+These are documented in xref:../specification/[MEL language specification].
 
 Expressions are supposed to return a value.
 There is no `return` statement in MEL.
@@ -70,7 +70,7 @@ MEL functions and operators are invoked in a natural order, when all their input
 MEL functions are supposed to be free of side effects, therefore the exact order of execution is not important.
 
 .Migrating from Groovy
-TIP: xref:migration[Migration guide] is a valuable resource for engineers that are used to Groovy and/or need to migrate existing Groovy expression to MEL.
+TIP: xref:../migration/[Migration guide] is a valuable resource for engineers that are used to Groovy and/or need to migrate existing Groovy expression to MEL.
 
 This way of thinking may look a bit odd at the first sight if you are used to imperative programming language such as Groovy or Java.
 _Expressions_ are not like that.
@@ -184,7 +184,7 @@ foo.isEmpty()
 isEmpty(foo)
 ----
 
-See xref:specification[full MEP specification] for list of all applicable functions.
+See xref:../specification/[full MEP specification] for list of all applicable functions.
 
 .Macros
 NOTE: Some MEL functionality is implemented using _macros_ instead of functions.
@@ -301,7 +301,7 @@ It exists because it came with CEL.
 
 |===
 
-See xref:specification[full MEP specification] for the details.
+See xref:../specification/[full MEP specification] for the details.
 
 == No Flow Control
 
@@ -455,7 +455,7 @@ The `filter` macro can be used to filter lists or search for values:
 ----
 
 There are also other macros such as `all`, `exists` and `exsists_one`.
-See xref:specification[full MEP specification] for the details.
+See xref:../specification/[full MEP specification] for the details.
 
 Multi-valued items of midPoint objects behave as lists as well.
 E.g. expression `focus.assginemnt` evaluates to a _list_ of all assignments that the focus has.
@@ -619,4 +619,4 @@ such as resources or shadows.
 
 == See Also
 
-* xref:specification[MidPoint Expression Language Specification]
+* xref:../specification/[MidPoint Expression Language Specification]
