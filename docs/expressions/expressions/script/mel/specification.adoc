@@ -11,71 +11,101 @@ TODO
 
 MidPoint Expression Language (MEL) is a ...
 
-TODO: literals
+== Literals and Variables
+
+// TODO: literals
 
 == Operators
-
-TODO: table of operators with precedence
 
 Following _operators_ can be used in MEL expressions:
 
 [%autowidth]
 |====
-| Operator | Meaning
+| Operator | Meaning | Notes
 
 |`==`
 | Equality
+|
 
 |`!=`
 | Inequality
+|
 
 |`>`
 | Greater than
+|
 
 |`>=`
 | Greater than or equal
+|
 
 |`<`
 | Less than
+|
 
 |`\<=`
 | Less than or equal
+|
 
 |`+`
 | Addition, concatenation
+| Can be used for algebraic addition or string concatenation.
 
 |`-`
 | Negation, subtraction
+|
 
 |`*`
 | Multiplication
+|
 
 |`/`
 | Division
+|
 
 |`%`
 | Remainder
+|
 
 |`!`
 | Logical NOT
+|
 
 |`&&`
 | Logical AND
+|
 
 |`\|\|`
 | Logical OR
+|
 
 |`in`
 | Inclusion test
+|
 
 |`?:`
 | Conditional
+|
+
+|`.`
+| Selection
+| Used to resolve structured data, assumes non-null operand.
+
+|`.?`
+| Optional selection
+| Used to resolve structured data, can handle null operand.
+
+|`[]`
+| Index
+| Used to retrieve specific value from a list, map or structured data.
+Assumes non-null operand.
+
+|`[?]`
+| Optional Index
+| Used to retrieve specific value from a list, map or structured data.
+Can handle null operand.
 
 |====
-
-
-
-TODO: include indexing ([]) and 'in'
 
 == Functions and Macros
 
@@ -1727,7 +1757,7 @@ Works with strings as well as polystrings.
 
 == Structured Data
 
-Object structure can be accessed in mel using the dot (`.`) convention.
+Object structure can be accessed in mel using the selection operator (`.`) (a.k.a. _dot convention_).
 Following expression returns value of `name` property of the object stored in `focus` xref:/midpoint/reference/expressions/variables/[variable].
 
 [source,mel]
@@ -1743,7 +1773,7 @@ Following code returns value of `administrativeStatus` property located inside `
 focus.activation.administrativeStatus
 ----
 
-Alternativelly, _index operator_ (`[]`) can be used to access structured data:
+Alternatively, _index operator_ (`[]`) can be used to access structured data:
 
 [source,mel]
 ----
@@ -1753,7 +1783,7 @@ focus['name']
 Structure of the data is dictated by xref:/midpoint/reference/schema/common-data-model/[midPoint schema].
 
 Access to extension items of objects is facilitated by an `extension` container.
-E.g. extension attribute `ship` of the object stored in the `focus` variable can be accesed as follows:
+E.g. extension attribute `ship` of the object stored in the `focus` variable can be accessed as follows:
 
 [source,mel]
 ----
@@ -1761,7 +1791,57 @@ focus.extension.ship
 focus.extension['ship']
 ----
 
-// TODO: has()
+When working with midPoint (prism) objects, both strings and qnames can be used as indexes.
+
+The `has()` macro can be used for tests regarding presence of items in structured objects and maps:
+
+[source,mel]
+----
+has(focus.fullName)
+----
+
+However, the `has()` macro is not null-safe.
+E.g. the expression above fails in case the `focus` variable is `null`.
+It is recommended to use `isNull()` and `isPresent()` functions instead (see below).
+
+=== Optional Values in Structured Data
+
+CEL interpreter that evaluates MEL expressions assumes that the data structures accessed by the expression exist when the expression is evaluated.
+E.g. the following expression assumes that variable `focus` contains structured data value, which has field `activation`, which has field `administrativeStatus`.
+The expression fails if any of that assumptions is false, e.g. if variable `focus` does not contain a value (is `null`).
+
+[source,mel]
+----
+focus.activation.administrativeStatus
+----
+
+However, the data are seldom complete.
+In usual case, the data are only partially populated.
+E.g. a focus may not have activation at all, and objects with `administrativeStatus` explicitly defined are quite rare.
+MEL allows specification of _optional selection_ by adding question mark (`?`) after the dot when working with incomplete data.
+
+[source,mel]
+----
+focus.?activation.?administrativeStatus
+----
+
+The expression above does not fail when variable `focus` does not contain any value, or in case that there is no `activation` container or `administrativeStatus` property.
+In such cases the expression evaluates to an _empty optional_, which is supposed to be equivalent to `null`.
+
+MidPoint interprets the value correctly when it is a result value of an expression.
+Most of MEL functions can interpret the value correctly as well.
+However, interpretation of some built-in CEL operators (e.g. `==` and `+`) can be confusing.
+Therefore, it is recommended to use functions `isPresent()` and `isNull()` for checks, and `format()` for string formatting when dealing with optional values.
+E.g. the `isPresent()` function can be used to determine whether a particular item is present in data:
+
+[source,mel]
+----
+isPresent(focus.?activation.?administrativeStatus)
+----
+
+// TODO: xref
+See Null and Optional Values section below.
+
 
 === Item QNames
 
@@ -1806,13 +1886,122 @@ There is additional variable available to all MEL expressions:
 It is a fixed timestamp of an approximate moment of the script execution.
 Value of the variable does not change during script execution.
 
+
+== Null and Optional Values
+
+MEL expressions often need to deal with `null` and optional values, values which may or may not be present.
+This applies to script variables, which may have value in some cases, and may not have value (`null`) in others.
+Then there are structured data (midPoint/prism objects), which have many optional items.
+
+CEL language provides some mechanisms to deal with such optional values.
+Unfortunately, there are two mechanisms to represent value which is not present: _null values_ and _optionals_.
+These mechanisms are not perfectly aligned, which may cause a lot of confusion.
+
+When it comes to structured types, CEL assumes that all the items in a structured data referenced by an expression exist, and are present in the data.
+E.g. following expression fails in case that the object in the `focus` variable does not have `activation` container, that container does not have `administrativeStatus` property, or even if `focus` variable has `null` value.
+
+.Fragile processing of structured data, not recommended
+[source,mel]
+----
+focus.activation.administrativeStatus
+----
+
+The method used in expression above is not recommended in MEL expressions.
+Such expressions are reliable only if you are absolutely sure that all the referenced items are present in the data, which usually means that the expressions have explicitly checked their existence before.
+In general case, the use of `.?` operator is recommended instead:
+
+.Robust processing of structured data, recommended
+[source,mel]
+----
+focus.?activation.?administrativeStatus
+----
+
+The `.?` operator is using _optionals_, which means it does not fail even if there is no `activation` container, that container does not have `administrativeStatus` property, or even if `focus` variable is `null`.
+In all such cases the expression evaluates to _empty optional_, which is supposed to have the same meaning as `null` value.
+However, it is not _completely_ equivalent to `null`, as _empty optional_ is formally a non-null value.
+This means that CEL/MEL has two mechanisms for representing values that may or may not be present.
+Therefore, simple equality check for `null` is not reliable:
+
+.Not recommended, not reliable
+[source,mel]
+----
+foo == null
+----
+
+This equality operator checks whether the value is `null`.
+As optional are always non-null, the expression above returns non-intuitive result (`false`) for empty optionals.
+The expression above is likely to work correctly when used with variables which contain primitive values, but it will not work with optionals.
+This can be counter-intuitive when dealing with structured data:
+
+.Incorrect, counter-intuitive expression
+[source,mel]
+----
+focus.?activation.?administrativeStatus == null
+----
+
+The expression above never evaluates to `false`, as optionals are always non-null values, even if the item that they reference does not exist.
+As a rule of thumb, it is recommended to *always avoid use of null equality check (`foo == null`)*.
+
+MEL provides a special purpose functions `isNull()` and `isPresent()` which can be reliably used in all the cases.
+All the expressions below will be evaluated correctly, providing results that the user would intuitively expect.
+
+.Recommended check for optional/null values
+[source,mel]
+----
+isNull(foo)
+isNull(focus.?activation.?validFrom)
+isPresent(focus.?activation.?administrativeStatus)
+----
+
+NOTE: There is a `has()` macro in CEL, which can be used to check for presence of a particular element in structured data.
+However, the `has()` macro has limitations, which makes it difficult to use in some cases.
+The use of `isNull()` and `isPresent()` functions is recommended instead of use of `has()` macro, especially for new users.
+
+Moreover, there is a `default()` function which is very handy, and it reliably detects present or missing value in all the cases:
+
+.Recommended check for optional/null values
+[source,mel]
+----
+default(focus.?lifecycleState, 'active')
+----
+
+The expression above will always return a valid string value, even in case that `focus` variable is `null`, or that the object present in `focus` variable does not have `lifecycleState` property.
+
+While MEL provides functions that work reliably (`isNull()`, `isPresent()`) and even some convenience functions (`default()`) which make it easy to work with null and optional values, there is still one drawback given by the nature of CEL.
+
+While the `.?` operator works reliably with structured data, it cannot be used for function invocation.
+E.g. the following expression is invalid:
+
+.Invalid expression
+[source,mel]
+----
+foo.?contains('#')
+----
+
+Assuming that `foo` is a string variable, which may either contain a string or `null`, the expression above is specifying execution of `contains()` function on that variable.
+However, the use of `.?` operator in this way is illegal in CEL, and currently there is no practical way for MEL extensions to implement this behavior.
+Therefore, the only practical option in this case is to explicitly check for `null` value using a conditional operator (`?:`):
+
+.Correct expression
+[source,mel]
+----
+isPresent(foo) ? foo.contains('#') : null
+----
+
 == Custom Function Libraries
 
-TODO
+// TODO
+
+== Miscellaneous Mechanisms
+
+* MEL expression can span multiple lines, which provides opportunity for indentation to increase readability.
+
+* Two slashes (`//`) can be used to add comments in expressions.
+The slashes start a comment, which ends at the end of line.
 
 == Expression Profiles
 
-TODO
+// TODO
 
 == MEL and CEL
 
@@ -1820,7 +2009,7 @@ MidPoint Expression Language (MEL) is based on link:https://cel.dev/[Common Expr
 
 == MEL and Java
 
-TODO: MEL/CEL is not a Java world.
+// TODO: MEL/CEL is not a Java world.
 Java classes and libraries are intentionally _not_ exposed to MEL expressions.
 
 == TODO
@@ -1828,6 +2017,8 @@ Java classes and libraries are intentionally _not_ exposed to MEL expressions.
 * Literals
 
 * Types and Conversions
+
+* RE2 regexp spec (or reasonable link)
 
 == See Also
 
