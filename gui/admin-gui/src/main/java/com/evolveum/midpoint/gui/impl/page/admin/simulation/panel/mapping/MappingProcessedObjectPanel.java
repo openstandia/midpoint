@@ -103,7 +103,7 @@ public abstract class MappingProcessedObjectPanel
     @SuppressWarnings("unchecked")
     protected <T extends Serializable> Search<T> loadSearch(PageStorage storage) {
         Search<T> search = null;
-        if (storage != null && defaultMarkOidForSearch.equals(getDefaultMarkOidForSearch())) {
+        if (storage != null && defaultMarkOidForSearch != null && defaultMarkOidForSearch.equals(getDefaultMarkOidForSearch())) {
             search = storage.getSearch();
         }
 
