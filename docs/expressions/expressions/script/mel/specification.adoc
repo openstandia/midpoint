@@ -1839,9 +1839,7 @@ E.g. the `isPresent()` function can be used to determine whether a particular it
 isPresent(focus.?activation.?administrativeStatus)
 ----
 
-// TODO: xref
-See Null and Optional Values section below.
-
+See xref:#null-and-optional-values[Null and Optional Values section] below.
 
 === Item QNames
 
@@ -1988,16 +1986,33 @@ Therefore, the only practical option in this case is to explicitly check for `nu
 isPresent(foo) ? foo.contains('#') : null
 ----
 
+When working with strings, `stringify()` function can be very handy.
+As `stringify()` never returns null, any string function can be safely invoked on stringified value:
+
+.Simpler correct expression
+[source,mel]
+----
+stringify(foo).contains('#')
+----
+
+Such use of `stringify()` can be very handy in case of string formatting as well.
+If your intent is to return empty string instead of null
+
 == Custom Function Libraries
 
 // TODO
 
-== Miscellaneous Mechanisms
+// TODO: Remember, no side effects!
+
+== Miscellaneous Notes
 
 * MEL expression can span multiple lines, which provides opportunity for indentation to increase readability.
 
 * Two slashes (`//`) can be used to add comments in expressions.
 The slashes start a comment, which ends at the end of line.
+
+* Deprecated variables such as `user`, `account` and `shadow` are not available in MEL.
+Use variables such as `focus` and `projection` instead.
 
 == Expression Profiles
 

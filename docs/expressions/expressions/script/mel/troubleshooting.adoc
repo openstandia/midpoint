@@ -91,8 +91,37 @@ isNull(foo)
 ----
 
 These problems are caused by CEL engine using two different ways to represent value which is not present (_null_ and _emtpty optional_).
-// TODO: xref
-Detailed explanation of this phenomenon is provided in See Null and Optional Values section of MEL specification.
+Detailed explanation of this phenomenon is provided in See xref:../specification/#null-and-optional-values[Null and Optional Values section of MEL specification].
+
+
+== Common Problems
+
+My `"foo"` string does not work::
+Strings are delimited by apostrophes in MEL.
+Correct string literal is `'foo'`.
+
+Check for `isPresent(focus.fullName)` fails.::
+Of course it does.
+If focus does not have `fullName` property, then the code `focus.fullName` fails, and the `isPresent()` function is not executed.
+The correct form is using _optional selection_ (`.?`) to avoid failing on missing property: `isPresent(focus.?fullName)`.
+Alternatively, CEL `has()` macro could be used: `has(focus.fullName)`.
+However, the `has()` macro fails in case that the `focus` variable is `null`.
+The use of `isPresent(focus.?fullName)` is recommended.
+
+Variable `user` is not there!::
+That is right. Variable `user` is deprecated for many years, and it is not exposed to new expression environments such as MEL.
+Use variables such as `focus` and `projection` instead.
+
+String formatting: `'%s %s'.format(foo, bar)` does not work.::
+CEL does not support functions with variable number of arguments (vararg).
+Therefore you have to use list literal (`[]`) when passing multiple arguments to logging functions:
+`'%s %s'.format([ foo, bar ])`
+
+Logging: `log.error('{} - {}', foo, bar)` does not work.::
+CEL does not support functions with variable number of arguments (vararg).
+Therefore you have to use list literal (`[]`) when passing multiple arguments to logging functions:
+`log.error('{} - {}', [ foo, bar ])`
+
 
 == See Also
 
