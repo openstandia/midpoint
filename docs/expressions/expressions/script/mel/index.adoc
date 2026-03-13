@@ -20,7 +20,7 @@ MidPoint Expression Language (MEL) is based on link:https://cel.dev/[Common Expr
 
 MEL is designed to be _secure_ expression language, intended for common use in midPoint expressions.
 
-See xref:introduction[MidPoint Expression Language Introduction] for more details.
+See xref:introduction/[MidPoint Expression Language Introduction] for more details.
 
 == Examples
 
@@ -42,4 +42,4 @@ focus.givenName + ' ' + focus.familyName
 
 == See Also
 
-* xref:introduction[MidPoint Expression Language Introduction]
+* xref:introduction/[MidPoint Expression Language Introduction]

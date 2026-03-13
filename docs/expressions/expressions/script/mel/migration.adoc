@@ -101,7 +101,7 @@ Some functions were completely replaced with their MEL equivalent, e.g.
 The original functions (e.g. `basic.formatDateTime(...)`) were kept in MEL for easier migration
 (e.g. `ts.formatDateTime(...)`).
 Such functions are considered to be deprecated, migration to native CEL/MEL equivalents is recommended as soon as possible.
-Refer to xref:specification[MEL language specification] for details.
+Refer to xref:../specification/[MEL language specification] for details.
 Search for relevant parts of the original function name usually provides the MEL equivalent.
 
 * `log` library is available in MEL in almost the same form as in Groovy:
