@@ -524,6 +524,10 @@ public abstract class SmartCorrelationTable
     protected void onSuggestNewPerformed(AjaxRequestTarget target,
             IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
         getSwitchToggleModel().setObject(Boolean.TRUE);
+        final List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                .map(ConfirmationOption::option)
+                .map(DataAccessPermission::toSchemaType)
+                .toList();
         PageBase pageBase = getPageBase();
         ResourceObjectTypeIdentification objectTypeIdentification = getResourceObjectTypeIdentification();
         SmartIntegrationService service = pageBase.getSmartIntegrationService();
@@ -532,7 +536,8 @@ public abstract class SmartCorrelationTable
                         .withHideSuccess(true)
                         .withHideInProgress(true))
                 .runVoid((task, result) -> {
-                    service.submitSuggestCorrelationOperation(getResourceOid(), objectTypeIdentification, task, result);
+                    service.submitSuggestCorrelationOperation(getResourceOid(), objectTypeIdentification, permissions,
+                            task, result);
                     refreshAndDetach(target);
                 });
     }
