@@ -26,6 +26,7 @@ import com.evolveum.midpoint.gui.api.prism.wrapper.PrismPropertyWrapper;
 import com.evolveum.midpoint.gui.api.util.GuiDisplayTypeUtil;
 import com.evolveum.midpoint.gui.api.util.MappingDirection;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
+import com.evolveum.midpoint.gui.api.util.WebPrismUtil;
 import com.evolveum.midpoint.gui.impl.component.data.column.AbstractItemWrapperColumn;
 import com.evolveum.midpoint.gui.impl.component.data.column.LifecycleStateColumn;
 import com.evolveum.midpoint.gui.impl.component.data.column.PrismPropertyWrapperColumn;
@@ -39,6 +40,8 @@ import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schem
 
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.stats.FocusStatisticsActions;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.stats.ObjectTypeStatisticsActions;
+import com.evolveum.midpoint.gui.impl.page.admin.simulation.component.SimulationActionFlow;
+import com.evolveum.midpoint.gui.impl.page.admin.simulation.component.SimulationParams;
 import com.evolveum.midpoint.gui.impl.prism.panel.PrismPropertyHeaderPanel;
 import com.evolveum.midpoint.prism.*;
 
@@ -50,12 +53,14 @@ import com.evolveum.midpoint.web.component.AjaxIconButton;
 import com.evolveum.midpoint.web.component.data.column.IconColumn;
 import com.evolveum.midpoint.web.component.dialog.ConfirmationPanel;
 import com.evolveum.midpoint.web.component.input.DropDownChoicePanel;
+import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItemAction;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItemBuilder;
 import com.evolveum.midpoint.web.component.prism.ValueStatus;
 
 import com.evolveum.midpoint.web.model.PrismPropertyWrapperHeaderModel;
 import com.evolveum.midpoint.web.page.admin.configuration.component.EmptyOnChangeAjaxFormUpdatingBehavior;
 
+import com.evolveum.midpoint.web.page.admin.resources.ResourceTaskFlavors;
 import com.evolveum.midpoint.web.session.UserProfileStorage;
 import com.evolveum.prism.xml.ns._public.types_3.ItemPathType;
 
@@ -174,6 +179,7 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
                         inlineMenuItems.add(createDuplicateInlineMenu());
                         inlineMenuItems.add(createChangeMappingNameInlineMenu());
                         inlineMenuItems.add(createChangeLifecycleButtonInlineMenu());
+                        inlineMenuItems.add(createSimulationInlineMenu());
 
                         PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> resourceObjectTypeDefinition = findResourceObjectTypeDefinition();
                         if (resourceObjectTypeDefinition != null && resourceObjectTypeDefinition.getRealValue() != null) {
@@ -924,6 +930,80 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
     protected Set<PrismContainerValueWrapper<MappingType>> getAcceptedSuggestionsCache() {
         return acceptedSuggestionsCache;
     }
+
+    protected InlineMenuItem createSimulationInlineMenu() {
+        return new InlineMenuItem(
+                createStringResource("SmartMappingPanel.simulate")) {
+            @Serial private static final long serialVersionUID = 1L;
+
+            @Override
+            public boolean isHeaderMenuItem() {
+                return false;
+            }
+
+            @Override
+            public @NotNull InlineMenuItemAction initAction() {
+                return new ColumnMenuAction<PrismContainerValueWrapper<MappingType>>() {
+
+                    @Override
+                    public void onClick(AjaxRequestTarget target) {
+
+                        if (getRowModel() != null) {
+                            InlineMappingDefinitionType mappingToSimulate = new InlineMappingDefinitionType();
+                            ItemPathType refPath = getRefPath(getRowModel().getObject());
+                            if (refPath != null) {
+                                mappingToSimulate.setRef(refPath);
+
+                                MappingType mappingRealValue = getRowModel().getObject().getRealValue();
+                                WebPrismUtil.cleanupEmptyContainerValue(mappingRealValue.asPrismContainerValue());
+
+                                if (mappingRealValue instanceof InboundMappingType inbound) {
+                                    mappingToSimulate.getInbound().add(inbound.clone());
+                                } else if (mappingRealValue instanceof OutboundMappingType outbound) {
+                                    mappingToSimulate.getOutbound().add(outbound.clone());
+                                }
+
+
+                                SimulationParams<?> params = new SimulationParams<>(
+                                        getPageBase(),
+                                        getResourceType(),
+                                        findResourceObjectTypeDefinition().getRealValue(),
+                                        ResourceTaskFlavors.MAPPING_PREVIEW_ACTIVITY,
+                                        mappingToSimulate.clone(),
+                                        ExecutionModeType.SHADOW_MANAGEMENT_PREVIEW
+                                );
+
+                                SimulationActionFlow<?> flow = new SimulationActionFlow<>(params);
+                                flow.enableSampling();
+                                flow.showProgressPopup();
+                                flow.start(target);
+
+                            }
+                        } else {
+                            //TODO
+                            //simulated multiple mapping using mapping preview activity is not supported yet.
+                        }
+                    }
+                };
+            }
+        };
+    }
+
+    private @Nullable ItemPathType getRefPath(@NotNull PrismContainerValueWrapper<MappingType> mappingWrapper) {
+        PrismPropertyWrapper<ItemPathType> refProperty;
+        try {
+            refProperty = mappingWrapper.findProperty(AbstractAttributeMappingsDefinitionType.F_REF);
+
+            return refProperty != null && refProperty.getValue() != null
+                    ? refProperty.getValue().getRealValue()
+                    : null;
+        } catch (SchemaException e) {
+            throw new RuntimeException("Error retrieving ref property from mapping", e);
+        }
+    }
+
+    protected abstract ResourceType getResourceType();
+
 }
 
 

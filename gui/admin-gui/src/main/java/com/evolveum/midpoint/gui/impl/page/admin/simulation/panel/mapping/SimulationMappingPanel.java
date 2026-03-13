@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (C) 2010-2026 Evolveum and contributors
  *
  * Licensed under the EUPL-1.2 or later.
  */
 
-package com.evolveum.midpoint.gui.impl.page.admin.simulation.panel.correaltion;
+package com.evolveum.midpoint.gui.impl.page.admin.simulation.panel.mapping;
 
+import static com.evolveum.midpoint.gui.impl.page.admin.simulation.util.MappingUtil.extractMappingInfo;
 import static com.evolveum.midpoint.gui.impl.page.admin.simulation.util.SimulationWebUtil.loadAvailableMarksModel;
 import static com.evolveum.midpoint.gui.impl.page.admin.simulation.util.SimulationWebUtil.processedObjectsCountWidget;
 import static com.evolveum.midpoint.xml.ns._public.common.common_3.SystemObjectsType.*;
@@ -15,6 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import com.evolveum.midpoint.gui.impl.page.admin.simulation.panel.correaltion.SimulationCorrelationPanel;
+import com.evolveum.midpoint.gui.impl.page.admin.simulation.util.MappingUtil;
+
+import com.evolveum.midpoint.util.logging.Trace;
+import com.evolveum.midpoint.util.logging.TraceManager;
 
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.markup.html.list.ListItem;
@@ -34,15 +41,21 @@ import com.evolveum.midpoint.gui.impl.component.icon.IconCssStyle;
 import com.evolveum.midpoint.gui.impl.page.admin.simulation.page.PageSimulationResultObject;
 import com.evolveum.midpoint.gui.impl.page.admin.simulation.widget.MetricWidgetPanel;
 import com.evolveum.midpoint.schema.util.SimulationMetricValuesTypeUtil;
-import com.evolveum.midpoint.util.logging.Trace;
-import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.form.MidpointForm;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
 
-public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> {
+/**
+ * Main panel for displaying mapping simulation results.
+ *
+ * <p>Shows mapping header information, summary metric widgets,
+ * and a table of processed objects related to the simulated mapping.</p>
+ */
+public class SimulationMappingPanel extends BasePanel<SimulationResultType> {
 
-    private static final Trace LOGGER = TraceManager.getTrace(SimulationCorrelationPanel.class);
+    private static final Trace LOGGER = TraceManager.getTrace(SimulationMappingPanel.class);
+
     private static final String ID_FORM = "form";
+    private static final String ID_HEADER = "header";
     private static final String ID_DASHBOARD = "dashboard";
     private static final String ID_WIDGET = "widget";
     private static final String ID_TABLE = "table";
@@ -50,12 +63,14 @@ public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> 
     private IModel<List<DashboardWidgetType>> metricsModel;
     IModel<String> selectedMarkOidModel = Model.of(MARK_SHADOW_CORRELATION_OWNER_FOUND.value());
 
-    List<String> correlationMarksOids = List.of(
-            MARK_SHADOW_CORRELATION_OWNER_FOUND.value(),
-            MARK_SHADOW_CORRELATION_OWNER_NOT_FOUND.value(),
-            MARK_SHADOW_CORRELATION_OWNER_NOT_CERTAIN.value());
+    List<String> mappingMarksOids = List.of(
+            MARK_ITEM_VALUE_ADDED.value(),
+            MARK_ITEM_VALUE_REMOVED.value(),
+            MARK_ITEM_VALUE_MODIFIED.value(),
+            MARK_ITEM_VALUE_NOT_CHANGED.value(),
+            MARK_ITEM_VALUE_CHANGE_NOT_APPLIED.value());
 
-    public SimulationCorrelationPanel(String id, IModel<SimulationResultType> model) {
+    public SimulationMappingPanel(String id, IModel<SimulationResultType> model) {
         super(id, model);
     }
 
@@ -69,47 +84,71 @@ public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> 
         form.setOutputMarkupId(true);
         add(form);
 
+        initHeader(form);
         initDashboard(form);
         initTable(form);
     }
 
+    private void initHeader(@NotNull MidpointForm<?> form) {
+        MappingUtil.MappingInfo mappingInfo = extractMappingInfo(getPageBase(), getModelObject());
+
+        SimulationMappingHeaderPanel header = new SimulationMappingHeaderPanel(ID_HEADER, () -> mappingInfo);
+        header.setOutputMarkupId(true);
+        form.add(header);
+    }
     private void loadMetricModel() {
         metricsModel = new LoadableDetachableModel<>() {
             @Override
             protected List<DashboardWidgetType> load() {
                 List<SimulationMetricValuesType> metrics = getModelObject().getMetric();
 
-                List<DashboardWidgetType> collect = metrics.stream().map(m -> {
-
+                List<DashboardWidgetType> widgets = metrics.stream()
+                        .map(m -> {
                             SimulationMetricReferenceType ref = m.getRef();
                             ObjectReferenceType eventMarkRef = ref.getEventMarkRef();
                             if (eventMarkRef == null
                                     || eventMarkRef.getOid() == null
-                                    || !correlationMarksOids.contains(eventMarkRef.getOid())) {
+                                    || !mappingMarksOids.contains(eventMarkRef.getOid())) {
                                 return null;
                             }
 
                             BigDecimal value = SimulationMetricValuesTypeUtil.getValue(m);
                             String storedData = MetricWidgetPanel.formatValue(value, LocalizationUtil.findLocale());
 
-                            DashboardWidgetType dw = new DashboardWidgetType();
-                            dw.beginData()
+                            DashboardWidgetType widget = new DashboardWidgetType();
+                            widget.beginData()
                                     .sourceType(DashboardWidgetSourceTypeType.METRIC)
                                     .metricRef(m.getRef())
                                     .storedData(storedData)
                                     .end();
-                            return dw;
+                            return widget;
                         })
                         .filter(Objects::nonNull)
+                        .sorted((left, right) -> Integer.compare(
+                                getMarkOrder(left),
+                                getMarkOrder(right)))
                         .collect(Collectors.toList());
 
-                final DashboardWidgetType totalProcessedWidget = processedObjectsCountWidget(getPageBase(), getModelObject(), LOGGER);
+                DashboardWidgetType totalProcessedWidget =
+                        processedObjectsCountWidget(getPageBase(), getModelObject(), LOGGER);
                 if (totalProcessedWidget != null) {
-                    collect.add(totalProcessedWidget);
+                    widgets.add(totalProcessedWidget);
                 }
-                return collect;
+
+                return widgets;
             }
         };
+    }
+
+    private int getMarkOrder(@NotNull DashboardWidgetType widget) {
+        SimulationMetricReferenceType metricRef = widget.getData() != null
+                ? widget.getData().getMetricRef()
+                : null;
+        ObjectReferenceType eventMarkRef = metricRef != null ? metricRef.getEventMarkRef() : null;
+        String oid = eventMarkRef != null ? eventMarkRef.getOid() : null;
+
+        int index = mappingMarksOids.indexOf(oid);
+        return index >= 0 ? index : Integer.MAX_VALUE;
     }
 
     private void initDashboard(@NotNull MidpointForm<?> form) {
@@ -144,7 +183,7 @@ public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> 
 
                     @Override
                     protected IModel<String> getActionLinkLabelModel() {
-                        return createStringResource("SimulationCorrelationPanel.viewProcessedObjects");
+                        return createStringResource("SimulationMappingPanel.viewProcessedObjects");
                     }
 
                     @Override
@@ -174,27 +213,27 @@ public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> 
     }
 
     private void initTable(@NotNull MidpointForm<?> form) {
-        CorrelationProcessedObjectPanel table = buildTableComponent();
+        MappingProcessedObjectPanel table = buildTableComponent();
         form.add(table);
     }
 
-    private @NotNull CorrelationProcessedObjectPanel buildTableComponent() {
+    private @NotNull MappingProcessedObjectPanel buildTableComponent() {
         IModel<List<MarkType>> availableMarksModel = loadAvailableMarksModel(getPageBase(), getModelObject());
         availableMarksModel.getObject().removeIf(mark ->
-                !correlationMarksOids.contains(mark.getOid())
+                !mappingMarksOids.contains(mark.getOid())
         );
 
-        CorrelationProcessedObjectPanel table = new CorrelationProcessedObjectPanel(
+        MappingProcessedObjectPanel table = new MappingProcessedObjectPanel(
                 ID_TABLE,
                 availableMarksModel) {
             @Override
-            protected String getMarkOidForSearch() {
+            protected String getDefaultMarkOidForSearch() {
                 return selectedMarkOidModel.getObject();
             }
 
             @Override
             protected @NotNull IModel<SimulationResultType> getSimulationResultModel() {
-                return SimulationCorrelationPanel.this.getModel();
+                return SimulationMappingPanel.this.getModel();
             }
 
             @Override
@@ -203,7 +242,7 @@ public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> 
                     @Nullable String markOid,
                     @NotNull SimulationResultProcessedObjectType object,
                     @NotNull AjaxRequestTarget target) {
-                SimulationCorrelationPanel.this.navigateToSimulationResultObject(
+                SimulationMappingPanel.this.navigateToSimulationResultObject(
                         simulationResultOid, markOid, object, target);
             }
         };
@@ -211,8 +250,8 @@ public class SimulationCorrelationPanel extends BasePanel<SimulationResultType> 
         return table;
     }
 
-    private CorrelationProcessedObjectPanel getTable() {
-        return (CorrelationProcessedObjectPanel) get(ID_FORM).get(ID_TABLE);
+    private MappingProcessedObjectPanel getTable() {
+        return (MappingProcessedObjectPanel) get(createComponentPath(ID_FORM, ID_TABLE));
     }
 
     protected void navigateToSimulationResultObject(
