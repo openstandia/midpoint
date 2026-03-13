@@ -59,6 +59,7 @@ import org.apache.wicket.serialize.java.JavaSerializer;
 import org.apache.wicket.settings.ApplicationSettings;
 import org.apache.wicket.settings.ResourceSettings;
 import org.apache.wicket.spring.injection.annot.SpringComponentInjector;
+import org.apache.wicket.util.lang.Bytes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.BeansException;
@@ -206,6 +207,8 @@ public class MidPointApplication extends AuthenticatedWebApplication implements 
     @Override
     public void init() {
         super.init();
+
+        getStoreSettings().setMaxSizePerSession(Bytes.megabytes(100));
 
         getRequestCycleSettings().setTimeout(requestCycleTimeout);
 
