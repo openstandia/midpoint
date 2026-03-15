@@ -37,6 +37,8 @@ Solution: `input.?orig`
 Conditional must have the same data type in both branches.
 Use string() or stringify().
 
+`No matching overload for function '_+_'. Overload candidates: add_string`
+'Came from ' + input ->
 
 // TODO: has() function - tricky: do not use with conditionals
 
