@@ -37,6 +37,7 @@ import dev.cel.runtime.CelEvaluationException;
 import dev.cel.runtime.CelEvaluationExceptionBuilder;
 import dev.cel.runtime.CelFunctionBinding;
 import dev.cel.runtime.RuntimeHelpers;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -576,6 +577,32 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                             ImmutableList.of(PolyStringCelValue.class, String.class, Long.class),
                             CelMelExtensions::lastIndexOfPolystring)),
 
+            // string.lc()
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "lc",
+                            CelOverloadDecl.newMemberOverload(
+                                    "mel_string_lc",
+                                    "Returns a new string where all characters of string are lower-cased.",
+                                    SimpleType.STRING,
+                                    NullableType.create(SimpleType.STRING))),
+                    CelFunctionBinding.from("mel_string_lc", String.class,
+                            CelMelExtensions::lc)
+            ),
+
+            // polystring.lc()
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "lc",
+                            CelOverloadDecl.newMemberOverload(
+                                    "polystring_lc",
+                                    "Returns a new string where all characters of orig represantation of polystring are lower-cased.",
+                                    SimpleType.STRING,
+                                    NullableType.create(PolyStringCelValue.CEL_TYPE))),
+                    CelFunctionBinding.from("polystring_lc", PolyStringCelValue.class,
+                            CelMelExtensions::lc)
+            ),
+
             // list
             new Function(
                     CelFunctionDecl.newFunctionDeclaration(
@@ -596,7 +623,7 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                             "lowerAscii",
                             CelOverloadDecl.newMemberOverload(
                                     "mel_string_lower_ascii",
-                                    "Returns a new string where all ASCII characters of orig represantation of polystring are lower-cased."
+                                    "Returns a new string where all ASCII characters of string are lower-cased."
                                             + " This function does not perform Unicode case-mapping for characters outside the ASCII"
                                             + " range.",
                                     SimpleType.STRING,
@@ -1034,6 +1061,32 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                     CelFunctionBinding.from("polystring_trim", PolyStringCelValue.class,
                             CelMelExtensions::trim)),
 
+            // string.uc()
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "uc",
+                            CelOverloadDecl.newMemberOverload(
+                                    "mel_string_uc",
+                                    "Returns a new string where all characters of string are upper-cased.",
+                                    SimpleType.STRING,
+                                    NullableType.create(SimpleType.STRING))),
+                    CelFunctionBinding.from("mel_string_uc", String.class,
+                            CelMelExtensions::uc)
+            ),
+
+            // polystring.lc()
+            new Function(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "uc",
+                            CelOverloadDecl.newMemberOverload(
+                                    "polystring_uc",
+                                    "Returns a new string where all characters of orig represantation of polystring are upper-cased.",
+                                    SimpleType.STRING,
+                                    NullableType.create(PolyStringCelValue.CEL_TYPE))),
+                    CelFunctionBinding.from("polystring_uc", PolyStringCelValue.class,
+                            CelMelExtensions::uc)
+            ),
+
             // string.upperAscii()
             new Function(
                     CelFunctionDecl.newFunctionDeclaration(
@@ -1063,6 +1116,22 @@ public class CelMelExtensions extends AbstractMidPointCelExtensions {
                             polystring -> Ascii.toUpperCase(polystring.getOrig())))
 
         );
+    }
+
+    private static String uc(String s) {
+        return StringUtils.upperCase(s);
+    }
+
+    private static String uc(PolyStringCelValue ps) {
+        return StringUtils.upperCase(ps.getOrig());
+    }
+
+    private static String lc(String s) {
+        return StringUtils.lowerCase(s);
+    }
+
+    private static String lc(PolyStringCelValue ps) {
+        return StringUtils.lowerCase(ps.getOrig());
     }
 
     private static Object funcDefault(Object val, Object defaultVal) {

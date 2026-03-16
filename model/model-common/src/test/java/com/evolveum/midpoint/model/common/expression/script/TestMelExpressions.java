@@ -778,6 +778,17 @@ public class TestMelExpressions extends AbstractScriptTest {
     }
 
     @Test
+    public void testExpressionStringMix1StringNational() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-mix-1.xml",
+                createVariables(
+                        "foo", "TélékÉ", PrimitiveType.STRING,
+                        "bar", "TölökÓ", PrimitiveType.STRING
+                ),
+                "TÉLÉKÉ télékéT-1TélékÉ!");
+    }
+
+    @Test
     public void testExpressionStringMix1PolyString() throws Exception {
         evaluateAndAssertStringScalarExpression(
                 "expression-string-mix-1.xml",
@@ -786,6 +797,17 @@ public class TestMelExpressions extends AbstractScriptTest {
                         "bar", "BAR", PrimitiveType.STRING
                 ),
                 "FOO fooF1Xoo!");
+    }
+
+    @Test
+    public void testExpressionStringMix1PolyStringNational() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-mix-1.xml",
+                createVariables(
+                        "foo", createPolyStringType("TélékÉ"), PolyStringType.COMPLEX_TYPE,
+                        "bar", createPolyStringType("TölökÓ"), PolyStringType.COMPLEX_TYPE
+                ),
+                "TÉLÉKÉ télékéT-1TélékÉ!");
     }
 
     @Test

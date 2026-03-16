@@ -561,19 +561,17 @@ If the search string is not found the function returns -1.
 'midpoint is in the middle'.lastIndexOf('id', 5)  // Returns 1
 ----
 
-=== lowerAscii
+=== lc
 
-`string.lowerAscii()` -> string
+`string.lc()` -> string
 
-Returns a new string where all ASCII characters are lower-cased.
-This function does not perform Unicode case-mapping for characters outside the ASCII range.
+Returns a new string where all characters are lower-cased.
 
 .Example
 [source,mel]
 ----
+'Čórtúv Hrád'.lc()  // Returns 'čórtúv hrád'
 ----
-// TODO
-
 
 === list
 
@@ -591,6 +589,25 @@ list('foo')          // Returns ['foo']
 list(['foo'])        // Returns ['foo']
 list(['foo','bar'])  // Returns ['foo','bar']
 ----
+
+=== lowerAscii
+
+`string.lowerAscii()` -> string
+
+Returns a new string where all ASCII characters are lower-cased.
+This function does not perform Unicode case-mapping for characters outside the ASCII range.
+
+.Example
+[source,mel]
+----
+'Čórtúv Hrád'.lowerAscii()  // Returns 'Čórtúv hrád'
+----
+
+This is s stock CEL function, it is mostly provided just for compatibility.
+
+WARNING: As this function is not mapping non-ASCII characters, it is not suitable for international unvironments.
+Use `lc()` function instead.
+
 
 === map
 
@@ -836,8 +853,25 @@ This function does not perform Unicode case-mapping for characters outside the A
 .Example
 [source,mel]
 ----
+'Čórtúv Hrád'.upperAscii()  // Returns 'ČóRTúV HRáD'
 ----
-// TODO: uc?
+
+This is s stock CEL function, it is mostly provided just for compatibility.
+
+WARNING: As this function is not mapping non-ASCII characters, it is not suitable for international unvironments.
+Use `uc()` function instead.
+
+=== uc
+
+`string.uc()` -> string
+
+Returns a new string where all characters are upper-cased.
+
+.Example
+[source,mel]
+----
+'Čórtúv Hrád'.uc()  // Returns 'ČÓRTÚV HRÁD'
+----
 
 
 == Language Extensions
