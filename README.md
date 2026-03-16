@@ -1,5 +1,5 @@
-MidPoint 4.10 Update 2
-----------------------
+MidPoint 4.10 Support Branch
+----------------------------
 
 General information:
 
