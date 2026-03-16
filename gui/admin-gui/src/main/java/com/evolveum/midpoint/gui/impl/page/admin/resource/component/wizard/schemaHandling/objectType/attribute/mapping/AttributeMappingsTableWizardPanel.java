@@ -14,6 +14,7 @@ import com.evolveum.midpoint.gui.api.component.tabs.IconPanelTab;
 import com.evolveum.midpoint.gui.api.model.LoadableModel;
 import com.evolveum.midpoint.gui.api.page.PageBase;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerWrapper;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismObjectWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismPropertyWrapper;
 import com.evolveum.midpoint.gui.api.util.MappingDirection;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
@@ -28,11 +29,13 @@ import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schem
 import com.evolveum.midpoint.gui.impl.page.admin.simulation.component.SimulationActionTaskButton;
 import com.evolveum.midpoint.prism.Containerable;
 
+import com.evolveum.midpoint.prism.PrismObject;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.smart.api.SmartIntegrationService;
 import com.evolveum.midpoint.smart.api.info.StatusInfo;
 import com.evolveum.midpoint.task.api.Task;
+import com.evolveum.midpoint.util.exception.CommonException;
 import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
@@ -47,7 +50,6 @@ import com.evolveum.midpoint.web.component.dialog.RequestDetailsConfirmationPane
 import com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto;
 import com.evolveum.midpoint.web.component.util.SerializableBiConsumer;
 import com.evolveum.midpoint.web.component.util.SerializableConsumer;
-import com.evolveum.midpoint.web.component.util.SerializableSupplier;
 import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
 import com.evolveum.midpoint.web.page.admin.resources.ResourceTaskFlavor;
 import com.evolveum.midpoint.web.page.admin.resources.ResourceTaskFlavors;
@@ -282,6 +284,20 @@ public abstract class AttributeMappingsTableWizardPanel<P extends Containerable>
 
                         toolbarButtonsList.add(generateButton);
                     }
+
+                    @Override
+                    protected ResourceType getResourceType() {
+                        ResourceDetailsModel resourceDetailsModel = getAssignmentHolderDetailsModel();
+                        PrismObjectWrapper<ResourceType> objectWrapper = resourceDetailsModel.getObjectWrapper();
+                        PrismObject<ResourceType> objectApplyDelta;
+                        try {
+                            objectApplyDelta = objectWrapper.getObjectApplyDelta();
+                        } catch (CommonException e) {
+                            LOGGER.error("Couldn't get resource object with applied delta, returning the original object. Details: {}", e.getMessage(), e);
+                            return null;
+                        }
+
+                        return objectApplyDelta.asObjectable();                    }
                 };
 
         columnTileTable.setOutputMarkupId(true);

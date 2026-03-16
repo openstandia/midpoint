@@ -43,15 +43,6 @@
             <focus>
                 <type>UserType</type>
             </focus>
-            <!-- The list of attributes is here just for reference -->
-            <attribute>
-                <ref>ri:employeeNumber</ref>
-                <inbound>
-                    <target>
-                        <path>employeeNumber</path>
-                    </target>
-                </inbound>
-            </attribute>
             <attribute>
                 <ref>ri:givenName</ref>
                 <inbound>
@@ -60,19 +51,17 @@
                     </target>
                 </inbound>
             </attribute>
-            <!--
-            Bellow attribute is commented, because in test of the correlation service we want to add it explicitly
-            during test of correlation with additional mapping. I don't want to remove it from here just in case
-            somebody would want to add it here again in the future.
-             -->
-<!--            <attribute>-->
-<!--                <ref>ri:familyName</ref>-->
-<!--                <inbound>-->
-<!--                    <target>-->
-<!--                        <path>familyName</path>-->
-<!--                    </target>-->
-<!--                </inbound>-->
-<!--            </attribute>-->
+            <correlation>
+                <correlators>
+                    <items>
+                        <name>by-name</name>
+                        <description>Match using the givenName</description>
+                        <item>
+                            <ref>givenName</ref>
+                        </item>
+                    </items>
+                </correlators>
+            </correlation>
         </objectType>
     </schemaHandling>
 </resource>
