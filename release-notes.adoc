@@ -34,6 +34,16 @@ Overall, midPoint 4.10 opens up the world of identity management and governance 
 {% include release-dedication.html content=dedicationContent %}
 ++++
 
+== Changes With Respect To Version 4.10.1
+
+* Updated libraries, mainly Spring Boot, wicket, NPM dependencies.
+* Improved accessibility and usability (WCAG 2.2 AA compliance) of the self-service user interface.
+* Fixed concurrency issue in iterativeScripting. See bug:MID-11058[].
+* Page storage fixed for dashboard widget collection. See bug:MID-11055[].
+* Fixed skip activation outbounds for unmanaged shadows. See bug:MID-11029[].
+* Removed redundant ProvisioningService#getObject calls during context load. See bug:MID-11115[].
+* Improve certification progress bar visibility. See bug:MID-10930[].
+
 == Changes with Respect To Version 4.10
 
 * Fixed multiple issues connected to WCAG 2.2 requirements.
