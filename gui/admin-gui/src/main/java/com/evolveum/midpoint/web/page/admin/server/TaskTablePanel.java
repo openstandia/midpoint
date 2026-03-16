@@ -459,15 +459,7 @@ public abstract class TaskTablePanel extends MainObjectListPanel<TaskType> {
     private InlineMenuItem createDividerMenuItem() {
         return InlineMenuItemBuilder
                 .create()
-                .action(new InlineMenuItemAction() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public void onClick(AjaxRequestTarget target) {
-                        // nothing to do
-                    }
-                })
-                .additionalCssClass("dropdown-divider border-bottom")
+                .divider(true)
                 .buildInlineMenu();
     }
 
