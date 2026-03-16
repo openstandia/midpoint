@@ -38,18 +38,18 @@ import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
 
 @SuppressWarnings("unused")
 @PanelType(name = "credentials")
-@PanelInstance(
-        identifier = "credentials",
-        applicableForType = FocusType.class,
-        display = @PanelDisplay(
-                label = "FocusCredentialsPanel.panel.name",
-                icon = GuiStyleConstants.CLASS_PASSWORD_ICON,
-                order = 56
-        ),
-        containerPath = "credentials",
-        type = "CredentialsType",
-        expanded = true
-)
+//@PanelInstance(
+//        identifier = "credentials",
+//        applicableForType = FocusType.class,
+//        display = @PanelDisplay(
+//                label = "FocusCredentialsPanel.panel.name",
+//                icon = GuiStyleConstants.CLASS_PASSWORD_ICON,
+//                order = 56
+//        ),
+//        containerPath = "credentials",
+//        type = "CredentialsType",
+//        expanded = true
+//)
 public class FocusCredentialsPanel<F extends FocusType, FDM extends FocusDetailsModels<F>> extends AbstractObjectMainPanel<F, FDM> {
 
     @Serial private static final long serialVersionUID = 1L;
