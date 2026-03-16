@@ -6,9 +6,10 @@
   -->
 
 <script xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3">
-    <description>Mix of string functions, mostly using CEL-native functions</description>
     <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
     <code>
-        (foo.uc() + " " + foo.lc() + foo.charAt(0) + string(foo.indexOf('o')) + foo.replace('F','X') + " " ).trim() + "!"
+        stringify(focus.?givenName.?norm).replace(' ','').substring(0,1) +
+        stringify(focus.?familyName.?norm).replace(' ','').substring(0,7) +
+        iterationToken
     </code>
 </script>

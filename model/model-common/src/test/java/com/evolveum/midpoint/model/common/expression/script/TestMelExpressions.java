@@ -778,6 +778,17 @@ public class TestMelExpressions extends AbstractScriptTest {
     }
 
     @Test
+    public void testExpressionStringMix1StringNational() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-mix-1.xml",
+                createVariables(
+                        "foo", "TélékÉ", PrimitiveType.STRING,
+                        "bar", "TölökÓ", PrimitiveType.STRING
+                ),
+                "TÉLÉKÉ télékéT-1TélékÉ!");
+    }
+
+    @Test
     public void testExpressionStringMix1PolyString() throws Exception {
         evaluateAndAssertStringScalarExpression(
                 "expression-string-mix-1.xml",
@@ -786,6 +797,17 @@ public class TestMelExpressions extends AbstractScriptTest {
                         "bar", "BAR", PrimitiveType.STRING
                 ),
                 "FOO fooF1Xoo!");
+    }
+
+    @Test
+    public void testExpressionStringMix1PolyStringNational() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-mix-1.xml",
+                createVariables(
+                        "foo", createPolyStringType("TélékÉ"), PolyStringType.COMPLEX_TYPE,
+                        "bar", createPolyStringType("TölökÓ"), PolyStringType.COMPLEX_TYPE
+                ),
+                "TÉLÉKÉ télékéT-1TélékÉ!");
     }
 
     @Test
@@ -939,52 +961,176 @@ public class TestMelExpressions extends AbstractScriptTest {
                 "FooBAR");
     }
 
+
     @Test
-    public void testUsernameJack() throws Exception {
+    public void testExpressionStringSubstringStringValid() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-substring.xml",
+                createVariables(
+                        "foo", "FooBar", PrimitiveType.STRING,
+                        "i", 0, PrimitiveType.INT,
+                        "j", 2, PrimitiveType.INT
+                ),
+                "Fo");
+    }
+
+    @Test
+    public void testExpressionStringSubstringPolyStringValid() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-substring.xml",
+                createVariables(
+                        "foo", createPolyStringType("FooBar"), PolyStringType.COMPLEX_TYPE,
+                        "i", 0, PrimitiveType.INT,
+                        "j", 2, PrimitiveType.INT
+                ),
+                "Fo");
+    }
+
+    // End index beyond end of string
+    @Test
+    public void testExpressionStringSubstringStringBeyond() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-substring.xml",
+                createVariables(
+                        "foo", "FooBar", PrimitiveType.STRING,
+                        "i", 2, PrimitiveType.INT,
+                        "j", 42, PrimitiveType.INT
+                ),
+                "oBar");
+    }
+
+    // End index beyond end of string
+    @Test
+    public void testExpressionStringSubstringPolyStringBeyond() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-substring.xml",
+                createVariables(
+                        "foo", createPolyStringType("FooBar"), PolyStringType.COMPLEX_TYPE,
+                        "i", 2, PrimitiveType.INT,
+                        "j", 42, PrimitiveType.INT
+                ),
+                "oBar");
+    }
+
+    // End index beyond end of string
+    @Test
+    public void testExpressionStringSubstringStringFirstCharEmpty() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-substring.xml",
+                createVariables(
+                        "foo", "", PrimitiveType.STRING,
+                        "i", 0, PrimitiveType.INT,
+                        "j", 1, PrimitiveType.INT
+                ),
+                "");
+    }
+
+    // End index beyond end of string
+    @Test
+    public void testExpressionStringSubstringPolyStringFirstCharEmpty() throws Exception {
+        evaluateAndAssertStringScalarExpression(
+                "expression-string-substring.xml",
+                createVariables(
+                        "foo", createPolyStringType(""), PolyStringType.COMPLEX_TYPE,
+                        "i", 0, PrimitiveType.INT,
+                        "j", 1, PrimitiveType.INT
+                ),
+                "");
+    }
+
+
+    @Test
+    public void testUsernameJackSubstring() throws Exception {
+        usernameJack("expression-username-substring.xml");
+    }
+
+    @Test
+    public void testUsernameJackFormat() throws Exception {
+        usernameJack("expression-username-format.xml");
+    }
+
+    public void usernameJack(String expressionFile) throws Exception {
         PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
         evaluateAndAssertStringScalarExpression(
-                "expression-username.xml",
+                expressionFile,
                 createJackVariables(userJack, ""),
                 "jsparrow");
     }
 
     @Test
-    public void testUsernameMadJack() throws Exception {
+    public void testUsernameMadJackSubstring() throws Exception {
+        usernameMadJack("expression-username-substring.xml");
+    }
+
+    @Test
+    public void testUsernameMadJackFormat() throws Exception {
+        usernameMadJack("expression-username-format.xml");
+    }
+
+    public void usernameMadJack(String expressionFile) throws Exception {
         PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
         userJack.asObjectable().setGivenName(createPolyStringType(" J AČk\t"));
         userJack.asObjectable().setFamilyName(createPolyStringType("\u00A0Špá\trr oW "));
         evaluateAndAssertStringScalarExpression(
-                "expression-username.xml",
+                expressionFile,
                 createJackVariables(userJack, ""),
                 "jsparrow");
     }
 
     @Test
-    public void testUsernameShortJack() throws Exception {
+    public void testUsernameShortJackSubstring() throws Exception {
+        usernameShortJack("expression-username-substring.xml");
+    }
+
+    @Test
+    public void testUsernameShortJackFormat() throws Exception {
+        usernameShortJack("expression-username-format.xml");
+    }
+
+    public void usernameShortJack(String expressionFile) throws Exception {
         PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
         userJack.asObjectable().setFamilyName(createPolyStringType("Spa"));
         evaluateAndAssertStringScalarExpression(
-                "expression-username.xml",
+                expressionFile,
                 createJackVariables(userJack, ""),
                 "jspa");
     }
 
     @Test
-    public void testUsernameSparrow() throws Exception {
+    public void testUsernameSparrowSubstring() throws Exception {
+        usernameSparrow("expression-username-substring.xml");
+    }
+
+    @Test
+    public void testUsernameSparrowFormat() throws Exception {
+        usernameSparrow("expression-username-format.xml");
+    }
+
+    public void usernameSparrow(String expressionFile) throws Exception {
         PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
         userJack.asObjectable().setGivenName(null);
         evaluateAndAssertStringScalarExpression(
-                "expression-username.xml",
+                expressionFile,
                 createJackVariables(userJack, ""),
                 "sparrow");
     }
 
+
     @Test
-    public void testUsernameNull() throws Exception {
+    public void testUsernameNullSubstring() throws Exception {
+        usernameNull("expression-username-substring.xml");
+    }
+
+    @Test
+    public void testUsernameNullFormat() throws Exception {
+        usernameNull("expression-username-format.xml");
+    }
+
+    public void usernameNull(String expressionFile) throws Exception {
         PrismObject<UserType> userJack = prismContext.parseObject(USER_JACK_FILE);
         userJack.asObjectable().setGivenName(null);
         evaluateAndAssertStringScalarExpression(
-                "expression-username.xml",
+                expressionFile,
                 createVariables(
                         ExpressionConstants.VAR_FOCUS, null, userJack.getDefinition(),
                         ExpressionConstants.VAR_ITERATION_TOKEN, "", PrimitiveType.STRING
