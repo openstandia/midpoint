@@ -7,13 +7,70 @@ doc-type: config
 :page-upkeep-status: green
 :page-toc: top
 
-TODO
+MidPoint Expression Language (MEL) is an expression language designed to support customization of midPoint functionality in an easy-to-use and secure way.
 
-MidPoint Expression Language (MEL) is a ...
+This page provides detailed description of the language.
+It is meant to be a reference documentation of the language.
 
-== Literals and Variables
+TIP: See xref:../introduction/[MEL Introduction] for a step-by-step introduction to MEL language.
+If you are used to create Groovy scripts, xref:../migration/[MEL Migration Guide] may be a good start.
 
-// TODO: literals
+== Literals
+
+[%autowidth]
+|====
+| Literal | Prefix / Delimiter / Values | Example | Notes
+
+| String
+| `'` (apostrophe)
+| `'Hello world!'`
+|
+
+| Numeric
+| none
+| `42` +
+`3.14`
+|
+
+| Boolean
+| `true` +
+`false`
+| `true`
+|
+
+| Bytes
+| `b`
+| `b'\x68\x65\x6c\x6c\x6f'`
+|
+
+| Null
+| `null`
+| `null`
+|
+
+| List
+| `[]` (square brackets)
+| `[1, 2, 3]` +
+`['foo', 'bar', 'baz']`
+|
+
+| Map
+| `{}` (curly brackets)
+| `{'one': 'unus', 'two': 'duo', 'thee': 'tres'}`
+|
+
+| Timestamp
+| `timestamp()` constructor function
+| `timestamp('2026-06-15T10:30:45.123Z')`
+|
+
+| Duration
+| `duration()` constructor function
+| `duration('1h30m')`
+|
+
+|====
+
 
 == Operators
 
@@ -79,6 +136,10 @@ Following _operators_ can be used in MEL expressions:
 | Logical OR
 |
 
+|`()`
+| Grouping
+|
+
 |`in`
 | Inclusion test
 |
@@ -106,6 +167,37 @@ Assumes non-null operand.
 Can handle null operand.
 
 |====
+
+== Variables
+
+Variables are demoted without any prefix.
+E.g. following expression is adding values of two variables, `foo` and `bar`:
+
+[source,mel]
+----
+foo + bar
+----
+
+The usual xref:/midpoint/reference/expressions/variables/[expression and mapping] variables are available for MEL expressions.
+However, there are few exceptions:
+
+* Deprecated variables `user`, `account` and `shadow` are not present in MEL expressions.
+Use correct variables names instead (`focus` and `projection`).
+
+* Variables that represent services for Java-like languages (`prismContext`, `localizationService`) do not make sense in MEL environment, therefore these are not present.
+
+* Some script expression environments expose built-in extension libraries in a form of variables (`basic`, `midpoint`, `log`).
+These variables are not present in MEL environment.
+Equivalent functionality is available to MEL expressions in a form of native MEL language extensions,
+e.g. as `norm`, `log.debug(...)` or `midpoint.getObject(...)` functions.
+See xref:../migration/[migration guide] for more details.
+
+There is additional variable available to all MEL expressions:
+
+* Variable `now` contains current timestamp.
+It is a fixed timestamp of an approximate moment of the script execution.
+Value of the variable does not change during script execution.
+
 
 == Functions and Macros
 
@@ -469,19 +561,17 @@ If the search string is not found the function returns -1.
 'midpoint is in the middle'.lastIndexOf('id', 5)  // Returns 1
 ----
 
-=== lowerAscii
+=== lc
 
-`string.lowerAscii()` -> string
+`string.lc()` -> string
 
-Returns a new string where all ASCII characters are lower-cased.
-This function does not perform Unicode case-mapping for characters outside the ASCII range.
+Returns a new string where all characters are lower-cased.
 
 .Example
 [source,mel]
 ----
+'Čórtúv Hrád'.lc()  // Returns 'čórtúv hrád'
 ----
-// TODO
-
 
 === list
 
@@ -499,6 +589,25 @@ list('foo')          // Returns ['foo']
 list(['foo'])        // Returns ['foo']
 list(['foo','bar'])  // Returns ['foo','bar']
 ----
+
+=== lowerAscii
+
+`string.lowerAscii()` -> string
+
+Returns a new string where all ASCII characters are lower-cased.
+This function does not perform Unicode case-mapping for characters outside the ASCII range.
+
+.Example
+[source,mel]
+----
+'Čórtúv Hrád'.lowerAscii()  // Returns 'Čórtúv hrád'
+----
+
+This is s stock CEL function, it is mostly provided just for compatibility.
+
+WARNING: As this function is not mapping non-ASCII characters, it is not suitable for international unvironments.
+Use `lc()` function instead.
+
 
 === map
 
@@ -709,11 +818,17 @@ The substring begins at the specified `beginIndex` and extends to the character 
 Thus the length of the substring is `endIndex - beginIndex`.
 If `endIndex` is not specified, the substring extends to the end of original string.
 
+Empty string is returned in case that the indexes extend beyond the original string.
+
 .Example
 [source,mel]
 ----
 'midpoint'.substring(0,3)   // Returns 'mid'
 ----
+
+NOTE: The `substring` function does not fail in case the indexes extend beyond the original string.
+This behavior differs from stock behavior of Google CEL string extensions.
+This behavior change is very intentional, enabling creation of simpler expressions.
 
 === trim
 
@@ -738,8 +853,25 @@ This function does not perform Unicode case-mapping for characters outside the A
 .Example
 [source,mel]
 ----
+'Čórtúv Hrád'.upperAscii()  // Returns 'ČóRTúV HRáD'
 ----
-// TODO
+
+This is s stock CEL function, it is mostly provided just for compatibility.
+
+WARNING: As this function is not mapping non-ASCII characters, it is not suitable for international unvironments.
+Use `uc()` function instead.
+
+=== uc
+
+`string.uc()` -> string
+
+Returns a new string where all characters are upper-cased.
+
+.Example
+[source,mel]
+----
+'Čórtúv Hrád'.uc()  // Returns 'ČÓRTÚV HRÁD'
+----
 
 
 == Language Extensions
@@ -1390,22 +1522,17 @@ As most identifiers as single-valued, this function is often combined with `sing
 single(shadow.secondaryIdentifiers())
 ----
 
-
-format, ldap, log, etc.
-
-TODO: need to call them by some other name ... e.g. "extensions"?
-"extension libraries"?
-
-
 == Timestamps and Durations
 
 
-TODO: timestamp functions, e.g. getDate()
-TODO: timezones
+// TODO: timestamp() and duration() constructors
+
+// TODO: timestamp functions, e.g. getDate()
+// TODO: timezones
 
 Note: CEL timestamps always reference time in UTC
 
-variable `now`
+// TODO: variable `now`
 
 === atStartOfDay
 
@@ -1647,9 +1774,8 @@ timestamp.longAgo()    // Returns timestamp 1970-01-01T00:00:00Z
 
 == Polystrings
 
-Polystrings (TODO: ref) are midPoint data structured used to store string values, together with their normalized and localized variants.
+xref:/midpoint/reference/concepts/polystring/[Polystrings] are midPoint data structured used to store string values, together with their normalized and localized variants.
 
-TODO: polystring structure.
 Polystrings are represented as simple structured objects in MEL.
 Individual parts of polystring can be accessed by using the usual _dot notation_:
 
@@ -1675,6 +1801,8 @@ If the normalized part of polystring is to be used, it must be explicitly refere
 ----
 'X' + polystring.norm
 ----
+
+NOTE: The localization functionality of polystrings is not available in MEL at this time.
 
 == Protected Strings
 
@@ -1839,9 +1967,7 @@ E.g. the `isPresent()` function can be used to determine whether a particular it
 isPresent(focus.?activation.?administrativeStatus)
 ----
 
-// TODO: xref
-See Null and Optional Values section below.
-
+See xref:#null-and-optional-values[Null and Optional Values section] below.
 
 === Item QNames
 
@@ -1857,35 +1983,12 @@ However, it may be required in some cases, e.g. when several schema extensions a
 
 === Item Path
 
-Item path (TODO: ref) can be used to locate an item in an object by using the `find()` function:
+xref:/midpoint/reference/concepts/item-path/[Item path] can be used to locate an item in an object by using the `find()` function:
 
 [source,mel]
 ----
 focus.find('activation/administrativeStatus')
 ----
-
-== Variables
-
-The usual xref:/midpoint/reference/expressions/variables/[expression and mapping] variables are available for MEL expressions.
-However, there are few exceptions:
-
-* Deprecated variables `user`, `account` and `shadow` are not present in MEL expressions.
-Use correct variables names instead (`focus` and `projection`).
-
-* Variables that represent services for Java-like languages (`prismContext`, `localizationService`) do not make sense in MEL environment, therefore these are not present.
-
-* Some script expression environments expose built-in extension libraries in a form of variables (`basic`, `midpoint`, `log`).
-These variables are not present in MEL environment.
-Equivalent functionality is available to MEL expressions in a form of native MEL language extensions,
-e.g. as `norm`, `log.debug(...)` or `midpoint.getObject(...)` functions.
-See xref:../migration/[migration guide] for more details.
-
-There is additional variable available to all MEL expressions:
-
-* Variable `now` contains current timestamp.
-It is a fixed timestamp of an approximate moment of the script execution.
-Value of the variable does not change during script execution.
-
 
 == Null and Optional Values
 
@@ -1988,16 +2091,33 @@ Therefore, the only practical option in this case is to explicitly check for `nu
 isPresent(foo) ? foo.contains('#') : null
 ----
 
+When working with strings, `stringify()` function can be very handy.
+As `stringify()` never returns null, any string function can be safely invoked on stringified value:
+
+.Simpler correct expression
+[source,mel]
+----
+stringify(foo).contains('#')
+----
+
+Such use of `stringify()` can be very handy in case of string formatting as well.
+If your intent is to return empty string instead of null
+
 == Custom Function Libraries
 
 // TODO
 
-== Miscellaneous Mechanisms
+// TODO: Remember, no side effects!
+
+== Miscellaneous Notes
 
 * MEL expression can span multiple lines, which provides opportunity for indentation to increase readability.
 
 * Two slashes (`//`) can be used to add comments in expressions.
 The slashes start a comment, which ends at the end of line.
+
+* Deprecated variables such as `user`, `account` and `shadow` are not available in MEL.
+Use variables such as `focus` and `projection` instead.
 
 == Expression Profiles
 
@@ -2014,13 +2134,13 @@ Java classes and libraries are intentionally _not_ exposed to MEL expressions.
 
 == TODO
 
-* Literals
-
 * Types and Conversions
 
 * RE2 regexp spec (or reasonable link)
 
 == See Also
 
+* xref:../introduction/[MidPoint Expression Language Introduction]
+* xref:../migration/[MEL Migration Guide]
 * link:https://cel.dev/[Common Expression Language]
 * link:https://github.com/google/cel-spec/blob/master/doc/langdef.md[CEL Language Specification]
