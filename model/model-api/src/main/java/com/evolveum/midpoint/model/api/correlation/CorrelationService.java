@@ -7,7 +7,6 @@
 package com.evolveum.midpoint.model.api.correlation;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -91,6 +90,18 @@ public interface CorrelationService {
             @NotNull OperationResult result)
             throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
             ConfigurationException, ObjectNotFoundException;
+
+    /**
+     * Executes retry-safe business logic required before a correlation case may be
+     * persisted as closing. If this method fails, the case remains open.
+     */
+    default void prepareCorrelationCaseClosing(
+            @NotNull CaseType currentCase,
+            @NotNull Task task,
+            @NotNull OperationResult result)
+            throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
+            ConfigurationException, ObjectNotFoundException {
+    }
 
     /**
      * Instantiates a correlator

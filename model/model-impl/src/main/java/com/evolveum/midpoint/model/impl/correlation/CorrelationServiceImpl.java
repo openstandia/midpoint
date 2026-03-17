@@ -34,7 +34,6 @@ import com.evolveum.midpoint.prism.PrismObject;
 import com.evolveum.midpoint.prism.impl.binding.AbstractReferencable;
 import com.evolveum.midpoint.prism.path.PathSet;
 import com.evolveum.midpoint.prism.query.ObjectQuery;
-import com.evolveum.midpoint.prism.util.CloneUtil;
 import com.evolveum.midpoint.repo.api.RepositoryService;
 import com.evolveum.midpoint.repo.common.SystemObjectCache;
 import com.evolveum.midpoint.schema.CorrelatorDiscriminator;
@@ -42,8 +41,6 @@ import com.evolveum.midpoint.schema.SearchResultList;
 import com.evolveum.midpoint.schema.processor.ResourceObjectDefinition;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeDefinition;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
-import com.evolveum.midpoint.schema.processor.ResourceSchemaExtender;
-import com.evolveum.midpoint.schema.processor.ResourceSchemaFactory;
 import com.evolveum.midpoint.schema.processor.SynchronizationPolicy;
 import com.evolveum.midpoint.schema.processor.SynchronizationPolicyFactory;
 import com.evolveum.midpoint.schema.result.OperationResult;
@@ -328,6 +325,15 @@ public class CorrelationServiceImpl implements CorrelationService {
             throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
             ConfigurationException, ObjectNotFoundException {
         correlationCaseManager.completeCorrelationCase(currentCase, caseCloser, task, result);
+    }
+
+    @Override
+    public void prepareCorrelationCaseClosing(
+            @NotNull CaseType currentCase,
+            @NotNull Task task,
+            @NotNull OperationResult result)
+            throws SchemaException, ObjectNotFoundException, ExpressionEvaluationException, CommunicationException, SecurityViolationException, ConfigurationException {
+        correlationCaseManager.prepareCorrelationCaseClosing(currentCase, task, result);
     }
 
     /**
