@@ -909,7 +909,7 @@ format.concatName(['Radovan', 'Semančík'])
 
 Formats provided timestamp to string, using a format template specified in POSIX notation.
 
-This is POSIX-compatible function, using a POSIX time formatting conventions (TODO: ref).
+This is POSIX-compatible function, using a xref:../strftime/[POSIX time formatting conventions].
 This format is used by other variants of Common expression language (CEL).
 Use of this function is generally *recommended* instead of Java-like variants below.
 
@@ -936,7 +936,7 @@ ts.strftime('%d/%m/%Y %H:%M:%S')
 
 Parses provided string to timestamp, using a format template specified in POSIX notation.
 
-This is POSIX-compatible function, using a POSIX time formatting conventions (TODO: ref).
+This is POSIX-compatible function, using a xref:../strftime/[POSIX time formatting conventions].
 This format is used by other variants of Common expression language (CEL).
 Use of this function is generally *recommended* instead of Java-like variants below.
 
@@ -963,7 +963,7 @@ This function can also be invoked as a _member_ function on a string:
 
 Formats provided timestamp to string, using a format template specified in Java SimpleDateFormat notation.
 
-This is Java-like function, compatible with original midPoint 3.x _basic expression functions_ (TODO: ref).
+This is Java-like function, compatible with original midPoint 3.x xref:/midpoint/reference/expressions/expressions/script/functions/[_basic expression functions_].
 This function is mostly provided for users that are accustomed to Java conventions and for the purposed of easier migration of Groovy scripts to MEL.
 Use of this function is generally *not recommended*.
 Use `strftime` function instead.
@@ -991,7 +991,7 @@ ts.formatDateTime('dd/MM/YY HH:mm:ss')
 
 Parses provided string to timestamp, using a format template specified in Java SimpleDateFormat notation.
 
-This is Java-like function, compatible with original midPoint 3.x _basic expression functions_ (TODO: ref).
+This is Java-like function, compatible with original midPoint 3.x xref:/midpoint/reference/expressions/expressions/script/functions/[_basic expression functions_].
 This function is mostly provided for users that are accustomed to Java conventions and for the purposed of easier migration of Groovy scripts to MEL.
 Use of this function is generally *not recommended*.
 Use `strptime` function instead.
@@ -1524,15 +1524,40 @@ single(shadow.secondaryIdentifiers())
 
 == Timestamps and Durations
 
+Timestamps can be constructed by using the `timestamp()` function.
+The `timestamp()` constructor expect a string argument, specifying a timestamp formatted according to RFC 3339/ISO8601 format.
 
-// TODO: timestamp() and duration() constructors
+[source,mel]
+----
+timestamp('2026-03-15T12:34:56Z')
+----
 
-// TODO: timestamp functions, e.g. getDate()
-// TODO: timezones
+Similarly, there is a `duration()` constructor:
 
-Note: CEL timestamps always reference time in UTC
+[source,mel]
+----
+duration('1h30m')
+duration('-300ms')
+----
 
-// TODO: variable `now`
+The duration string used by CEL is not following any standardized format.
+It is built on common conventions, where characters `h`, `m`, `s`, `ms`, `us` and `ns` specifying units of time.
+
+CEL timestamps follow _protocol buffer_ convention, which means that the timestamps are fixed to UTC (`Z`) timezone.
+Functions that work with timestamps in a timezone-specific manner (e.g. `atStartOfDay()`) assume system timezone as default, allowing optional explicit specification of a time zone.
+Timezone specification follows _IANA Time Zone Database_ (a.k.a _Olson_ or _tz database_).
+
+Timestamps and durations can be used in some arithmetic and comparison operations:
+
+[source,mel]
+----
+timestamp('2026-03-15T12:34:56Z') + duration('1h30m')
+timestamp('2026-03-15T12:34:56Z') < timestamp('2026-03-15T14:30:00Z')
+----
+
+Timestamp referring to the "current" time instant is available in variable `now`.
+The value of this variable refers to an approximate moment of the start of expression evaluation.
+Value of this variable is fixed through the evaluation of the expression.
 
 === atStartOfDay
 
@@ -1543,7 +1568,6 @@ Modifies the timestamp to refer to the start of the day.
 Resulting timestamp refers to the same day as the argument timestamp, however the time is reset to the earliest time at that day.
 
 Optional time zone can be specified.
-Timezone specification follows https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html[Java ZoneId conventions].
 If no timezone is specified, system default timezone is assumed.
 
 Following example assume that system default time zone is UTC.
@@ -1564,7 +1588,6 @@ Modifies the timestamp to refer to the end of the day.
 Resulting timestamp refers to the same day as the argument timestamp, however the time is set to the latest time at that day.
 
 Optional time zone can be specified.
-Timezone specification follows https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html[Java ZoneId conventions].
 If no timezone is specified, system default timezone is assumed.
 
 Following example assume that system default time zone is UTC.
@@ -1806,10 +1829,10 @@ NOTE: The localization functionality of polystrings is not available in MEL at t
 
 == Protected Strings
 
-Protected strings (TODO: ref) are midPoint data structure meant to provide extra protection to string data.
+xref:/midpoint/reference/concepts/protectedstring/[Protected strings] are midPoint data structure meant to provide extra protection to string data.
 They are usually used to contain passwords, API keys and similar sensitive data.
 
-Unlike polystrings, protected strings _do not_ behave like strings.
+Unlike polystrings, protected strings _do not_ behave like strings in MEL.
 This is an intentional behavior to provide additional protection against unintentional leakage of the data, e.g. in logfiles.
 We do not want string functions (such as substring) to unintentionally reveal content of a protected string.
 If you need to do string operations on a protected string, you have to explicitly decrypt it first.
@@ -1825,8 +1848,6 @@ Ordinary string value can be encrypted, to gain additional protection of a _prot
 ----
 string.endecrypt()
 ----
-
-See TODO:ref for more information about protected strings.
 
 === decrypt
 
@@ -2105,9 +2126,31 @@ If your intent is to return empty string instead of null
 
 == Custom Function Libraries
 
-// TODO
+Functions from custom xref:/midpoint/reference/expressions/function-libraries/[expression function libraries] can be easily invoked from MEL.
+The function can be invoked by combining name of the library with name of the function.
+Following expression is invoking function `determineOrg()` from function library `mylib`, using `foo` as arguments.
 
-// TODO: Remember, no side effects!
+[source,mel]
+----
+mylib.determineOrg(foo)
+----
+
+The expression above is using simplified notation, which works for custom function that has at most one argument.
+As arguments of functions in custom function libraries are referencing the parameters by _name_ rather than their position, functions that have more than one argument need to use _map_ to specify parameter values:
+
+[source,mel]
+----
+mylib.generateIdentifier({ 'prefix': 'X', 'length': 10 })
+----
+
+The expression above invokes custom function `generateIdentifier()` with two parameters.
+Parameter `prefix` with value `X` and parameter `length` with value `10`.
+
+NOTE: Functional expression languages such as MEL/CEL are based on an assumption that functions as well as other operations are _free of any side effects_.
+I.e. the functions are supposed to be _idempotent_: no matter how many times they are executed, they produce the same result.
+This feature is important for consistency of expression evaluation, as the sequence of evaluation of individual functions or other operations is determined by CEL runtime.
+It is important to keep that in mind when creating custom function libraries that are meant to be invoked by MEL expressions.
+As a rule of thumb, the library function should _not_ make any modifications or change the state of midPoint repository.
 
 == Miscellaneous Notes
 
@@ -2121,22 +2164,96 @@ Use variables such as `focus` and `projection` instead.
 
 == Expression Profiles
 
-// TODO
+xref:/midpoint/reference/expressions/expressions/profiles/[Expression profiles] are applied to MEL expressions in the same way as they are applied to any other expression in midPoint.
+E.g. the following expression profile configuration can be used to deny access to all scripting expression evaluators except for MEL, applying `script-mel-restricted` permission profile to MEL expressions:
+
+[source,xml]
+----
+<systemConfiguration>
+    ...
+    <expressions>
+        <expressionProfile>
+            ...
+            <evaluator>
+                <type>script</type>
+                <decision>deny</decision>
+                <script>
+                    <language>http://midpoint.evolveum.com/xml/ns/public/expression/language#mel</language>
+                    <decision>allow</decision>
+                    <typeChecking>true</typeChecking>
+                    <permissionProfile>script-mel-restricted</permissionProfile>
+                </script>
+            </evaluator>
+            ...
+        </expressionProfile>
+        ...
+    </expressions>
+    ...
+</systemConfiguration>
+----
+
+MEL expression language is considered to be _secure_ in such a way that no MEL expression can compromise the platform on which it is running.
+However, this does not mean that all the functionality available to MEL expressions is harmless.
+Some MEL language extensions and custom function libraries may reveal sensitive information.
+E.g. function `secret.resolveString()` has access to secret providers, which include credential vaults.
+Functions in the `midpoint.*` language extension have read access to midPoint repository, which may reveal sensitive information.
+Therefore, common recommendation is to use _permission profile_ to limit access to MEL language extensions that are not strictly necessary.
+The `package` clause of a _permission profile_ can be used to control access to individual MEL language extensions, using their name (prefix).
+Following configuration allows access to all MEL extensions, except for `midpoint` and `secret` extensions.
+
+[source,xml]
+----
+<systemConfiguration>
+    ...
+    <expressions>
+        ...
+        <permissionProfile>
+            <identifier>script-mel-restricted</identifier>
+            <decision>allow</decision>
+            <package>
+                <name>midpoint</name>
+                <description>midpoint.* MEL language extension</description>
+                <decision>deny</decision>
+            </package>
+            <package>
+                <name>secret</name>
+                <description>secret.* MEL language extension</description>
+                <decision>deny</decision>
+            </package>
+        </permissionProfile>
+        ...
+    </expressions>
+    ...
+</systemConfiguration>
+----
+
+// TODO: default expression profiles in 4.11
 
 == MEL and CEL
 
 MidPoint Expression Language (MEL) is based on link:https://cel.dev/[Common Expression Language], extended with midPoint-specific features, functions and libraries.
+MEL is using basic CEL syntax, operators, basic functions and even some extensions (e.g. regexp).
+However, as CEL is oriented towards the _protocol buffers_ world, MEL provides access to midPoint objects that are based on xref:/midpoint/devel/prism/[Prism].
+Moreover, MEL is extending the basic CEL environment with midPoint data types such as xref:/midpoint/reference/concepts/polystring/[polystring] and xref:/midpoint/reference/concepts/protectedstring/[protected string] as well as variety of functions that adapt the language for midPoint environment.
 
-== MEL and Java
+Simple expressions in MEL and CEL are going to be the same.
+However, MEL is expanding on CEL, especially with convenience functions and much better support for nullable values, MEL expressions have a very distinct "midPointish" look and feel.
 
-// TODO: MEL/CEL is not a Java world.
+== MEL and Java/Groovy
+
+MEL is a secure expression language with a distinct functional character.
+This makes MEL very _unlike_ Java and Groovy.
+MEL is not suitable for implementing complex algorithms.
+This is not a purpose of MEL.
+MEL is meant to create mappings and customizations, including quite complex customization.
+However, the way MEL is doing that is very different from the imperative Java/Groovy world, and it will require some time for adjustments.
+See xref:../migration/[MEL Migration Guide] for more information.
+
+MEL is meant to create expressions that are _secure_, which means that MEL needs to be limited by design.
 Java classes and libraries are intentionally _not_ exposed to MEL expressions.
+MEL expressions are living in their own safe little world.
 
-== TODO
-
-* Types and Conversions
-
-* RE2 regexp spec (or reasonable link)
+// TODO: later: types and conversions
 
 == See Also
 
