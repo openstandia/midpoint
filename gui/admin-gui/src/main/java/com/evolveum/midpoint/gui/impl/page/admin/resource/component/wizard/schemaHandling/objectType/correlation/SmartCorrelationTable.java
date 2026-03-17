@@ -38,7 +38,9 @@ import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.data.column.ColumnMenuAction;
-import com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationOption;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationWithOptionsDto;
+import com.evolveum.midpoint.web.component.dialog.privacy.DataAccessPermission;
 import com.evolveum.midpoint.web.component.menu.cog.ButtonInlineMenuItem;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItemAction;
@@ -70,8 +72,10 @@ import java.util.*;
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationStatusInfoUtils.*;
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.*;
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationWrapperUtils.extractCorrelationItemListWrapper;
+import static com.evolveum.midpoint.gui.impl.page.admin.simulation.SimulationsGuiUtil.loadSimulationResult;
+import static com.evolveum.midpoint.gui.impl.page.admin.simulation.wizard.ResourceSimulationTaskWizardPanel.getSimulationResultReference;
 import static com.evolveum.midpoint.gui.impl.util.StatusInfoTableUtil.*;
-import static com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto.initDummyCorrelationPermissionData;
+import static com.evolveum.midpoint.web.component.dialog.ConfirmationOption.correlationPermissionsOptions;
 
 /**
  * Multi-select tile table for correlation items.
@@ -102,8 +106,16 @@ public abstract class SmartCorrelationTable
     }
 
     @Override
-    protected IModel<RequestDetailsRecordDto> buildSmartPermissionRecordDto() {
-        return () -> new RequestDetailsRecordDto(null, initDummyCorrelationPermissionData());
+    protected IModel<ConfirmationWithOptionsDto<DataAccessPermission>> buildSmartPermissionRecordDto() {
+        final ConfirmationWithOptionsDto<DataAccessPermission> confirmationWithOptionsDto =
+                ConfirmationWithOptionsDto.<DataAccessPermission>builder()
+                        .confirmationTitle(createStringResource("SmartSuggestConfirmationPanel.title"))
+                        .confirmationSubtitle(createStringResource("SmartSuggestConfirmationPanel.subtitle"))
+                        .confirmationOptionsTitle(createStringResource("SmartSuggestConfirmationPanel.request.component.title"))
+                        .confirmationInfoMessage(createStringResource("SmartSuggestConfirmationPanel.infoMessage"))
+                        .confirmationOptions(correlationPermissionsOptions())
+                        .build();
+        return () -> confirmationWithOptionsDto;
     }
 
     @Override
@@ -454,7 +466,19 @@ public abstract class SmartCorrelationTable
                                 ExecutionModeType.SHADOW_MANAGEMENT_PREVIEW
                         );
 
-                        SimulationActionFlow<?> flow = new SimulationActionFlow<>(params);
+                        SimulationActionFlow<?> flow = new SimulationActionFlow(params) {
+                            @Override
+                            public void onShowResultProcess(AjaxRequestTarget target, TaskType task, PageBase pageBase) {
+                                ObjectReferenceType simulationResultReference = getSimulationResultReference(task);
+                                if (simulationResultReference == null || simulationResultReference.getOid() == null) {
+                                    LOGGER.error("Simulation result reference or OID is null for task {}", task.getName());
+                                    return;
+                                }
+                                SimulationResultType simulationResultType = loadSimulationResult(pageBase, simulationResultReference.getOid());
+                                buildSimulationResultPanel(target, Model.of(simulationResultType));
+
+                            }
+                        };
                         flow.enableSampling();
                         flow.showProgressPopup();
                         flow.start(target);
@@ -514,7 +538,8 @@ public abstract class SmartCorrelationTable
     }
 
     @Override
-    protected void onSuggestNewPerformed(AjaxRequestTarget target) {
+    protected void onSuggestNewPerformed(AjaxRequestTarget target,
+            IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
         getSwitchToggleModel().setObject(Boolean.TRUE);
         PageBase pageBase = getPageBase();
 
@@ -656,6 +681,10 @@ public abstract class SmartCorrelationTable
         }
         return getResourceType().getOid();
     }
+
+    protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
+    }
+
 }
 
 

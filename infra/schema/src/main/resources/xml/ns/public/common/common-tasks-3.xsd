@@ -2714,19 +2714,19 @@
                             Correlates Shadows with Focuses using configured correlators. The 'shadows' container must specify a query to select shadows to process.
                         </xsd:documentation>
                         <xsd:appinfo>
-                            <a:since>4.12</a:since>
+                            <a:since>4.11</a:since>
                             <a:displayName>WorkDefinitionsType.shadowCorrelation</a:displayName>
                         </xsd:appinfo>
                     </xsd:annotation>
                 </xsd:element>
 
-                <xsd:element name="mapping" type="tns:MappingWorkDefinitionType" minOccurs="0">
+                <xsd:element name="mappings" type="tns:MappingWorkDefinitionType" minOccurs="0">
                     <xsd:annotation>
                         <xsd:documentation>
                             Simulates a mapping on a selected sample of shadows.
                         </xsd:documentation>
                         <xsd:appinfo>
-                            <a:since>4.12</a:since>
+                            <a:since>4.11</a:since>
                             <a:displayName>WorkDefinitionsType.mapping</a:displayName>
                         </xsd:appinfo>
                     </xsd:annotation>
@@ -2760,6 +2760,28 @@
                     <xsd:annotation>
                         <xsd:documentation>
                             Computes statistics for object classes on a resource.
+                        </xsd:documentation>
+                        <xsd:appinfo>
+                            <a:since>4.11</a:since>
+                        </xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
+
+                <xsd:element name="objectTypeStatisticsComputation" type="tns:ObjectTypeStatisticsComputationWorkDefinitionType" minOccurs="0">
+                    <xsd:annotation>
+                        <xsd:documentation>
+                            Computes statistics for object types on a resource.
+                        </xsd:documentation>
+                        <xsd:appinfo>
+                            <a:since>4.11</a:since>
+                        </xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
+
+                <xsd:element name="focusObjectStatisticsComputation" type="tns:FocusObjectStatisticsComputationWorkDefinitionType" minOccurs="0">
+                    <xsd:annotation>
+                        <xsd:documentation>
+                            Computes statistics for focus objects of a given type (e.g. UserType, RoleType).
                         </xsd:documentation>
                         <xsd:appinfo>
                             <a:since>4.11</a:since>
@@ -10651,7 +10673,18 @@
             </xsd:appinfo>
         </xsd:annotation>
         <xsd:complexContent>
-            <xsd:extension base="tns:ObjectTypeRelatedSuggestionWorkDefinitionType"/>
+            <xsd:extension base="tns:ObjectTypeRelatedSuggestionWorkDefinitionType">
+                <xsd:sequence>
+                    <xsd:element name="targetPathsToIgnore" type="t:ItemPathType" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Focus item paths that should be ignored when generating correlation suggestions.
+                                Any correlation whose target resolves to one of these paths will not be suggested.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
     <xsd:element name="correlationSuggestionWorkDefinition" type="tns:CorrelationSuggestionWorkDefinitionType"/>
@@ -10667,7 +10700,7 @@
             </xsd:documentation>
             <xsd:appinfo>
                 <a:container>true</a:container>
-                <a:since>4.12</a:since>
+                <a:since>4.11</a:since>
             </xsd:appinfo>
         </xsd:annotation>
         <xsd:complexContent>
@@ -10690,21 +10723,36 @@
         <xsd:annotation>
             <xsd:documentation>
                 Work definition for mapping simulation activity. Selects shadows to be processed and
-                specifies the inline mapping to be simulated on them. Please note, that activity
+                specifies the mappings to be simulated on them. Please note, that activity
                 implementing this work definition only supports PREVIEW execution mode.
+
+                Also note that if the `includeExistingCorrelators` is set to false (default), then at least one
+                mapping has to be specified in the `inlineMappings`.
             </xsd:documentation>
             <xsd:appinfo>
                 <a:container>true</a:container>
-                <a:since>4.12</a:since>
+                <a:since>4.11</a:since>
             </xsd:appinfo>
         </xsd:annotation>
         <xsd:complexContent>
             <xsd:extension base="tns:ResourceWorkDefinitionType">
                 <xsd:sequence>
-                    <xsd:element name="inlineMapping" type="c:MappingType">
+                    <xsd:element name="includeExistingMappings" type="xsd:boolean" minOccurs="0" default="false">
                         <xsd:annotation>
                             <xsd:documentation>
-                                Inline definition of mapping to be simulated.
+                                Use mappings derived from the resource of given shadows.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+
+                    <!-- If the value of `includeExistingMappings` is "false" then bellow element has to be present. -->
+
+                    <xsd:element name="inlineMappings" type="tns:InlineMappingDefinitionType" minOccurs="0"
+                                 maxOccurs="unbounded">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Inline definition of correlators. It can be used to explicitly define the correlator, for
+                                example in case when we want to simulate suggested correlation (which is not stored yet).
                             </xsd:documentation>
                         </xsd:annotation>
                     </xsd:element>
@@ -10714,16 +10762,60 @@
     </xsd:complexType>
     <xsd:element name="mappingWorkDefinition" type="tns:MappingWorkDefinitionType"/>
 
+    <xsd:complexType name="InlineMappingDefinitionType">
+        <xsd:annotation>
+            <xsd:documentation>
+                Defines the mapping (either inbound or outbound) of particular item.
+            </xsd:documentation>
+            <xsd:appinfo>
+                <a:container>true</a:container>
+                <a:since>4.11</a:since>
+            </xsd:appinfo>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="ref" type="t:ItemPathType">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Path of the item that this additional mapping uses. It must point to an attribute in the
+                        resource schema.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="inbound" type="tns:InboundMappingType" minOccurs="0" maxOccurs="unbounded">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Defines how the attribute values are used (assigned) in case of information flow from
+                        resource to IDM.
+                    </xsd:documentation>
+                    <xsd:appinfo>
+                        <a:displayName>ResourceItemDefinitionType.inbound</a:displayName>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="outbound" type="tns:OutboundMappingType" minOccurs="0" maxOccurs="unbounded">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Defines how the attribute values are used (assigned) in case of information flow from IDM to
+                        resource.
+                    </xsd:documentation>
+                    <xsd:appinfo>
+                        <a:displayName>ResourceItemDefinitionType.outbound</a:displayName>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="inlineMappings" type="tns:InlineMappingDefinitionType"/>
+
     <xsd:complexType name="SimulatedCorrelatorsType">
         <xsd:annotation>
             <xsd:documentation>
                 Specify what correlators to use for correlation. Note that if the `includeExistingCorrelators` is set
-                to false (default), then at least one of `inlineCorrelators` or `correlatorsRef` has to be
-                specified.
+                to false (default), then at least one correlator has to be specified in the `inlineCorrelators`.
             </xsd:documentation>
             <xsd:appinfo>
                 <a:container>true</a:container>
-                <a:since>4.12</a:since>
+                <a:since>4.11</a:since>
             </xsd:appinfo>
         </xsd:annotation>
         <xsd:sequence>
@@ -10782,6 +10874,63 @@
     </xsd:complexType>
     <xsd:element name="objectClassStatisticsComputationWorkDefinition" type="tns:ObjectClassStatisticsComputationWorkDefinitionType"/>
 
+    <xsd:complexType name="ObjectTypeStatisticsComputationWorkDefinitionType">
+        <xsd:complexContent>
+            <xsd:extension base="tns:AbstractWorkDefinitionType">
+                <xsd:sequence>
+                    <xsd:element name="resourceRef" type="tns:ObjectReferenceType">
+                        <xsd:annotation>
+                            <xsd:documentation>Resource OID for which the statistics are computed.</xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="kind" type="tns:ShadowKindType" minOccurs="0">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Kind of the object type for which the statistics are computed.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="intent" type="xsd:string" minOccurs="0">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Intent of the object type for which the statistics are computed.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="statisticsRef" type="tns:ObjectReferenceType" minOccurs="0">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                If specified, the particular statistics file should be used for the operation.
+                            </xsd:documentation>
+                            <xsd:appinfo>
+                                <a:displayName>ObjectTypeStatisticsComputationWorkDefinitionType.statisticsRef</a:displayName>
+                                <a:objectReferenceTargetType>c:GenericObjectType</a:objectReferenceTargetType>
+                            </xsd:appinfo>
+                        </xsd:annotation>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <xsd:element name="objectTypeStatisticsComputationWorkDefinition" type="tns:ObjectTypeStatisticsComputationWorkDefinitionType"/>
+
+    <xsd:complexType name="ObjectTypeStatisticsComputationWorkStateType">
+        <xsd:complexContent>
+            <xsd:extension base="tns:AbstractActivityWorkStateType">
+                <xsd:sequence>
+                    <xsd:element name="statisticsRef" type="tns:ObjectReferenceType" minOccurs="0">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Reference to the statistics object used or created by this activity.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <xsd:element name="objectTypeStatisticsComputationWorkState" type="tns:ObjectTypeStatisticsComputationWorkStateType"/>
+
     <xsd:complexType name="ObjectClassStatisticsComputationWorkStateType">
         <xsd:complexContent>
             <xsd:extension base="tns:AbstractActivityWorkStateType">
@@ -10797,6 +10946,77 @@
             </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
+
+    <xsd:complexType name="FocusObjectStatisticsComputationWorkDefinitionType">
+        <xsd:complexContent>
+            <xsd:extension base="tns:AbstractWorkDefinitionType">
+                <xsd:sequence>
+                    <xsd:element name="type" type="xsd:QName">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                QName of the focus object type for which the statistics are computed (e.g. UserType, RoleType).
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="resourceRef" type="tns:ObjectReferenceType">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Resource reference to filter focuses. Only focuses that have shadows
+                                on this resource will be processed.
+                            </xsd:documentation>
+                            <xsd:appinfo>
+                                <a:displayName>FocusObjectStatisticsComputationWorkDefinitionType.resourceRef</a:displayName>
+                                <a:objectReferenceTargetType>c:ResourceType</a:objectReferenceTargetType>
+                            </xsd:appinfo>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="kind" type="tns:ShadowKindType">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Shadow kind to filter focuses. Only focuses that have shadows of this kind will be processed.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="intent" type="xsd:string">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Shadow intent to filter focuses. Only focuses that have shadows with this intent will be processed.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="statisticsRef" type="tns:ObjectReferenceType" minOccurs="0">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                If specified, the particular statistics object should be reused for the operation.
+                            </xsd:documentation>
+                            <xsd:appinfo>
+                                <a:displayName>FocusObjectStatisticsComputationWorkDefinitionType.statisticsRef</a:displayName>
+                                <a:objectReferenceTargetType>c:GenericObjectType</a:objectReferenceTargetType>
+                            </xsd:appinfo>
+                        </xsd:annotation>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <xsd:element name="focusObjectStatisticsComputationWorkDefinition" type="tns:FocusObjectStatisticsComputationWorkDefinitionType"/>
+
+    <xsd:complexType name="FocusObjectStatisticsComputationWorkStateType">
+        <xsd:complexContent>
+            <xsd:extension base="tns:AbstractActivityWorkStateType">
+                <xsd:sequence>
+                    <xsd:element name="statisticsRef" type="tns:ObjectReferenceType" minOccurs="0">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Reference to the statistics object used or created by this activity.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <xsd:element name="focusObjectStatisticsComputationWorkState" type="tns:FocusObjectStatisticsComputationWorkStateType"/>
 
     <xsd:complexType name="MappingsSuggestionWorkDefinitionType">
         <xsd:annotation>
@@ -10825,6 +11045,14 @@
                                 The meaning of a target path depends on the mapping direction.
                                 Inbound mappings: paths on the midpoint side where inbound mapping results would be stored.
                                 Outbound mappings: paths of resource attributes where outbound mapping results would be stored.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="permissions" type="c:DataAccessPermissionType" minOccurs="0"
+                                 maxOccurs="unbounded">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Data access permissions given to the suggest task.
                             </xsd:documentation>
                         </xsd:annotation>
                     </xsd:element>

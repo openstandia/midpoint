@@ -43,8 +43,14 @@ public class CorrelationWizardPanel extends AbstractWizardPanel<CorrelationDefin
             }
 
             @Override
+            protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
+                SimulationWizardPanel<?> simulationResultPanel = buildSimulationResultWizard(simulationResultTypeIModel);
+                showChoiceFragment(target, simulationResultPanel);
+            }
+
+            @Override
             protected void redirectToSimulationTasksWizard(AjaxRequestTarget target) {
-                SimulationWizardPanel<?> simulationWizardPanel = buildSimulationWizard();
+                SimulationWizardPanel<?> simulationWizardPanel = buildSimulationTaskWizard();
                 showChoiceFragment(target, simulationWizardPanel);
             }
 
@@ -103,20 +109,44 @@ public class CorrelationWizardPanel extends AbstractWizardPanel<CorrelationDefin
                         performDiscard(pageBase, target, valueModel, statusInfo);
                     }
 
-                    @Override
-                    protected boolean isShowEmptyField() {
-                        return true;
-                    }
-
                 });
             }
         };
     }
 
-    private @NotNull SimulationWizardPanel<?> buildSimulationWizard() {
+    private @NotNull SimulationWizardPanel<?> buildSimulationTaskWizard() {
         return new SimulationWizardPanel<>(getIdOfChoicePanel(), getHelper()) {
             @Override
             public void onBackPerformed(AjaxRequestTarget target) {
+                showChoiceFragment(target, createTablePanel());
+            }
+
+            @Override
+            protected IModel<String> getBackButtonLabel() {
+                return createStringResource("SimulationTaskWizardPanel.correlationWizardPanel.back");
+            }
+
+            @Override
+            protected void onExitPerformed(AjaxRequestTarget target) {
+                showChoiceFragment(target, createTablePanel());
+            }
+        };
+    }
+
+    private @NotNull SimulationWizardPanel<?> buildSimulationResultWizard(IModel<SimulationResultType> simulationResultTypeIModel) {
+        return new SimulationWizardPanel<>(getIdOfChoicePanel(), getHelper(), simulationResultTypeIModel) {
+            @Override
+            public void onBackPerformed(AjaxRequestTarget target) {
+                showChoiceFragment(target, createTablePanel());
+            }
+
+            @Override
+            protected IModel<String> getBackButtonLabel() {
+                return createStringResource("SimulationWizardPanel.correlationWizardPanel.back");
+            }
+
+            @Override
+            protected void onExitPerformed(AjaxRequestTarget target) {
                 showChoiceFragment(target, createTablePanel());
             }
         };

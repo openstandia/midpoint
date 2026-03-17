@@ -13,6 +13,7 @@ import static com.evolveum.midpoint.util.MiscUtil.stateCheck;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
@@ -29,11 +30,15 @@ import com.evolveum.midpoint.model.impl.correlator.CorrelatorFactoryRegistryImpl
 import com.evolveum.midpoint.model.impl.correlator.CorrelatorUtil;
 import com.evolveum.midpoint.model.impl.sync.PreMappingsEvaluator;
 import com.evolveum.midpoint.prism.PrismContext;
+import com.evolveum.midpoint.prism.PrismObject;
+import com.evolveum.midpoint.prism.impl.binding.AbstractReferencable;
 import com.evolveum.midpoint.prism.path.PathSet;
+import com.evolveum.midpoint.prism.query.ObjectQuery;
 import com.evolveum.midpoint.prism.util.CloneUtil;
 import com.evolveum.midpoint.repo.api.RepositoryService;
 import com.evolveum.midpoint.repo.common.SystemObjectCache;
 import com.evolveum.midpoint.schema.CorrelatorDiscriminator;
+import com.evolveum.midpoint.schema.SearchResultList;
 import com.evolveum.midpoint.schema.processor.ResourceObjectDefinition;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeDefinition;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
@@ -110,14 +115,15 @@ public class CorrelationServiceImpl implements CorrelationService {
     @Override
     public @NotNull CompleteCorrelationResult correlate(
             @NotNull ShadowType shadowedResourceObject,
+            @NotNull ResourceType resource,
+            @NotNull ResourceObjectTypeDefinition resourceObjectTypeDefinition,
             @NotNull CorrelationDefinitionType correlationDefinition,
-            List<AdditionalCorrelationItemMappingType> additionalCorrelationMappings,
             @NotNull Task task,
             @NotNull OperationResult result)
             throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
             ConfigurationException, ObjectNotFoundException {
-        final CompleteContext ctx = getCompleteContext(shadowedResourceObject, correlationDefinition,
-                additionalCorrelationMappings, task, result);
+        final CompleteContext ctx = getCompleteContext(shadowedResourceObject, resource, resourceObjectTypeDefinition,
+                correlationDefinition, task, result);
         return correlate(ctx.correlatorContext, ctx.correlationContext, result);
     }
 
@@ -206,11 +212,6 @@ public class CorrelationServiceImpl implements CorrelationService {
                             .confidence(
                                     eligibleCandidate.getConfidence()));
         }
-        if (owners.size() != 1) {
-            optionsBean.getOption().add(
-                    new ResourceObjectOwnerOptionType()
-                            .identifier(OwnerOptionIdentifier.forNoOwner().getStringValue()));
-        }
 
         CandidateOwners finalCandidates = CandidateOwners.from(eligibleCandidates);
         if (owners.size() == 1) {
@@ -219,6 +220,12 @@ public class CorrelationServiceImpl implements CorrelationService {
         } else if (eligibleCandidates.isEmpty()) {
             return CompleteCorrelationResult.noOwner();
         } else {
+            // Here we want to explicitly add also the option for no owner, because we are not sure that the
+            // candidates are good enough. There is still a possibility, that the owner simply does not exist, and we
+            // want the user to know about it.
+            optionsBean.getOption().add(
+                    new ResourceObjectOwnerOptionType()
+                            .identifier(OwnerOptionIdentifier.forNoOwner().getStringValue()));
             return CompleteCorrelationResult.uncertain(finalCandidates, optionsBean);
         }
     }
@@ -376,7 +383,7 @@ public class CorrelationServiceImpl implements CorrelationService {
 
         stateCheck(ShadowUtil.isClassified(shadow), "Shadow %s is not classified: %s/%s", shadow, shadow.getKind(),
                 shadow.getIntent());
-        final ResourceType resource = getResource(shadow, task, result);
+        final ResourceType resource = beans.provisioningService.getShadowResource(shadow, task, result);
         final ResourceObjectTypeIdentification objectTypeId = getKindAndIntent(shadow);
         final SynchronizationPolicy policy =
                 MiscUtil.requireNonNull(
@@ -403,8 +410,9 @@ public class CorrelationServiceImpl implements CorrelationService {
 
     private @NotNull CompleteContext getCompleteContext(
             @NotNull ShadowType shadow,
+            @NotNull ResourceType resource,
+            @NotNull ResourceObjectTypeDefinition objectTypeDefinition,
             @NotNull CorrelationDefinitionType correlationDefinition,
-            @NotNull List<AdditionalCorrelationItemMappingType> additionalCorrelationMappings,
             @NotNull Task task,
             @NotNull OperationResult result)
             throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
@@ -412,12 +420,6 @@ public class CorrelationServiceImpl implements CorrelationService {
 
         stateCheck(ShadowUtil.isClassified(shadow), "Shadow %s is not classified: %s/%s", shadow, shadow.getKind(),
                 shadow.getIntent());
-
-        final ResourceType resource = getResource(shadow, task, result);
-
-        final ResourceObjectTypeIdentification objectTypeId = getKindAndIntent(shadow);
-        final ResourceObjectTypeDefinition objectTypeDefinition = getObjectTypeDefinition(resource, objectTypeId,
-                additionalCorrelationMappings, correlationDefinition);
 
         final Class<? extends FocusType> focusClass = PrismContext.get().getSchemaRegistry()
                 .determineClassForTypeRequired(objectTypeDefinition.getFocusTypeName());
@@ -611,36 +613,43 @@ public class CorrelationServiceImpl implements CorrelationService {
         return ctx.getConfiguration().getCorrelationItemPaths();
     }
 
-    private @NotNull ResourceType getResource(@NotNull ShadowType shadow, @NotNull Task task,
-            @NotNull OperationResult result)
-            throws ObjectNotFoundException, CommunicationException, SchemaException, ConfigurationException,
-            SecurityViolationException, ExpressionEvaluationException {
-        final String resourceOid = ShadowUtil.getResourceOidRequired(shadow);
-        return beans.provisioningService
-                .getObject(ResourceType.class, resourceOid, null, task, result)
-                .asObjectable();
+    @Override
+    public Optional<FocusType> findLinkedOrCorrelatedFocus(ShadowType shadow, OperationResult result)
+            throws SchemaException {
+        final ObjectQuery query = PrismContext.get().queryFor(FocusType.class)
+                .item(FocusType.F_LINK_REF)
+                .ref(shadow.getOid())
+                .build();
+
+        final SearchResultList<PrismObject<FocusType>> linkedFocuses = this.repositoryService.searchObjects(
+                FocusType.class, query, null, result);
+        if (linkedFocuses.size() == 1) {
+            return Optional.of(linkedFocuses.get(0).asObjectable());
+        } else if (linkedFocuses.size() > 1) {
+            throw new IllegalStateException("Shadow " + shadow + " is linked with more than one focus: "
+                    + linkedFocuses);
+        }
+
+        final String ownerCandidateOid = Optional.ofNullable(shadow.getCorrelation())
+                .map(ShadowCorrelationStateType::getResultingOwner)
+                .map(AbstractReferencable::getOid)
+                .orElse(null);
+        if (ownerCandidateOid == null) {
+            return Optional.empty();
+        }
+
+        try {
+            final FocusType correlatedFocus = this.repositoryService.getObject(FocusType.class, ownerCandidateOid, null, result)
+                    .asObjectable();
+            return Optional.of(correlatedFocus);
+        } catch (ObjectNotFoundException e) {
+            throw new IllegalStateException("Shadow" + shadow + " is correlated with focus with oid "
+                    + ownerCandidateOid + ", which does not exist.");
+        }
     }
 
     private static @NotNull ResourceObjectTypeIdentification getKindAndIntent(@NotNull ShadowType shadow) {
         return ResourceObjectTypeIdentification.of(shadow.getKind(), shadow.getIntent());
-    }
-
-    private static @NotNull ResourceObjectTypeDefinition getObjectTypeDefinition(@NotNull ResourceType resource,
-            @NotNull ResourceObjectTypeIdentification objectTypeId,
-            @NotNull List<AdditionalCorrelationItemMappingType> additionalCorrelationMappings,
-            @NotNull CorrelationDefinitionType correlationDefinition)
-            throws ConfigurationException, SchemaException {
-        final ResourceSchemaExtender schemaExtenders = ResourceSchemaFactory.schemaExtenderFor(resource);
-        for (AdditionalCorrelationItemMappingType additionalMapping : additionalCorrelationMappings) {
-            final ResourceAttributeDefinitionType attrDef = new ResourceAttributeDefinitionType().ref(
-                    additionalMapping.getRef());
-            // Without the cloning it throws exception about resetting parent of a value.
-            CloneUtil.cloneMembersToCollection(attrDef.getInbound(), additionalMapping.getInbound());
-            schemaExtenders.addAttributeDefinition(objectTypeId, attrDef);
-        }
-        return schemaExtenders.addCorrelationDefinition(objectTypeId, correlationDefinition)
-                .extend()
-                .getObjectTypeDefinitionRequired(objectTypeId);
     }
 
 }

@@ -6,35 +6,45 @@
  */
 package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.page;
 
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationStatusInfoUtils.loadObjectClassObjectTypeSuggestions;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.removeObjectTypeSuggestionNew;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.removeWholeTaskObject;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.runSuggestionAction;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationWrapperUtils.processSuggestedContainerValue;
+
+import java.util.List;
+import javax.xml.namespace.QName;
+
+import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.markup.repeater.RepeatingView;
+import org.apache.wicket.model.IModel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.evolveum.midpoint.gui.api.GuiStyleConstants;
 import com.evolveum.midpoint.gui.api.page.PageBase;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerWrapper;
+import com.evolveum.midpoint.gui.api.util.WebPrismUtil;
 import com.evolveum.midpoint.gui.impl.component.wizard.AbstractWizardPanel;
 import com.evolveum.midpoint.gui.impl.component.wizard.WizardPanelHelper;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.ResourceDetailsModel;
-import com.evolveum.midpoint.prism.*;
+import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.component.SmartSuggestButtonWithConfirmation;
+import com.evolveum.midpoint.prism.PrismContainerValue;
+import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.smart.api.info.StatusInfo;
 import com.evolveum.midpoint.task.api.Task;
-import com.evolveum.midpoint.web.component.dialog.RequestDetailsConfirmationPanel;
-import com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto;
+import com.evolveum.midpoint.util.exception.SystemException;
+import com.evolveum.midpoint.web.component.AjaxIconButton;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationOption;
+import com.evolveum.midpoint.web.component.dialog.privacy.DataAccessPermission;
+import com.evolveum.midpoint.web.component.input.ButtonWithConfirmationOptionsDialog;
+import com.evolveum.midpoint.web.component.util.SerializableConsumer;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
-
 import com.evolveum.midpoint.xml.ns._public.prism_schema_3.ComplexTypeDefinitionType;
 
-import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.Model;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
-import javax.xml.namespace.QName;
-
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationStatusInfoUtils.loadObjectClassObjectTypeSuggestions;
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.*;
-import static com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto.initDummyObjectTypePermissionData;
-
-public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDefinitionType, P extends Containerable> extends AbstractWizardPanel<P, ResourceDetailsModel> {
+public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<ResourceObjectTypeDefinitionType, ResourceDetailsModel> {
 
     private static final String CLASS_DOT = SmartObjectTypeSuggestionWizardPanel.class.getName() + ".";
     private static final String OP_DEFINE_TYPES = CLASS_DOT + "defineTypes";
@@ -43,7 +53,7 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
     private static final String OP_DELETE_SUGGESTIONS =
             SmartObjectTypeSuggestionWizardPanel.class.getName() + ".deleteSuggestions";
 
-    public SmartObjectTypeSuggestionWizardPanel(String id, WizardPanelHelper<P, ResourceDetailsModel> helper) {
+    public SmartObjectTypeSuggestionWizardPanel(String id, WizardPanelHelper<ResourceObjectTypeDefinitionType, ResourceDetailsModel> helper) {
         super(id, helper);
     }
 
@@ -51,36 +61,53 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
         add(createChoiceFragment(createTablePanel(getIdOfChoicePanel())));
     }
 
-    protected ResourceObjectClassTableWizardPanel<ResourceObjectTypeDefinitionType, P> createTablePanel(String idOfChoicePanel) {
+    protected ResourceObjectClassTableWizardPanel<ResourceObjectTypeDefinitionType> createTablePanel(String idOfChoicePanel) {
         return new ResourceObjectClassTableWizardPanel<>(idOfChoicePanel, getHelper()) {
 
             @Override
-            protected void onContinueWithSelected(
-                    IModel<PrismContainerValueWrapper<ComplexTypeDefinitionType>> model,
+            protected void onContinueWithSelected(IModel<PrismContainerValueWrapper<ComplexTypeDefinitionType>> model,
                     AjaxRequestTarget target) {
-                var complexTypeDef = model.getObject().getRealValue();
-                proceedToSuggestionConfirmationPanel(getPageBase(), target, complexTypeDef);
+                // We have our own "submit" button bellow, so this should not be called.
+                throw new SystemException("Unexpected method was called.");
             }
-        };
-    }
-
-    private void proceedToSuggestionConfirmationPanel(@NotNull PageBase pageBase, AjaxRequestTarget target, ComplexTypeDefinitionType complexTypeDef) {
-        RequestDetailsConfirmationPanel dialog = new RequestDetailsConfirmationPanel(
-                getPageBase().getMainPopupBodyId(),
-                Model.of(new RequestDetailsRecordDto(null, initDummyObjectTypePermissionData()))) {
 
             @Override
-            public void yesPerformed(AjaxRequestTarget target) {
-                processSuggestionActivity(target, complexTypeDef.getName(), false);
+            protected void onExitPerformed(AjaxRequestTarget target) {
+                removeLastBreadcrumb();
+                SmartObjectTypeSuggestionWizardPanel.this.onExitPerformed(target);
+            }
+
+            @Override
+            protected boolean isSubmitButtonVisible() {
+                // Do not show the "submit" button defined in base classes.
+                return false;
+            }
+
+            @Override
+            protected void addCustomButtons(RepeatingView buttons) {
+                AjaxIconButton generateButton = SmartSuggestButtonWithConfirmation.create(buttons.newChildId(),
+                        createStringResource("ResourceObjectClassTableWizardPanel.saveButton"),
+                        () -> GuiStyleConstants.CLASS_MAGIC_WAND,
+                        ConfirmationOption.delineationPermissionsOptions(),
+                        () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
+                                (target, confirmedOptions) -> {
+                                    final QName objectClassName = selectedModel.getObject().getRealValue().getName();
+                                    processSuggestionActivity(target, objectClassName, false, confirmedOptions);
+                                }),
+                        getPageBase());
+
+                generateButton.setOutputMarkupId(true);
+                generateButton.showTitleAsLabel(true);
+                buttons.add(generateButton);
             }
         };
-        pageBase.showMainPopup(dialog, target);
     }
 
     /**
      * Processes the suggestion activity for the given object class name.
      */
-    private void processSuggestionActivity(AjaxRequestTarget target, QName objectClassName, boolean resetSuggestion) {
+    private void processSuggestionActivity(AjaxRequestTarget target, QName objectClassName, boolean resetSuggestion,
+            IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
         String resourceOid = getAssignmentHolderModel().getObjectType().getOid();
         Task task = getPageBase().createSimpleTask(OP_DETERMINE_STATUS);
         OperationResult result = task.getResult();
@@ -101,6 +128,13 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
             return;
         }
 
+        if (confirmedOptions.getObject().size() != 2) {
+            result.recordFatalError("Unable to suggest object types without permissions to access schema and "
+                    + "statistics");
+            getPageBase().showResult(result);
+            target.add(getPageBase().getFeedbackPanel(), SmartObjectTypeSuggestionWizardPanel.this);
+            return;
+        }
         boolean executed = runSuggestionAction(
                 getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task);
 
@@ -135,7 +169,7 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
                 && !suggestions.getResult().getObjectType().isEmpty();
     }
 
-    private @NotNull ResourceGeneratingSuggestionObjectClassWizardPanel<ResourceObjectTypeDefinitionType, P> buildGeneratingWizardPanel(
+    private @NotNull ResourceGeneratingSuggestionObjectClassWizardPanel<ResourceObjectTypeDefinitionType> buildGeneratingWizardPanel(
             @NotNull String idOfChoicePanel, QName objectClassName) {
         return new ResourceGeneratingSuggestionObjectClassWizardPanel<>(idOfChoicePanel, getHelper(), objectClassName) {
 
@@ -151,15 +185,20 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
             }
 
             @Override
+            protected void onExitPerformed(AjaxRequestTarget target) {
+                SmartObjectTypeSuggestionWizardPanel.this.onExitPerformed(target);
+            }
+
+            @Override
             protected void onContinueWithSelected(AjaxRequestTarget target) {
                 showChoiceFragment(target, buildSelectSuggestedObjectTypeWizardPanel(idOfChoicePanel, objectClassName));
             }
         };
     }
 
-    @Contract("_, _ -> new")
-    private @NotNull ResourceSuggestedObjectTypeTableWizardPanel<P> buildSelectSuggestedObjectTypeWizardPanel(
+    private @NotNull ResourceSuggestedObjectTypeTableWizardPanel<ResourceObjectTypeDefinitionType> buildSelectSuggestedObjectTypeWizardPanel(
             @NotNull String idOfChoicePanel, QName objectClassName) {
+        removeLastBreadcrumb();
         return new ResourceSuggestedObjectTypeTableWizardPanel<>(idOfChoicePanel, getHelper(), objectClassName) {
 
             @Override
@@ -168,24 +207,29 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
                     @NotNull PrismContainerValue<ResourceObjectTypeDefinitionType> newValue,
                     @NotNull IModel<PrismContainerWrapper<ResourceObjectTypeDefinitionType>> containerModel,
                     @NotNull AjaxRequestTarget target) {
-                var suggestedValueContainer = model.getObject();
-                ResourceObjectTypeDefinitionType suggestedObjectTypeDef = suggestedValueContainer.getRealValue();
                 PageBase pageBase = getPageBase();
 
-                clearPageFeedback(target);
-                getAssignmentHolderModel().getPageResource()
-                        .showObjectTypeWizard(newValue, target, containerModel.getObject().getPath(),
-                                ajaxRequestTarget -> {
-                                    Task task = pageBase.createSimpleTask(OP_DELETE_SUGGESTIONS);
-                                    OperationResult result = task.getResult();
-                                    removeObjectTypeSuggestionNew(pageBase, statusInfo, suggestedObjectTypeDef, task, result);
-                                });
+                ResourceObjectTypeDefinitionType suggestedObjectTypeDef =  model.getObject().getRealValue();
+
+                PrismContainerValue<ResourceObjectTypeDefinitionType> original =
+                        newValue.clone();
+                WebPrismUtil.cleanupEmptyContainerValue(original);
+
+                PrismContainerValue<ResourceObjectTypeDefinitionType> suggestion =
+                        processSuggestedContainerValue(original);
+
+                onReviewSelected(suggestion, containerModel.getObject().getPath(), target, ajaxRequestTarget -> {
+                    Task task = pageBase.createSimpleTask(OP_DELETE_SUGGESTIONS);
+                    OperationResult result = task.getResult();
+                    removeObjectTypeSuggestionNew(pageBase, statusInfo, suggestedObjectTypeDef, task, result);
+                });
             }
 
             @Override
-            public void refreshSuggestionPerform(AjaxRequestTarget target) {
+            public void refreshSuggestionPerform(AjaxRequestTarget target,
+                    IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
                 removeLastBreadcrumb();
-                processSuggestionActivity(target, objectClassName, true);
+                processSuggestionActivity(target, objectClassName, true, confirmedOptions);
             }
 
             @Override
@@ -194,5 +238,14 @@ public class SmartObjectTypeSuggestionWizardPanel<C extends ResourceObjectTypeDe
                 showChoiceFragment(target, createTablePanel(idOfChoicePanel));
             }
         };
+    }
+
+    protected void onReviewSelected(
+            @NotNull PrismContainerValue<ResourceObjectTypeDefinitionType> newValue,
+            @NotNull ItemPath pathToContainer,
+            @NotNull AjaxRequestTarget target,
+            @Nullable SerializableConsumer<AjaxRequestTarget> afterSaveAction) {
+        getAssignmentHolderModel().getPageResource()
+                .showObjectTypeWizard(newValue, target, pathToContainer, afterSaveAction);
     }
 }

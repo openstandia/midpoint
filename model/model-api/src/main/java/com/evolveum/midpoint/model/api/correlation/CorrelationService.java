@@ -8,6 +8,7 @@ package com.evolveum.midpoint.model.api.correlation;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import com.evolveum.midpoint.model.api.correlation.CorrelationCaseDescription.CandidateDescription;
 import com.evolveum.midpoint.prism.path.PathSet;
 import com.evolveum.midpoint.schema.CorrelatorDiscriminator;
+import com.evolveum.midpoint.schema.processor.ResourceObjectTypeDefinition;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.util.exception.*;
@@ -43,8 +45,9 @@ public interface CorrelationService {
 
     @NotNull CompleteCorrelationResult correlate(
             @NotNull ShadowType shadowedResourceObject,
+            @NotNull ResourceType resource,
+            @NotNull ResourceObjectTypeDefinition resourceObjectTypeDefinition,
             @NotNull CorrelationDefinitionType correlationDefinition,
-            List<AdditionalCorrelationItemMappingType> additionalAttributeMappings,
             @NotNull Task task,
             @NotNull OperationResult result)
             throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
@@ -92,10 +95,21 @@ public interface CorrelationService {
     /**
      * Instantiates a correlator
      */
-//    CorrelatorConfiguration determineCorrelatorConfiguration(@NotNull ObjectTemplateType objectTemplate,
-//            SystemConfigurationType systemConfiguration);
-
     PathSet determineCorrelatorConfiguration(@NotNull CorrelatorDiscriminator discriminator, String archetypeOid, Task task, OperationResult result) throws SchemaException, ConfigurationException, ObjectNotFoundException;
+
+    /**
+     * Find focus, which is either linked or correlated with given shadow.
+     *
+     * This method firstly tries to find focus, which is linked. If no such focus is found, it tries to find focus,
+     * which is at least correlated with the shadow.
+     *
+     * This method does not run the correlation process itself. It relies on existing link/correlation information
+     * stored in focuses/shadow.
+     *
+     * @param shadow The Shadow, whose linked or correlated focus you want to find.
+     * @return The found focus or empty Optional if no linked/correlated focus was found.
+     */
+    Optional<FocusType> findLinkedOrCorrelatedFocus(ShadowType shadow, OperationResult result) throws SchemaException;
 
 
     @FunctionalInterface

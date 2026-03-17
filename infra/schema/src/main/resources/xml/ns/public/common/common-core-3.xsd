@@ -2460,11 +2460,64 @@
                 </xsd:annotation>
             </xsd:element>
             <xsd:element name="attributeVerification" type="tns:AttributeVerificationCredentialsType" minOccurs="0" />
+            <xsd:element name="otps" type="tns:OtpCredentialsType" minOccurs="0"/>
             <!-- More credential types may be here, such as OTP seeds, X.509 credentials, etc. -->
         </xsd:sequence>
         <xsd:attribute name="id" type="xsd:long"/>
     </xsd:complexType>
     <xsd:element name="credentials" type="tns:CredentialsType"/>
+
+    <xsd:complexType name="OtpCredentialType">
+        <xsd:annotation>
+            <xsd:documentation>
+                <!-- todo -->
+            </xsd:documentation>
+            <xsd:appinfo>
+                <a:since>4.11</a:since>
+                <a:container/>
+            </xsd:appinfo>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="name" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="secret" type="t:ProtectedStringType">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Shared secret used for OTP code computation.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="createTimestamp" type="xsd:dateTime"/>
+            <xsd:element name="verified" type="xsd:boolean" minOccurs="0">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Flag that marks completed user enrollment for this OTP credential.
+                        E.g. User supplied current TOTP code and server verified it.
+
+                        If OTP credential is not verified, it won't be tested during authentication.
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="OtpCredentialsType">
+        <xsd:annotation>
+            <xsd:documentation>
+                <!-- todo -->
+            </xsd:documentation>
+            <xsd:appinfo>
+                <a:since>4.11</a:since>
+                <a:container/>
+            </xsd:appinfo>
+        </xsd:annotation>
+        <xsd:complexContent>
+            <xsd:extension base="tns:AbstractCredentialType">
+                <xsd:sequence>
+                    <xsd:element name="totp" type="tns:OtpCredentialType" minOccurs="0" maxOccurs="unbounded"/>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
 
     <xsd:complexType name="BehaviorType">
         <xsd:annotation>
@@ -17611,6 +17664,41 @@
                 <xsd:annotation>
                     <xsd:appinfo>
                         <jaxb:typesafeEnumMember name="MARK_SHADOW_CORRELATION_OWNER_NOT_CERTAIN"/>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="65eedb14-5aba-4692-bd93-62f7f56671b4">
+                <xsd:annotation>
+                    <xsd:appinfo>
+                        <jaxb:typesafeEnumMember name="MARK_ITEM_VALUE_CHANGE_NOT_APPLIED"/>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="8f831987-f7d4-48fe-8dbf-662cec3bf81f">
+                <xsd:annotation>
+                    <xsd:appinfo>
+                        <jaxb:typesafeEnumMember name="MARK_ITEM_VALUE_NOT_CHANGED"/>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="de5563b7-96e9-4c34-8732-588de9ac1776">
+                <xsd:annotation>
+                    <xsd:appinfo>
+                        <jaxb:typesafeEnumMember name="MARK_ITEM_VALUE_MODIFIED"/>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="c216b0c4-3381-432c-a67c-bcf6c3208266">
+                <xsd:annotation>
+                    <xsd:appinfo>
+                        <jaxb:typesafeEnumMember name="MARK_ITEM_VALUE_REMOVED"/>
+                    </xsd:appinfo>
+                </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="5f627d94-c4b1-46ff-b848-16df52b7597e">
+                <xsd:annotation>
+                    <xsd:appinfo>
+                        <jaxb:typesafeEnumMember name="MARK_ITEM_VALUE_ADDED"/>
                     </xsd:appinfo>
                 </xsd:annotation>
             </xsd:enumeration>
