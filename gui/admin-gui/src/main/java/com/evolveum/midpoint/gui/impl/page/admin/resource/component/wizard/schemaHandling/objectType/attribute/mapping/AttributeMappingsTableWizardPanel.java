@@ -286,6 +286,11 @@ public abstract class AttributeMappingsTableWizardPanel<P extends Containerable>
                     }
 
                     @Override
+                    protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
+                        AttributeMappingsTableWizardPanel.this.buildSimulationResultPanel(target, simulationResultTypeIModel);
+                    }
+
+                    @Override
                     protected ResourceType getResourceType() {
                         ResourceDetailsModel resourceDetailsModel = getAssignmentHolderDetailsModel();
                         PrismObjectWrapper<ResourceType> objectWrapper = resourceDetailsModel.getObjectWrapper();
