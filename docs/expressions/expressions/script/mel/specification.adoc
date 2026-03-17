@@ -909,7 +909,7 @@ format.concatName(['Radovan', 'Semančík'])
 
 Formats provided timestamp to string, using a format template specified in POSIX notation.
 
-This is POSIX-compatible function, using a POSIX time formatting conventions (TODO: ref).
+This is POSIX-compatible function, using a xref:../strftime/[POSIX time formatting conventions].
 This format is used by other variants of Common expression language (CEL).
 Use of this function is generally *recommended* instead of Java-like variants below.
 
@@ -936,7 +936,7 @@ ts.strftime('%d/%m/%Y %H:%M:%S')
 
 Parses provided string to timestamp, using a format template specified in POSIX notation.
 
-This is POSIX-compatible function, using a POSIX time formatting conventions (TODO: ref).
+This is POSIX-compatible function, using a xref:../strftime/[POSIX time formatting conventions].
 This format is used by other variants of Common expression language (CEL).
 Use of this function is generally *recommended* instead of Java-like variants below.
 
@@ -963,7 +963,7 @@ This function can also be invoked as a _member_ function on a string:
 
 Formats provided timestamp to string, using a format template specified in Java SimpleDateFormat notation.
 
-This is Java-like function, compatible with original midPoint 3.x _basic expression functions_ (TODO: ref).
+This is Java-like function, compatible with original midPoint 3.x xref:/midpoint/reference/expressions/expressions/script/functions/[_basic expression functions_].
 This function is mostly provided for users that are accustomed to Java conventions and for the purposed of easier migration of Groovy scripts to MEL.
 Use of this function is generally *not recommended*.
 Use `strftime` function instead.
@@ -991,7 +991,7 @@ ts.formatDateTime('dd/MM/YY HH:mm:ss')
 
 Parses provided string to timestamp, using a format template specified in Java SimpleDateFormat notation.
 
-This is Java-like function, compatible with original midPoint 3.x _basic expression functions_ (TODO: ref).
+This is Java-like function, compatible with original midPoint 3.x xref:/midpoint/reference/expressions/expressions/script/functions/[_basic expression functions_].
 This function is mostly provided for users that are accustomed to Java conventions and for the purposed of easier migration of Groovy scripts to MEL.
 Use of this function is generally *not recommended*.
 Use `strptime` function instead.
