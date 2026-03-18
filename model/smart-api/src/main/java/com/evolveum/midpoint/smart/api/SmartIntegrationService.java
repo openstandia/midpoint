@@ -158,7 +158,7 @@ public interface SmartIntegrationService {
      * Submits "suggest focus type" request. Returns a token used to query the status.
      */
     String submitSuggestFocusTypeOperation(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult result)
+            String resourceOid, ResourceObjectTypeIdentification typeIdentification, List<DataAccessPermissionType> permissions, Task task, OperationResult result)
             throws CommonException;
 
     /**

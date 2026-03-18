@@ -265,7 +265,9 @@ public class TestSmartIntegrationService extends AbstractEmptyModelIntegrationTe
 
         when("submitting 'suggest focus type' operation request");
         var token = smartIntegrationService.submitSuggestFocusTypeOperation(
-                RESOURCE_DUMMY_FOR_SUGGEST_FOCUS_TYPE.oid, ACCOUNT_DEFAULT, task, result);
+                RESOURCE_DUMMY_FOR_SUGGEST_FOCUS_TYPE.oid, ACCOUNT_DEFAULT,
+                List.of(DataAccessPermissionType.SCHEMA_ACCESS),
+                task, result);
 
         then("returned token is not null");
         assertThat(token).isNotNull();

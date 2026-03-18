@@ -445,6 +445,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
     public String submitSuggestFocusTypeOperation(
             String resourceOid,
             ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions,
             Task task,
             OperationResult parentResult) throws CommonException {
         var result = parentResult.subresult(OP_SUBMIT_SUGGEST_FOCUS_TYPE_OPERATION)
@@ -452,13 +453,15 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
                 .addParam("typeIdentification", typeIdentification)
                 .build();
         try {
+            var workDef = new FocusTypeSuggestionWorkDefinitionType()
+                    .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
+                    .kind(typeIdentification.getKind())
+                    .intent(typeIdentification.getIntent());
+            workDef.getPermissions().addAll(permissions);
             var oid = modelInteractionService.submit(
                     new ActivityDefinitionType()
                             .work(new WorkDefinitionsType()
-                                    .focusTypeSuggestion(new FocusTypeSuggestionWorkDefinitionType()
-                                            .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
-                                            .kind(typeIdentification.getKind())
-                                            .intent(typeIdentification.getIntent()))),
+                                    .focusTypeSuggestion(workDef)),
                     ActivitySubmissionOptions.create().withTaskTemplate(new TaskType()
                             .name("Suggest focus type for " + typeIdentification + " on " + resourceOid)
                             .cleanupAfterCompletion(AUTO_CLEANUP_TIME)),
