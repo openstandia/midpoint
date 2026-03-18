@@ -5,30 +5,33 @@
   -->
 
 <mark xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
-    oid="e5246605-73ee-4682-9efb-73a915427d18">
-    <name>Shadow owner not found</name>
-    <description>Correlation of a shadow has not found its owner</description>
+        oid="5f627d94-c4b1-46ff-b848-16df52b7597e">
+    <name>Item value added</name>
+    <description>Item value has been added</description>
     <assignment id="1">
         <identifier>archetype</identifier>
         <targetRef oid="00000000-0000-0000-0000-000000000700" type="ArchetypeType"/>
     </assignment>
-    <displayOrder>530</displayOrder>
+
+    <displayOrder>590</displayOrder>
+
     <display>
         <label>
-            <orig>Not correlated</orig>
+            <orig>Added attribute items</orig>
             <translation>
-                <key>SimulationCorrelationPanel.notCorrelated.label</key>
+                <key>SimulationMappingPanel.added.label</key>
             </translation>
         </label>
         <help>
-            <orig>Number of resource objects that could not be correlated to any owners.</orig>
+            <orig>Number of attribute items that were added by the simulated mapping.</orig>
             <translation>
-                <key>SimulationCorrelationPanel.notCorrelated.help</key>
+                <key>SimulationMappingPanel.added.help</key>
             </translation>
         </help>
         <icon>
-            <cssClass>fa fa-link-slash metric-icon secondary</cssClass>
+            <cssClass>fa-solid fa-plus metric-icon success</cssClass>
         </icon>
     </display>
+
     <!-- No policy rule. This is set explicitly by the correlation simulation. -->
 </mark>
