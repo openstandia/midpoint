@@ -38,6 +38,8 @@ Overall, midPoint 4.10 opens up the world of identity management and governance 
 
 === New Features and Major Improvements
 
+* xrefv:/midpoint/reference/master/expressions/expressions/script/mel/[MidPoint expression language]: secure expression language for use in mappings and customization.
+
 * bug:MID-10965[] Fast correlators simulation.
 
 #TODO#
