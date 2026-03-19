@@ -22,6 +22,17 @@ import com.evolveum.midpoint.web.component.util.Describable;
 import com.evolveum.midpoint.web.component.util.SerializableBiConsumer;
 import com.evolveum.midpoint.web.component.util.SerializableConsumer;
 
+/**
+ * A button that opens a confirmation-with-options dialog when clicked and delegates the outcome to a pair of
+ * handlers ({@link ButtonHandlers}).
+ *
+ * When the user confirms the dialog the {@link ButtonHandlers#confirmHandler()} is invoked directly inside the
+ * dialog's Ajax callback.
+ *
+ * This is the right choice when the action is *non-blocking*. For synchronous actions that need an activity
+ * indication (e.g. a spinner shown while the action runs), use {@link BlockingActionButtonWithConfirmationOptionsDialog}
+ * instead.
+ */
 public class ButtonWithConfirmationOptionsDialog<T extends Describable> extends AjaxIconButton {
 
     private final IModel<ButtonConfig<T>> config;
@@ -42,7 +53,6 @@ public class ButtonWithConfirmationOptionsDialog<T extends Describable> extends 
     @Override
     public void onClick(AjaxRequestTarget target) {
         final ButtonConfig<T> cfg = this.config.getObject();
-        final ButtonHandlers<T> onClickHandlers = this.handlers.getObject();
         final PageBase pageBase = cfg.pageBase().getObject();
         final ConfirmationWithOptionsPanel<T> dialog = new ConfirmationWithOptionsPanel<>(
                 pageBase.getMainPopupBodyId(),
@@ -51,19 +61,33 @@ public class ButtonWithConfirmationOptionsDialog<T extends Describable> extends 
             @Override
             public void confirmationPerformed(AjaxRequestTarget target,
                     IModel<List<ConfirmationOption<T>>> confirmedOptions) {
-                if (onClickHandlers.confirmHandler() != null) {
-                    onClickHandlers.confirmHandler().accept(target, confirmedOptions);
-                }
+                onDialogConfirmed(target, confirmedOptions);
             }
 
             @Override
             public void cancelPerformed(AjaxRequestTarget target) {
+                final ButtonHandlers<T> onClickHandlers = handlers.getObject();
                 if (onClickHandlers.cancelHandler() != null) {
                     onClickHandlers.cancelHandler().accept(target);
                 }
             }
         };
         pageBase.showMainPopup(dialog, target);
+    }
+
+    /**
+     * Called when the user confirms the dialog. The default implementation invokes
+     * {@link ButtonHandlers#confirmHandler()}.
+     *
+     * NOTE: This method is intentionally package private, to prevent overriding from anonymous implementations
+     * outside of this package.
+     */
+    void onDialogConfirmed(AjaxRequestTarget target,
+            IModel<List<ConfirmationOption<T>>> confirmedOptions) {
+        final ButtonHandlers<T> onClickHandlers = handlers.getObject();
+        if (onClickHandlers.confirmHandler() != null) {
+            onClickHandlers.confirmHandler().accept(target, confirmedOptions);
+        }
     }
 
     @Override
@@ -75,15 +99,15 @@ public class ButtonWithConfirmationOptionsDialog<T extends Describable> extends 
 
     public record ButtonHandlers<T extends Describable>(
             SerializableConsumer<AjaxRequestTarget> cancelHandler,
-            SerializableBiConsumer<AjaxRequestTarget, IModel<List<ConfirmationOption<T>>>> confirmHandler) implements
-            Serializable {
-
+            SerializableBiConsumer<AjaxRequestTarget, IModel<List<ConfirmationOption<T>>>> confirmHandler)
+            implements Serializable {
     }
 
     public record ButtonConfig<T extends Describable>(
             IModel<String> icon,
             IModel<String> title,
             IModel<ConfirmationWithOptionsDto<T>> confirmationDialogConfig,
-            IModel<PageBase> pageBase) implements Serializable{}
-
+            IModel<PageBase> pageBase)
+            implements Serializable {
+    }
 }

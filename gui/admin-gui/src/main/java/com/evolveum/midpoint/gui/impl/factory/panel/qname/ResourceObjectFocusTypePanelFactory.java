@@ -18,6 +18,8 @@ import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.smart.api.SmartIntegrationService;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.util.exception.*;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationOption;
+import com.evolveum.midpoint.web.component.dialog.privacy.DataAccessPermission;
 import com.evolveum.midpoint.web.component.input.DropDownChoiceSuggestPanel;
 
 import jakarta.annotation.PostConstruct;
@@ -93,9 +95,11 @@ public class ResourceObjectFocusTypePanelFactory extends AbstractInputGuiCompone
                         true) {
 
                     @Override
-                    protected void onSuggestAction(@NotNull AjaxRequestTarget target) {
+                    protected void onSuggestAction(@NotNull AjaxRequestTarget target,
+                            List<ConfirmationOption<DataAccessPermission>> confirmationOptions) {
                         DropDownChoice<QName> baseFormComponent = getBaseFormComponent();
                         executeSuggestFocusTypeOperation(
+                                confirmationOptions,
                                 getPageBase(),
                                 baseFormComponent,
                                 panelCtx,
@@ -110,7 +114,7 @@ public class ResourceObjectFocusTypePanelFactory extends AbstractInputGuiCompone
 
     //NOTE: If we decide to submit suggestion in the task, we should implement more complex panel with logicDto provider.
     private void executeSuggestFocusTypeOperation(
-            @NotNull PageBase pageBase,
+            List<ConfirmationOption<DataAccessPermission>> confirmationOptions, @NotNull PageBase pageBase,
             @NotNull DropDownChoice<QName> baseFormComponent,
             @NotNull PrismPropertyPanelContext<QName> panelCtx,
             @NotNull AjaxRequestTarget target) {

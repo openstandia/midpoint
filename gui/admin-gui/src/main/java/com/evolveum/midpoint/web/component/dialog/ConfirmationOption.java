@@ -64,6 +64,10 @@ public record ConfirmationOption<T extends Describable>(
         return records;
     }
 
+    public static <T extends Describable> ConfirmationOption<T> selectedOf(T option) {
+        return new ConfirmationOption<>(Model.of(true), option, null);
+    }
+
     public boolean isSelected() {
         return selected.getObject();
     }
