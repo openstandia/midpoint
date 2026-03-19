@@ -23,6 +23,7 @@ import com.evolveum.midpoint.util.exception.CommonException;
 import com.evolveum.midpoint.util.logging.LoggingUtils;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.DataAccessPermissionType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ObjectTypesSuggestionType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ObjectTypesSuggestionWorkStateType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.ResourceObjectFocusSpecificationType;
@@ -45,7 +46,14 @@ class ObjectTypesSuggestionFocusTypesActivityRun
     protected @NotNull ActivityRunResult runLocally(OperationResult result) throws CommonException {
         var task = getRunningTask();
         var parentState = Util.getParentState(this, result);
-        var resourceOid = getWorkDefinition().getResourceOid();
+        var workDefinition = getWorkDefinition();
+        var resourceOid = workDefinition.getResourceOid();
+        var permissions = workDefinition.getPermissions();
+
+        if (!permissions.contains(DataAccessPermissionType.SCHEMA_ACCESS)) {
+            LOGGER.debug("Skipping focus type suggestions for object types - SCHEMA_ACCESS permission not granted");
+            return ActivityRunResult.success();
+        }
 
         var suggestedObjectTypesClone = parentState.getWorkStateItemRealValueClone(
                 ObjectTypesSuggestionWorkStateType.F_RESULT, ObjectTypesSuggestionType.class);
