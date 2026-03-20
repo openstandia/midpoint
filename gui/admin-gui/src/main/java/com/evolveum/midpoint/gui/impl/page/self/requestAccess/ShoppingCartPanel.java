@@ -87,7 +87,7 @@ public class ShoppingCartPanel extends WizardStepPanel<RequestAccess> implements
             List<Badge> badges = new ArrayList<>();
 
             long warnings = data.getWarningCount();
-            if (warnings > 0) {
+            if (warnings > 0 && data.areShoppingCartItemsRelatedToConflicts()) {
                 String key = warnings == 1 ? "ShoppingCartPanel.badge.oneWarning" : "ShoppingCartPanel.badge.multipleWarnings";
                 badges.add(new Badge("badge badge-warning", getString(key, warnings)));
             }
