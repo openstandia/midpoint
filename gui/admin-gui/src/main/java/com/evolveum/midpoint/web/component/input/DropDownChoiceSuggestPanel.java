@@ -131,7 +131,8 @@ public class DropDownChoiceSuggestPanel<T> extends InputPanel implements Seriali
         return (DropDownChoice<T>) get("input");
     }
 
-    protected void onSuggestAction(AjaxRequestTarget target, List<ConfirmationOption<DataAccessPermission>> object) {
+    protected void onSuggestAction(AjaxRequestTarget target,
+            List<ConfirmationOption<DataAccessPermission>> confirmedOptions) {
 
     }
 
