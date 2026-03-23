@@ -135,8 +135,12 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
             target.add(getPageBase().getFeedbackPanel(), SmartObjectTypeSuggestionWizardPanel.this);
             return;
         }
+        List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                .map(ConfirmationOption::option)
+                .map(DataAccessPermission::toSchemaType)
+                .toList();
         boolean executed = runSuggestionAction(
-                getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task);
+                getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task, permissions);
 
         result.computeStatusIfUnknown();
 

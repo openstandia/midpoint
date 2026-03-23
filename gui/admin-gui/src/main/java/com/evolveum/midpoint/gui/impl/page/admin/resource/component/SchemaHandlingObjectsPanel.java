@@ -171,7 +171,7 @@ public abstract class SchemaHandlingObjectsPanel<C extends Containerable> extend
         };
 
         aiPanel.setOutputMarkupId(true);
-        aiPanel.add(new VisibleBehaviour(switchSuggestion::getObject)); // Visible only when suggestions are enabled
+        aiPanel.add(new VisibleBehaviour(() -> getSwitchSuggestionModel().getObject() && !getTable().displayNoValuePanel()));
         return aiPanel;
     }
 

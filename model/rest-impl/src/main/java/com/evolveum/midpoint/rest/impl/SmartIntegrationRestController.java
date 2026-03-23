@@ -56,7 +56,7 @@ public class SmartIntegrationRestController extends AbstractRestController {
 
         try {
             QName objectClassQName = QName.valueOf(objectClass);
-            var oid = smartIntegrationService.submitSuggestObjectTypesOperation(resourceOid, objectClassQName, task, result);
+            var oid = smartIntegrationService.submitSuggestObjectTypesOperation(resourceOid, objectClassQName, List.of(), task, result);
             result.setBackgroundTaskOid(oid);
 
             var suggestionOperationStatus = smartIntegrationService.getSuggestObjectTypesOperationStatus(oid, task, result);
@@ -96,7 +96,7 @@ public class SmartIntegrationRestController extends AbstractRestController {
                     ShadowKindType.fromValue(kind),
                     intent
             );
-            var oid = smartIntegrationService.submitSuggestCorrelationOperation(resourceOid, resourceObjectTypeIdentification, task, result);
+            var oid = smartIntegrationService.submitSuggestCorrelationOperation(resourceOid, resourceObjectTypeIdentification, List.of(), task, result);
             result.setBackgroundTaskOid(oid);
 
             var suggestionOperationStatus = smartIntegrationService.getSuggestCorrelationOperationStatus(oid, task, result);
@@ -211,7 +211,8 @@ public class SmartIntegrationRestController extends AbstractRestController {
         var result = createSubresult(task, OPERATION_SUGGEST_FOCUS_TYPE);
         try {
             var typeIdentification = ResourceObjectTypeIdentification.of(ShadowKindType.fromValue(kind), intent);
-            var focusTypeName = smartIntegrationService.suggestFocusType(resourceOid, typeIdentification, task, result);
+            var focusTypeName = smartIntegrationService.suggestFocusType(resourceOid,
+                    typeIdentification, List.of(DataAccessPermissionType.SCHEMA_ACCESS), task, result);
             return createResponse(HttpStatus.OK, focusTypeName.getFocusType().getLocalPart(), result);
         } catch (Throwable t) {
             return handleException(result, t);

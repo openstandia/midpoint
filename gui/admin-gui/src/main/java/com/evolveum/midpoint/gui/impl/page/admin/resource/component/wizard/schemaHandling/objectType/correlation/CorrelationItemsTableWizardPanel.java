@@ -313,6 +313,10 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
             @Override
             protected void performSuggestOperation(AjaxRequestTarget target,
                     IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
+                final List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                        .map(ConfirmationOption::option)
+                        .map(DataAccessPermission::toSchemaType)
+                        .toList();
                 ResourceObjectTypeIdentification objectTypeIdentification = getResourceObjectTypeIdentification();
                 SmartIntegrationService service = getPageBase().getSmartIntegrationService();
                 getPageBase().taskAwareExecutor(target, OP_SUGGEST_CORRELATION_RULES)
@@ -320,7 +324,8 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
                                 .withHideSuccess(true)
                                 .withHideInProgress(true))
                         .runVoid((task, result) -> service
-                                .submitSuggestCorrelationOperation(resourceOid, objectTypeIdentification, task, result));
+                                .submitSuggestCorrelationOperation(resourceOid, objectTypeIdentification, permissions,
+                                        task, result));
             }
 
             @Override

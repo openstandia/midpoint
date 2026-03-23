@@ -22,12 +22,15 @@ import com.evolveum.midpoint.util.exception.ConfigurationException;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 
+import java.util.List;
+
 public class FocusTypeSuggestionWorkDefinition extends AbstractWorkDefinition {
 
     private final String resourceOid;
     private final ResourceObjectTypeIdentification typeIdentification;
     private final ShadowKindType kind;
     private final String intent;
+    private final List<DataAccessPermissionType> permissions;
 
     FocusTypeSuggestionWorkDefinition(@NotNull WorkDefinitionFactory.WorkDefinitionInfo info) throws ConfigurationException {
         super(info);
@@ -40,6 +43,7 @@ public class FocusTypeSuggestionWorkDefinition extends AbstractWorkDefinition {
                         typedDefinition.getIntent());
         kind = typedDefinition.getKind();
         intent = typedDefinition.getIntent();
+        this.permissions = typedDefinition.getPermissions();
     }
 
     public String getResourceOid() { return resourceOid; }
@@ -49,6 +53,8 @@ public class FocusTypeSuggestionWorkDefinition extends AbstractWorkDefinition {
     public ShadowKindType getKind() { return kind; }
 
     public String getIntent() { return intent; }
+
+    public List<DataAccessPermissionType> getPermissions() { return this.permissions; }
 
     @Override
     public @NotNull AffectedObjectsInformation.ObjectSet getAffectedObjectSetInformation(
