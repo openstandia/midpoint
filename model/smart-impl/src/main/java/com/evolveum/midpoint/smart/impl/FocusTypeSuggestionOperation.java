@@ -14,7 +14,7 @@ import com.evolveum.midpoint.schema.processor.ResourceObjectTypeDelineation;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 import com.evolveum.midpoint.schema.processor.ShadowQueryConversionUtil;
 import com.evolveum.midpoint.schema.util.SmartMetadataUtil;
-import com.evolveum.midpoint.smart.api.UnsufficientPermissionsException;
+import com.evolveum.midpoint.smart.api.InsufficientPermissionsException;
 import com.evolveum.midpoint.util.exception.*;
 
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
@@ -37,7 +37,7 @@ class FocusTypeSuggestionOperation {
 
     /** Using existing type definition in the context. */
     FocusTypeSuggestionType suggestFocusType(List<DataAccessPermissionType> permissions)
-            throws SchemaException, UnsufficientPermissionsException {
+            throws SchemaException, InsufficientPermissionsException {
         checkPermissions(permissions);
         var ctx = (TypeOperationContext) this.ctx;
         return suggestFocusType(
@@ -49,7 +49,7 @@ class FocusTypeSuggestionOperation {
 
     /** Using a new type definition provided as a parameter. */
     FocusTypeSuggestionType suggestFocusType(ResourceObjectTypeDefinitionType typeDefBean, List<DataAccessPermissionType> permissions)
-            throws SchemaException, ConfigurationException, UnsufficientPermissionsException {
+            throws SchemaException, ConfigurationException, InsufficientPermissionsException {
         checkPermissions(permissions);
         var typeIdentification = ResourceObjectTypeIdentification.of(typeDefBean);
         var delineation = ResourceObjectTypeDelineation.of(
@@ -62,9 +62,9 @@ class FocusTypeSuggestionOperation {
     }
 
     private static void checkPermissions(List<DataAccessPermissionType> permissions) throws
-            UnsufficientPermissionsException {
+            InsufficientPermissionsException {
         if (!permissions.contains(DataAccessPermissionType.SCHEMA_ACCESS)) {
-            throw new UnsufficientPermissionsException("Focus suggesting requires permission %s".formatted(
+            throw new InsufficientPermissionsException("Focus suggesting requires permission %s".formatted(
                     DataAccessPermissionType.SCHEMA_ACCESS));
         }
     }

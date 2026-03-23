@@ -189,14 +189,14 @@ public interface SmartIntegrationService {
             String resourceOid, ResourceObjectTypeIdentification typeIdentification,
             List<DataAccessPermissionType> permissions, Task task, OperationResult result)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException, UnsufficientPermissionsException;
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException;
 
     /** Suggests a discrete focus type for the application (resource) object type which is not yet defined in the resource. */
     FocusTypeSuggestionType suggestFocusType(
             String resourceOid, ResourceObjectTypeDefinitionType typeDefBean,
             List<DataAccessPermissionType> permissions, Task task, OperationResult result)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException, UnsufficientPermissionsException;
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException;
 
     /**
      * Suggests correlation rules for the given resource object type and focus type.
