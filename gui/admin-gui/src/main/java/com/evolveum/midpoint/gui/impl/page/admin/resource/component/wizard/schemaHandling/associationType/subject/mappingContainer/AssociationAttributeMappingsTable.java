@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.help;
+package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer;
 
 import com.evolveum.midpoint.gui.api.factory.wrapper.WrapperContext;
 import com.evolveum.midpoint.gui.api.prism.ItemStatus;
@@ -54,12 +54,12 @@ import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizar
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.attribute.mapping.InboundAttributeMappingsTable.getMappingUsedIconColumn;
 import static com.evolveum.midpoint.xml.ns._public.common.common_3.MappingsType.F_MAPPING;
 
-public abstract class AssociationSmartAttributeMappingsTable<C extends Containerable>
+public abstract class AssociationAttributeMappingsTable<C extends Containerable>
         extends SmartMappingTable<C> {
 
-    private static final Trace LOGGER = TraceManager.getTrace(AssociationSmartAttributeMappingsTable.class);
+    private static final Trace LOGGER = TraceManager.getTrace(AssociationAttributeMappingsTable.class);
 
-    public AssociationSmartAttributeMappingsTable(
+    public AssociationAttributeMappingsTable(
             @NotNull String id,
             @NotNull IModel<MappingDirection> mappingDirection,
             @NotNull IModel<Boolean> suggestionToggleModel,

@@ -391,8 +391,14 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
 
         aiPanel.setOutputMarkupId(true);
         aiPanel.setOutputMarkupPlaceholderTag(true);
-        aiPanel.add(new VisibleBehaviour(() -> getSwitchSuggestionModel().getObject() && !getTable().displayNoValuePanel()));
-        return aiPanel;
+        aiPanel.add(new VisibleBehaviour(() -> {
+            AssociationTablePanel table = getTableComponent();
+            if (table == null) {
+                return false;
+            }
+            return Boolean.TRUE.equals(getSwitchSuggestionModel().getObject())
+                    && !table.displayNoValuePanel();
+        }));        return aiPanel;
     }
 
     public AssociationTablePanel getTableComponent() {

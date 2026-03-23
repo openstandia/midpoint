@@ -37,7 +37,7 @@ public enum ResourceGuideAssociationTypeTileState {
         this.spec = spec;
     }
 
-    public @NotNull IModel<Badge> badgeModel(@NotNull ResourceAssociationTypeWizardChoicePanelNew panel) {
+    public @NotNull IModel<Badge> badgeModel(@NotNull ResourceAssociationTypeWizardChoicePanel panel) {
         if (spec == null) {
             return Model.of();
         }
@@ -53,7 +53,7 @@ public enum ResourceGuideAssociationTypeTileState {
     }
 
     public static @NotNull ResourceGuideAssociationTypeTileState computeState(
-            @NotNull ResourceAssociationTypeWizardChoicePanelNew.ResourceAssociationTypePreviewTileType tile,
+            @NotNull ResourceAssociationTypeWizardChoicePanel.ResourceAssociationTypePreviewTileType tile,
             @NotNull IModel<PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType>> valueModel) {
 
         PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType> wrapper = valueModel.getObject();
@@ -72,8 +72,6 @@ public enum ResourceGuideAssociationTypeTileState {
             case OBJECT_AND_SUBJECT -> (subject == null || objects == null || objects.isEmpty())
                     ? RECOMMENDED
                     : CONFIGURED;
-
-            case OBJECT_AND_SUBJECT_OLD -> NORMAL;
 
             case MAPPINGS -> computeMappingsState(subject);
 
@@ -219,7 +217,7 @@ public enum ResourceGuideAssociationTypeTileState {
     }
 
     public static @Nullable String getTooltipKey(
-            @NotNull ResourceAssociationTypeWizardChoicePanelNew.ResourceAssociationTypePreviewTileType tile,
+            @NotNull ResourceAssociationTypeWizardChoicePanel.ResourceAssociationTypePreviewTileType tile,
             @NotNull ShadowAssociationTypeDefinitionType real) {
 
         ShadowAssociationTypeSubjectDefinitionType subject = real.getSubject();

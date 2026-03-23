@@ -4,9 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.help;
+package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,7 +65,7 @@ public class AssociationMappingWizardPanel<C extends Containerable> extends Abst
                 new WizardPanel(getIdOfWizardPanel(), new WizardModelBasic(createInboundAttributeMappingSteps(valueModel, initialTab))));
     }
 
-    private List<WizardStep> createInboundAttributeMappingSteps(
+    private @NotNull List<WizardStep> createInboundAttributeMappingSteps(
             IModel<PrismContainerValueWrapper<MappingType>> valueModel, MappingDirection initialTab) {
         List<WizardStep> steps = new ArrayList<>();
         steps.add(new InboundMappingMainConfigurationStepPanel(getAssignmentHolderModel(), valueModel) {

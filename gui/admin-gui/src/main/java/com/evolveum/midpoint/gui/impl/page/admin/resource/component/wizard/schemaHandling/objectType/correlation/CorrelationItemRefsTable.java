@@ -20,7 +20,7 @@ import com.evolveum.midpoint.gui.impl.component.icon.CompositedIconBuilder;
 import com.evolveum.midpoint.gui.impl.component.input.ContainersDropDownPanel;
 import com.evolveum.midpoint.gui.impl.component.wizard.AbstractWizardTable;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.MappingUtils;
-import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.help.AssociationMappingTypeChoicePanelPopup;
+import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.AssociationMappingTypeChoicePanelPopup;
 import com.evolveum.midpoint.gui.impl.prism.wrapper.PrismPropertyValueWrapper;
 import com.evolveum.midpoint.prism.*;
 import com.evolveum.midpoint.prism.path.ItemName;
@@ -641,7 +641,7 @@ public abstract class CorrelationItemRefsTable<P extends Containerable> extends 
                         @Override
                         protected void onAssociationMappingKindChosen(
                                 AjaxRequestTarget target,
-                                AssociationMappingKind kind) {
+                                AssociationMappingTypeChoicePanelPopup.AssociationMappingKind kind) {
                             createAssociationMappingPerformed(target, kind, associationParent);
                         }
                     };

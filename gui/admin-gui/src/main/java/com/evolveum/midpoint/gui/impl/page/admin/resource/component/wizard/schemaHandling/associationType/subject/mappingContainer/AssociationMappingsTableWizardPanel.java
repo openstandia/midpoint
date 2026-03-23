@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.help;
+package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer;
 
 import com.evolveum.midpoint.gui.api.component.tabs.IconPanelTab;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
@@ -209,9 +209,9 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
     }
 
     @SuppressWarnings("rawtypes")
-    protected AssociationSmartAttributeMappingsTable getTable() {
+    protected AssociationAttributeMappingsTable getTable() {
         TabbedPanel<ITab> tabPanel = getTabPanel();
-        return (AssociationSmartAttributeMappingsTable) tabPanel.get(TabbedPanel.TAB_PANEL_ID);
+        return (AssociationAttributeMappingsTable) tabPanel.get(TabbedPanel.TAB_PANEL_ID);
     }
 
     @Override
@@ -261,7 +261,7 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
 
             @Override
             public WebMarkupContainer createPanel(String panelId) {
-                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.INBOUND),
+                return new AssociationAttributeMappingsTable<>(panelId, Model.of(MappingDirection.INBOUND),
                         Model.of(false), inboundEvalModel(), null) {
 
                     @Override
@@ -301,7 +301,7 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
 
             @Override
             public WebMarkupContainer createPanel(String panelId) {
-                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.OUTBOUND),
+                return new AssociationAttributeMappingsTable<>(panelId, Model.of(MappingDirection.OUTBOUND),
                         Model.of(false), outboundEvalModel(), null) {
 
                     @Override
