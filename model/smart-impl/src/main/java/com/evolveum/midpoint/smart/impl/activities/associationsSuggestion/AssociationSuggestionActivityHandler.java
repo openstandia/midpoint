@@ -107,6 +107,15 @@ public class AssociationSuggestionActivityHandler
                     SmartIntegrationBeans.get().smartIntegrationService.suggestAssociations(resourceOid, isInbound, task, result);
 
             var state = getActivityState();
+
+            if(suggestedAssociations == null
+                    || suggestedAssociations.getAssociation() == null
+                    || suggestedAssociations.getAssociation().isEmpty()) {
+                LOGGER.debug("No association suggestions were found for resource {}", resourceOid);
+                state.flushPendingTaskModifications(result);
+                return ActivityRunResult.success();
+            }
+
             state.setWorkStateItemRealValues(
                     AssociationSuggestionWorkStateType.F_RESULT, suggestedAssociations);
             state.flushPendingTaskModifications(result);
