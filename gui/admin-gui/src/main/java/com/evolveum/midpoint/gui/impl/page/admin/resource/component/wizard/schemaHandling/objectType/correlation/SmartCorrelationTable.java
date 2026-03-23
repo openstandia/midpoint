@@ -685,6 +685,20 @@ public abstract class SmartCorrelationTable
     protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
     }
 
+    @Override
+    protected boolean isSuggestButtonVisible() {
+        return isSuggestButtonEnabled();
+    }
+
+    public boolean isSuggestButtonEnabled() {
+        PrismContainerValueWrapper<? extends Containerable> parentWrapper = findAssociatedParentContainerWrapper();
+        if (parentWrapper == null || parentWrapper.getRealValue() == null) {
+            return false;
+        }
+        return !(parentWrapper.getRealValue() instanceof AssociationSynchronizationExpressionEvaluatorType);
+    }
+
+
 }
 
 

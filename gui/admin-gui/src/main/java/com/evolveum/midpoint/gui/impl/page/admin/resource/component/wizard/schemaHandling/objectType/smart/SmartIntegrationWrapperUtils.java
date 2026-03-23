@@ -164,7 +164,7 @@ public class SmartIntegrationWrapperUtils {
     public static @Nullable PrismContainerValueWrapper<MappingType> findRelatedMapping(
             @NotNull PageBase pageBase,
             @NotNull PrismContainerValueWrapper<CorrelationItemType> correlationItemWrapper,
-            @Nullable PrismContainerWrapper<ResourceAttributeDefinitionType> mappings,
+            @Nullable PrismContainerWrapper<?> mappings,
             @NotNull ItemPath parentPath,
             @NotNull MappingDirection mappingDirection) {
         ItemPathType correlationItemRef = correlationItemWrapper.getRealValue().getRef();

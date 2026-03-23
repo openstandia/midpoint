@@ -546,7 +546,7 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
                         this::onSuggestNewPerformed),
                 getPageBase());
 
-        generateButton.add(new VisibleBehaviour(() -> this.displayNoValuePanel() && isSuggestButtonVisible()));
+        generateButton.add(new VisibleBehaviour(() -> isSuggestButtonVisible() && displayNoValuePanel()));
         generateButton.setOutputMarkupId(true);
         generateButton.showTitleAsLabel(true);
 

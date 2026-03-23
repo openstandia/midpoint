@@ -8,19 +8,25 @@ package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.sche
 
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerWrapper;
+import com.evolveum.midpoint.gui.api.util.WebPrismUtil;
 import com.evolveum.midpoint.gui.impl.component.wizard.AbstractWizardChoicePanelWithSeparatedCreatePanel;
 import com.evolveum.midpoint.gui.impl.component.wizard.WizardPanelHelper;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.ResourceDetailsModel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.basic.ResourceAssociationTypeBasicWizardPanel;
+import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.ResourceAssociationTypeSubjectObjectWizardPanel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.ResourceAssociationTypeSubjectWizardPanel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.help.AssociationMappingWizardPanel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.correlation.CorrelationWizardPanel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.synchronization.SynchronizationWizardPanel;
 import com.evolveum.midpoint.prism.Containerable;
+import com.evolveum.midpoint.prism.PrismContainerValue;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.SchemaConstantsGenerated;
+import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.util.exception.SchemaException;
+import com.evolveum.midpoint.web.component.prism.ValueStatus;
 import com.evolveum.midpoint.web.model.PrismContainerValueWrapperModel;
+import com.evolveum.midpoint.web.util.ExpressionUtil;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
 
 import org.apache.wicket.ajax.AjaxRequestTarget;
@@ -64,7 +70,8 @@ public class ResourceAssociationTypeWizardPanelNew extends AbstractWizardChoiceP
             protected void onTileClickPerformed(ResourceAssociationTypePreviewTileType value, AjaxRequestTarget target) {
                 switch (value) {
                     case BASIC_ATTRIBUTES -> showResourceObjectTypeBasic(target);
-                    case OBJECT_AND_SUBJECT -> showSubjectWizard(target);
+                    case OBJECT_AND_SUBJECT -> showObjectSubjectWizard(target);
+                    case OBJECT_AND_SUBJECT_OLD -> showOLDWizard(target);
                     case MAPPINGS -> showTableForAttributesMappings(target);
                     case CORRELATION -> showCorrelationItemsTable(target);
                     case SYNCHRONIZATION -> showSynchronizationConfigWizard(target);
@@ -87,13 +94,22 @@ public class ResourceAssociationTypeWizardPanelNew extends AbstractWizardChoiceP
         };
     }
 
-    private void showSubjectWizard(AjaxRequestTarget target) {
+    private void showOLDWizard(AjaxRequestTarget target) {
         showChoiceFragment(
                 target,
                 new ResourceAssociationTypeSubjectWizardPanel(
                         getIdOfChoicePanel(),
                         createHelper(ShadowAssociationTypeDefinitionType.F_SUBJECT,
                                 false))
+        );
+    }
+
+    private void showObjectSubjectWizard(AjaxRequestTarget target) {
+        showChoiceFragment(
+                target,
+                new ResourceAssociationTypeSubjectObjectWizardPanel(
+                        getIdOfChoicePanel(),
+                        createHelper(false))
         );
     }
 
@@ -114,7 +130,7 @@ public class ResourceAssociationTypeWizardPanelNew extends AbstractWizardChoiceP
                         getIdOfChoicePanel(),
                         createHelper(synchronizationEvalModel(AssociationSynchronizationExpressionEvaluatorType.F_CORRELATION),
                                 false)
-                ){
+                ) {
                     @Override
                     protected boolean isAssociationTypeWizardPanel() {
                         return true;
@@ -170,5 +186,71 @@ public class ResourceAssociationTypeWizardPanelNew extends AbstractWizardChoiceP
                 new ResourceAssociationTypeBasicWizardPanel(getIdOfChoicePanel(), createHelper(true));
         wizard.setShowChoicePanel(false);
         showChoiceFragment(target, wizard);
+    }
+
+    @Override
+    protected OperationResult onSavePerformed(AjaxRequestTarget target) {
+
+        //TODO remove me AFTER WP-4640!!!
+        ensureExpressionEvaluatorExists();
+
+        return super.onSavePerformed(target);
+    }
+
+    private void ensureExpressionEvaluatorExists() {
+        ensureMappingExists(
+                ShadowAssociationDefinitionType.F_INBOUND);
+
+        ensureMappingExists(
+                ShadowAssociationDefinitionType.F_OUTBOUND);
+    }
+
+    private void ensureMappingExists(ItemPath containerPath) {
+        boolean isInbound = ShadowAssociationDefinitionType.F_INBOUND.equals(containerPath);
+        try {
+            PrismContainerWrapper<MappingType> container =
+                    getAssociationSubjectWrapper().findContainer(containerPath);
+
+            if (container.getValues().isEmpty()) {
+                PrismContainerValue<MappingType> newValue = container.getItem().createNewValue();
+
+                ExpressionType expression = newValue.asContainerable().beginExpression();
+
+                if (isInbound) {
+                    ExpressionUtil.updateAssociationSynchronizationExpressionValue(
+                            expression,
+                            new AssociationSynchronizationExpressionEvaluatorType());
+                } else {
+                    ExpressionUtil.updateAssociationConstructionExpressionValue(
+                            expression,
+                            new AssociationConstructionExpressionEvaluatorType());
+                }
+
+                PrismContainerValueWrapper<MappingType> valueWrapper = WebPrismUtil.createNewValueWrapper(
+                        container,
+                        newValue,
+                        getPageBase(),
+                        getAssignmentHolderModel().createWrapperContext());
+
+                valueWrapper.setStatus(ValueStatus.ADDED);
+                container.getValues().add(valueWrapper);
+            }
+
+        } catch (SchemaException e) {
+            throw new RuntimeException(
+                    "Cannot initialize " + (isInbound ? "inbound" : "outbound") + " association mapping",
+                    e);
+        }
+    }
+
+    private PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType> getAssociationSubjectWrapper() {
+        IModel<PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType>> assocSubjectModel =
+                PrismContainerValueWrapperModel.fromContainerValueWrapper(
+                        getValueModel(),
+                        ItemPath.create(
+                                ShadowAssociationTypeDefinitionType.F_SUBJECT,
+                                ShadowAssociationTypeSubjectDefinitionType.F_ASSOCIATION));
+
+        return assocSubjectModel.getObject();
     }
 }

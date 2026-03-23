@@ -9,6 +9,7 @@ package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.sche
 import com.evolveum.midpoint.gui.api.component.tabs.IconPanelTab;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerWrapper;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismObjectWrapper;
 import com.evolveum.midpoint.gui.api.util.MappingDirection;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.api.util.WebPrismUtil;
@@ -16,12 +17,11 @@ import com.evolveum.midpoint.gui.impl.component.wizard.WizardPanelHelper;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.ResourceDetailsModel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.AbstractResourceWizardBasicPanel;
 import com.evolveum.midpoint.gui.impl.util.AssociationChildWrapperUtil;
-import com.evolveum.midpoint.prism.Containerable;
-import com.evolveum.midpoint.prism.PrismContainerValue;
-import com.evolveum.midpoint.prism.path.ItemName;
+import com.evolveum.midpoint.prism.*;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.SchemaConstantsGenerated;
 import com.evolveum.midpoint.schema.processor.ShadowAssociationDefinition;
+import com.evolveum.midpoint.util.exception.CommonException;
 import com.evolveum.midpoint.util.exception.ConfigurationException;
 import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.util.logging.Trace;
@@ -32,7 +32,6 @@ import com.evolveum.midpoint.web.application.PanelType;
 import com.evolveum.midpoint.web.component.TabSeparatedTabbedPanel;
 import com.evolveum.midpoint.web.component.TabbedPanel;
 import com.evolveum.midpoint.web.component.prism.ValueStatus;
-import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
 import com.evolveum.midpoint.web.model.PrismContainerValueWrapperModel;
 import com.evolveum.midpoint.web.util.ExpressionUtil;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
@@ -42,7 +41,6 @@ import org.apache.wicket.extensions.markup.html.tabs.ITab;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -84,10 +82,8 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
     private void initLayout() {
 
         List<ITab> tabs = new ArrayList<>();
-        tabs.add(createInboundObjectTableTab());
-        tabs.add(createInboundAttributeTableTab());
-        tabs.add(createOutboundObjectTableTab());
-        tabs.add(createOutboundAttributeTableTab());
+        tabs.add(createInboundTableTab());
+        tabs.add(createOutboundTableTab());
 
         TabSeparatedTabbedPanel<ITab> tabPanel = new TabSeparatedTabbedPanel<>(ID_TAB_TABLE, tabs) {
             @Override
@@ -116,55 +112,29 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
                 tabPanel.setSelectedTab(0);
                 break;
             case OUTBOUND:
-                tabPanel.setSelectedTab(3);
+                tabPanel.setSelectedTab(1);
                 break;
         }
     }
 
     private @NotNull IModel<PrismContainerValueWrapper<AssociationSynchronizationExpressionEvaluatorType>> inboundEvalModel() {
-        // subject -> association container value
-        IModel<PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType>> assocSubjectModel =
-                PrismContainerValueWrapperModel.fromContainerValueWrapper(
-                        getValueModel(),
-                        ItemPath.create(ShadowAssociationTypeSubjectDefinitionType.F_ASSOCIATION));
-
-        PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType> subject = assocSubjectModel.getObject();
-
-        try {
-            // provisioning rule inbound container
-            PrismContainerWrapper<MappingType> inbound = subject.findContainer(ShadowAssociationDefinitionType.F_INBOUND);
-
-            if (inbound.getValues().isEmpty()) {
-                PrismContainerValue<MappingType> newValue = inbound.getItem().createNewValue();
-
-                // initialize evaluator in expression
-                ExpressionType expression = newValue.asContainerable().beginExpression();
-                ExpressionUtil.updateAssociationSynchronizationExpressionValue(
-                        expression,
-                        new AssociationSynchronizationExpressionEvaluatorType());
-
-                PrismContainerValueWrapper<MappingType> valueWrapper = WebPrismUtil.createNewValueWrapper(
-                        inbound,
-                        newValue,
-                        getPageBase(),
-                        getAssignmentHolderDetailsModel().createWrapperContext());
-
-                inbound.getValues().add(valueWrapper);
-            }
-
-            // model for the first "inbound mapping" row (GUI limitation - only one mapping is supported)
-            // point to associationSynchronization evaluator under that mapping
-            return PrismContainerValueWrapperModel.fromContainerValueWrapper(
-                    () -> inbound.getValues().get(0),
-                    ItemPath.create(SchemaConstantsGenerated.C_ASSOCIATION_SYNCHRONIZATION));
-
-        } catch (SchemaException e) {
-            throw new RuntimeException("Cannot load inbound association synchronization evaluator", e);
-        }
+        return evalModel(ShadowAssociationDefinitionType.F_INBOUND);
     }
 
     private @NotNull IModel<PrismContainerValueWrapper<AssociationSynchronizationExpressionEvaluatorType>> outboundEvalModel() {
-        // subject -> association container value
+        return evalModel(ShadowAssociationDefinitionType.F_OUTBOUND);
+    }
+
+    // TODO currently broken for empty inbound/outbound containers:
+    //  when no mapping value exists yet and we create the first one here,
+    //  midpoint persists only the evaluator expression, but not the mapping rows edited later.
+    //  Most likely cause: newly created value in this multivalue container is not fully tracked
+    //  in wrapper/delta processing (possibly value identity/ID handling).
+    //  Fix this here, then remove ensureMappingExists(...) from ResourceAssociationTypeWizardPanelNew.
+    private @NotNull IModel<PrismContainerValueWrapper<AssociationSynchronizationExpressionEvaluatorType>> evalModel(
+            @NotNull ItemPath containerPath) {
+
+        boolean isInbound = containerPath.equals(ShadowAssociationDefinitionType.F_INBOUND);
         IModel<PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType>> assocSubjectModel =
                 PrismContainerValueWrapperModel.fromContainerValueWrapper(
                         getValueModel(),
@@ -173,35 +143,49 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
         PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType> subject = assocSubjectModel.getObject();
 
         try {
-            // provisioning rule outbound container
-            PrismContainerWrapper<MappingType> outbound = subject.findContainer(ShadowAssociationDefinitionType.F_OUTBOUND);
+            PrismContainerWrapper<MappingType> container = subject.findContainer(containerPath);
 
-            if (outbound.getValues().isEmpty()) {
-                PrismContainerValue<MappingType> newValue = outbound.getItem().createNewValue();
+            PrismContainerValueWrapper<MappingType> valueWrapper;
+            if (container.getValues().isEmpty()) {
+                PrismContainerValue<MappingType> newValue = container.getItem().createNewValue();
 
-                // initialize evaluator in expression
-                newValue.asContainerable().beginExpression();
-                ExpressionUtil.updateAssociationConstructionExpressionValue(
-                        newValue.asContainerable().getExpression(),
-                        new AssociationConstructionExpressionEvaluatorType());
+                ExpressionType expression = newValue.asContainerable().beginExpression();
+                if (isInbound) {
+                    ExpressionUtil.updateAssociationSynchronizationExpressionValue(
+                            expression,
+                            new AssociationSynchronizationExpressionEvaluatorType());
+                } else {
+                    ExpressionUtil.updateAssociationConstructionExpressionValue(
+                            expression,
+                            new AssociationConstructionExpressionEvaluatorType());
+                }
 
-                PrismContainerValueWrapper<MappingType> valueWrapper = WebPrismUtil.createNewValueWrapper(
-                        outbound,
+                valueWrapper = WebPrismUtil.createNewValueWrapper(
+                        container,
                         newValue,
                         getPageBase(),
                         getAssignmentHolderDetailsModel().createWrapperContext());
 
-                outbound.getValues().add(valueWrapper);
+                valueWrapper.setStatus(ValueStatus.ADDED);
+                container.getValues().add(valueWrapper);
+            } else {
+                valueWrapper = container.getValues().get(0);
             }
 
-            // model for the first "outbound mapping" row (GUI limitation - only one mapping is supported)
-            // point to associationSynchronization evaluator under that mapping
+            ItemPath evaluatorPath = ItemPath.create(
+                    isInbound
+                            ? SchemaConstantsGenerated.C_ASSOCIATION_SYNCHRONIZATION
+                            : SchemaConstantsGenerated.C_ASSOCIATION_CONSTRUCTION);
+
+            PrismContainerValueWrapper<MappingType> finalValueWrapper = valueWrapper;
             return PrismContainerValueWrapperModel.fromContainerValueWrapper(
-                    () -> outbound.getValues().get(0),
-                    ItemPath.create(SchemaConstantsGenerated.C_ASSOCIATION_CONSTRUCTION));
+                    () -> finalValueWrapper,
+                    evaluatorPath);
 
         } catch (SchemaException e) {
-            throw new RuntimeException("Cannot load inbound association synchronization evaluator", e);
+            throw new RuntimeException(
+                    "Cannot load " + (isInbound ? "inbound" : "outbound") + " association evaluator",
+                    e);
         }
     }
 
@@ -235,23 +219,29 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
         return "InboundMappingsTableWizardPanel.saveButton";
     }
 
-    protected abstract void inEditInboundAttributeValue(IModel<PrismContainerValueWrapper<MappingType>> value, AjaxRequestTarget target, MappingDirection initialTab);
+    protected abstract void inEditInboundAttributeValue(
+            IModel<PrismContainerValueWrapper<MappingType>> value,
+            AjaxRequestTarget target,
+            MappingDirection initialTab);
 
-    protected abstract void inEditOutboundAttributeValue(IModel<PrismContainerValueWrapper<MappingType>> value, AjaxRequestTarget target, MappingDirection initialTab);
+    protected abstract void inEditOutboundAttributeValue(
+            IModel<PrismContainerValueWrapper<MappingType>> value,
+            AjaxRequestTarget target,
+            MappingDirection initialTab);
 
     @Override
     protected @NotNull IModel<String> getBreadcrumbLabel() {
-        return getPageBase().createStringResource("InboundMappingsTableWizardPanel.breadcrumb");
+        return getPageBase().createStringResource("AssociationMappingsTableWizardPanel.breadcrumb");
     }
 
     @Override
     protected IModel<String> getTextModel() {
-        return getPageBase().createStringResource("InboundMappingsTableWizardPanel.text");
+        return getPageBase().createStringResource("AssociationMappingsTableWizardPanel.text");
     }
 
     @Override
     protected IModel<String> getSubTextModel() {
-        return getPageBase().createStringResource("InboundMappingsTableWizardPanel.subText");
+        return getPageBase().createStringResource("AssociationMappingsTableWizardPanel.subText");
     }
 
     @Override
@@ -265,16 +255,23 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
                 panelType);
     }
 
-    private ITab createInboundObjectTableTab() {
+    private ITab createInboundTableTab() {
         return new IconPanelTab(
                 getPageBase().createStringResource("AssociationMappingsTableWizardPanel.inbound.objectsTable")) {
 
             @Override
             public WebMarkupContainer createPanel(String panelId) {
-                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.OBJECTS), Model.of(false), inboundEvalModel(), null) {
+                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.INBOUND),
+                        Model.of(false), inboundEvalModel(), null) {
+
                     @Override
-                    protected ItemName getItemNameOfContainerWithMappings() {
-                        return AssociationSynchronizationExpressionEvaluatorType.F_OBJECT_REF;
+                    protected ResourceType getResourceType() {
+                        return getResourceWithAppliedDeltaType();
+                    }
+
+                    @Override
+                    protected boolean isAttributeVisible() {
+                        return AssociationMappingsTableWizardPanel.this.isAttributeVisible();
                     }
 
                     @Override
@@ -283,7 +280,9 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
                     }
 
                     @Override
-                    protected void performOnEditMapping(@NotNull AjaxRequestTarget target, @NotNull IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
+                    protected void performOnEditMapping(
+                            @NotNull AjaxRequestTarget target,
+                            @NotNull IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
                         inEditInboundAttributeValue(rowModel, target, initialTab);
                     }
                 };
@@ -296,49 +295,23 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
         };
     }
 
-    @Contract(" -> new")
-    private @NotNull ITab createInboundAttributeTableTab() {
-        return new IconPanelTab(
-                getPageBase().createStringResource("AssociationMappingsTableWizardPanel.inbound.attributeTable"),
-                new VisibleBehaviour(this::isAttributeVisible)) {
-
-            @Override
-            public WebMarkupContainer createPanel(String panelId) {
-                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.ATTRIBUTE), Model.of(false), inboundEvalModel(), null) {
-                    @Override
-                    protected ItemName getItemNameOfContainerWithMappings() {
-                        return AssociationSynchronizationExpressionEvaluatorType.F_ATTRIBUTE;
-                    }
-
-                    @Override
-                    protected boolean isInboundRelated() {
-                        return true;
-                    }
-
-                    @Override
-                    protected void performOnEditMapping(@NotNull AjaxRequestTarget target, @NotNull IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
-                        inEditInboundAttributeValue(rowModel, target, initialTab);
-                    }
-                };
-            }
-
-            @Override
-            public IModel<String> getCssIconModel() {
-                return Model.of("fa fa-cube");
-            }
-        };
-    }
-
-    private ITab createOutboundObjectTableTab() {
+    private @NotNull ITab createOutboundTableTab() {
         return new IconPanelTab(
                 getPageBase().createStringResource("AssociationMappingsTableWizardPanel.outbound.objectsTable")) {
 
             @Override
             public WebMarkupContainer createPanel(String panelId) {
-                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.OBJECTS), Model.of(false), outboundEvalModel(), null) {
+                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.OUTBOUND),
+                        Model.of(false), outboundEvalModel(), null) {
+
                     @Override
-                    protected ItemName getItemNameOfContainerWithMappings() {
-                        return AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF;
+                    protected ResourceType getResourceType() {
+                        return getResourceWithAppliedDeltaType();
+                    }
+
+                    @Override
+                    protected boolean isAttributeVisible() {
+                        return AssociationMappingsTableWizardPanel.this.isAttributeVisible();
                     }
 
                     @Override
@@ -347,7 +320,8 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
                     }
 
                     @Override
-                    protected void performOnEditMapping(@NotNull AjaxRequestTarget target, @NotNull IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
+                    protected void performOnEditMapping(@NotNull AjaxRequestTarget target,
+                            @NotNull IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
                         inEditOutboundAttributeValue(rowModel, target, initialTab);
                     }
                 };
@@ -360,37 +334,19 @@ public abstract class AssociationMappingsTableWizardPanel<C extends Containerabl
         };
     }
 
-    @Contract(" -> new")
-    private @NotNull ITab createOutboundAttributeTableTab() {
-        return new IconPanelTab(
-                getPageBase().createStringResource("AssociationMappingsTableWizardPanel.outbound.attributeTable"),
-                new VisibleBehaviour(this::isAttributeVisible)) {
+    protected ResourceType getResourceWithAppliedDeltaType() {
+        ResourceDetailsModel resourceDetailsModel = getAssignmentHolderDetailsModel();
+        PrismObjectWrapper<ResourceType> objectWrapper = resourceDetailsModel.getObjectWrapper();
+        PrismObject<ResourceType> objectApplyDelta;
+        try {
+            objectApplyDelta = objectWrapper.getObjectApplyDelta();
+        } catch (CommonException e) {
+            LOGGER.error("Couldn't get resource object with applied delta, returning the original object. Details: {}",
+                    e.getMessage(), e);
+            return null;
+        }
 
-            @Override
-            public WebMarkupContainer createPanel(String panelId) {
-                return new AssociationSmartAttributeMappingsTable<>(panelId, Model.of(MappingDirection.ATTRIBUTE), Model.of(false), outboundEvalModel(), null) {
-                    @Override
-                    protected ItemName getItemNameOfContainerWithMappings() {
-                        return AssociationConstructionExpressionEvaluatorType.F_ATTRIBUTE;
-                    }
-
-                    @Override
-                    protected boolean isInboundRelated() {
-                        return false;
-                    }
-
-                    @Override
-                    protected void performOnEditMapping(@NotNull AjaxRequestTarget target, @NotNull IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
-                        inEditOutboundAttributeValue(rowModel, target, initialTab);
-                    }
-                };
-            }
-
-            @Override
-            public IModel<String> getCssIconModel() {
-                return Model.of("fa fa-arrow-right-from-bracket");
-            }
-        };
+        return objectApplyDelta.asObjectable();
     }
 
 }

@@ -79,14 +79,6 @@ public class CorrelationExistingMappingTable<P extends Containerable> extends Ba
         initTable();
     }
 
-    protected ItemName getItemNameOfContainerWithMappings() {
-        return ResourceObjectTypeDefinitionType.F_ATTRIBUTE;
-    }
-
-    protected MappingDirection getMappingDirection() {
-        return MappingDirection.INBOUND;
-    }
-
     private void initTable() {
         InboundAttributeMappingsTable<P> table = new InboundAttributeMappingsTable<>(
                 ID_TABLE,
@@ -94,13 +86,8 @@ public class CorrelationExistingMappingTable<P extends Containerable> extends Ba
                 null) {
 
             @Override
-            protected MappingDirection getMappingType() {
-                return CorrelationExistingMappingTable.this.getMappingDirection();
-            }
-
-            @Override
             protected ItemName getItemNameOfContainerWithMappings() {
-                return CorrelationExistingMappingTable.this.getItemNameOfContainerWithMappings();
+                return ResourceObjectTypeDefinitionType.F_ATTRIBUTE;
             }
 
             @Override
@@ -407,6 +394,12 @@ public class CorrelationExistingMappingTable<P extends Containerable> extends Ba
     }
 
     protected boolean isAssociationView() {
-        return false;
+        PrismContainerValueWrapper<P> value = getModel().getObject();
+        if (value == null) {
+            return false;
+        }
+
+        return value.getParentContainerValue(AssociationSynchronizationExpressionEvaluatorType.class) != null
+                || value.getParentContainerValue(AssociationConstructionExpressionEvaluatorType.class) != null;
     }
 }

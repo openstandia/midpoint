@@ -6,8 +6,11 @@
 
 package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.associationType.subject.mappingContainer.help;
 
+import com.evolveum.midpoint.gui.api.factory.wrapper.WrapperContext;
+import com.evolveum.midpoint.gui.api.prism.ItemStatus;
 import com.evolveum.midpoint.gui.api.prism.wrapper.ItemWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
+import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismPropertyWrapper;
 import com.evolveum.midpoint.gui.api.util.GuiDisplayTypeUtil;
 import com.evolveum.midpoint.gui.api.util.MappingDirection;
@@ -22,30 +25,34 @@ import com.evolveum.midpoint.gui.impl.prism.wrapper.PrismPropertyValueWrapper;
 import com.evolveum.midpoint.gui.impl.prism.wrapper.PrismValueWrapperImpl;
 import com.evolveum.midpoint.prism.*;
 import com.evolveum.midpoint.prism.path.ItemName;
+import com.evolveum.midpoint.schema.result.OperationResult;
+import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.data.column.IconColumn;
 import com.evolveum.midpoint.web.component.prism.ValueStatus;
+import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
 import com.evolveum.midpoint.web.session.UserProfileStorage;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
 
 import org.apache.wicket.Component;
+import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.ISortableDataProvider;
 import org.apache.wicket.model.IModel;
+import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.MappingUtils.*;
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.attribute.mapping.InboundAttributeMappingsTable.getMappingUsedIconColumn;
+import static com.evolveum.midpoint.xml.ns._public.common.common_3.MappingsType.F_MAPPING;
 
 public abstract class AssociationSmartAttributeMappingsTable<C extends Containerable>
         extends SmartMappingTable<C> {
@@ -71,6 +78,221 @@ public abstract class AssociationSmartAttributeMappingsTable<C extends Container
     }
 
     @Override
+    protected IModel<PrismContainerWrapper<MappingType>> getContainerModel() {
+
+        IModel<PrismContainerWrapper<MappingType>> virtualAttributeMappingContainerModel =
+                createVirtualMappingContainerModel(
+                        getPageBase(),
+                        getValueModel(),
+                        AssociationConstructionExpressionEvaluatorType.F_ATTRIBUTE,
+                        AbstractAttributeMappingsDefinitionType.F_REF,
+                        MappingDirection.ATTRIBUTE);
+
+        IModel<PrismContainerWrapper<MappingType>> virtualObjectRefMappingContainerModel =
+                createVirtualMappingContainerModel(
+                        getPageBase(),
+                        getValueModel(),
+                        AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF,
+                        AbstractAttributeMappingsDefinitionType.F_REF,
+                        MappingDirection.OBJECTS);
+
+        return new LoadableDetachableModel<>() {
+            @Override
+            protected PrismContainerWrapper<MappingType> load() {
+                PrismContainerWrapper<MappingType> attributeContainer =
+                        virtualAttributeMappingContainerModel.getObject();
+                PrismContainerWrapper<MappingType> objectRefContainer =
+                        virtualObjectRefMappingContainerModel.getObject();
+
+                if (attributeContainer == null) {
+                    return objectRefContainer;
+                }
+                if (objectRefContainer == null) {
+                    return attributeContainer;
+                }
+
+                try {
+                    PrismContainerWrapper<MappingType> merged =
+                            cloneEmptyContainer(attributeContainer);
+
+                    merged.getValues().clear();
+
+                    mergeValues(merged, attributeContainer);
+                    mergeValues(merged, objectRefContainer);
+
+                    return merged;
+
+                } catch (SchemaException e) {
+                    throw new IllegalStateException("Couldn't merge virtual mapping containers", e);
+                }
+            }
+
+            @Override
+            protected void onDetach() {
+                super.onDetach();
+                virtualAttributeMappingContainerModel.detach();
+                virtualObjectRefMappingContainerModel.detach();
+            }
+        };
+    }
+
+    private @NotNull PrismContainerWrapper<MappingType> cloneEmptyContainer(
+            @NotNull PrismContainerWrapper<MappingType> template) throws SchemaException {
+
+        Task task = getPageBase().createSimpleTask("Create merged virtual mappings");
+        OperationResult result = task.getResult();
+
+        PrismContainer<MappingType> prismContainer = template.getItem().clone();
+        prismContainer.clear();
+
+        PrismContainerWrapper<MappingType> wrapper =
+                getPageBase().createItemWrapper(
+                        prismContainer,
+                        ItemStatus.ADDED,
+                        new WrapperContext(task, result));
+
+        wrapper.getValues().clear();
+        return wrapper;
+    }
+
+    private void mergeValues(
+            @NotNull PrismContainerWrapper<MappingType> target,
+            @NotNull PrismContainerWrapper<MappingType> source) {
+
+        for (PrismContainerValueWrapper<MappingType> value : source.getValues()) {
+            target.getValues().add(value);
+        }
+    }
+
+    @Override
+    protected @Nullable PrismContainerValueWrapper<MappingType> createNewValue(
+            PrismContainerValue<MappingType> oldMappingValue,
+            AjaxRequestTarget target) {
+
+        if (!isAttributeVisible()) {
+            createNewAssociationMappingValue(target, AssociationMappingTypeChoicePanelPopup.AssociationMappingKind.OBJECT_REF,
+                    oldMappingValue);
+            return null;
+        }
+
+        AssociationMappingTypeChoicePanelPopup popup =
+                new AssociationMappingTypeChoicePanelPopup(getPageBase().getMainPopupBodyId(), this) {
+                    @Override
+                    protected void onAssociationMappingKindChosen(
+                            AjaxRequestTarget target,
+                            AssociationMappingKind value) {
+                        createNewAssociationMappingValue(target, value, oldMappingValue);
+                        getPageBase().hideMainPopup(target);
+                        refreshAndDetach(target);
+                    }
+                };
+
+        getPageBase().showMainPopup(popup, target);
+        return null;
+    }
+
+    private void createNewAssociationMappingValue(
+            AjaxRequestTarget target,
+            AssociationMappingTypeChoicePanelPopup.AssociationMappingKind kind, PrismContainerValue<MappingType> oldMappingValue) {
+
+        MappingDirection associationType =
+                kind == AssociationMappingTypeChoicePanelPopup.AssociationMappingKind.OBJECT_REF
+                        ? MappingDirection.OBJECTS
+                        : MappingDirection.ATTRIBUTE;
+
+        ItemName associationContainerName =
+                kind == AssociationMappingTypeChoicePanelPopup.AssociationMappingKind.OBJECT_REF
+                        ? AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF
+                        : AssociationConstructionExpressionEvaluatorType.F_ATTRIBUTE;
+
+        PrismContainerValueWrapper<MappingType> newVirtualMappingValue = createNewVirtualMappingValue(
+                oldMappingValue,
+                getValueModel(),
+                associationType,
+                associationContainerName,
+                AbstractAttributeMappingsDefinitionType.F_REF,
+                getPageBase(),
+                target);
+
+        System.out.println("dssf");
+    }
+
+    @Override
+    protected void resolveDeletedItem(@NotNull PrismContainerValueWrapper<MappingType> value) {
+        try {
+            if (value.getStatus() == ValueStatus.ADDED) {
+                boolean removed = removeAssociationObjectRefMapping(value);
+                if (!removed) {
+                    removed = removeAssociationAttributeMapping(value);
+                }
+
+                if (!removed) {
+                    LOGGER.debug("Couldn't physically remove added association mapping {}, marking as deleted instead.", value);
+                    value.setStatus(ValueStatus.DELETED);
+                }
+            } else {
+                value.setStatus(ValueStatus.DELETED);
+            }
+        } catch (SchemaException e) {
+            getPageBase().error("Couldn't delete mapping: " + e.getMessage());
+        } finally {
+            value.setSelected(false);
+        }
+    }
+
+    private boolean removeAssociationAttributeMapping(
+            @NotNull PrismContainerValueWrapper<MappingType> value) throws SchemaException {
+        return removeAssociationMapping(value, AssociationConstructionExpressionEvaluatorType.F_ATTRIBUTE);
+    }
+
+    private boolean removeAssociationObjectRefMapping(
+            @NotNull PrismContainerValueWrapper<MappingType> value) throws SchemaException {
+        return removeAssociationMapping(value, AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF);
+    }
+
+    private boolean removeAssociationMapping(
+            @NotNull PrismContainerValueWrapper<MappingType> value,
+            @NotNull ItemName associationContainerName) throws SchemaException {
+
+        PrismContainerWrapper<? extends Containerable> container =
+                getValueModel().getObject().findContainer(associationContainerName);
+
+        if (container == null) {
+            return false;
+        }
+
+        for (PrismContainerValueWrapper<? extends Containerable> associationValue : container.getValues()) {
+            PrismContainerWrapper<MappingType> mappingContainer =
+                    associationValue.findContainer(F_MAPPING);
+
+            if (mappingContainer != null && mappingContainer.getValues().removeIf(v -> v.equals(value))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    protected void createDuplicateValuePerform(PrismContainerValue<MappingType> value, AjaxRequestTarget target) {
+        createNewVirtualMappingValue(
+                value,
+                getValueModel(),
+                isAttributeRefMapping(value)
+                        ? MappingDirection.ATTRIBUTE
+                        : MappingDirection.OBJECTS,
+                isAttributeRefMapping(value)
+                        ? AssociationConstructionExpressionEvaluatorType.F_ATTRIBUTE
+                        : AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF,
+                AbstractAttributeMappingsDefinitionType.F_REF,
+                getPageBase(),
+                target);
+        refreshAndDetach(target);
+    }
+
+    protected abstract boolean isAttributeVisible();
+
+    @Override
     protected ISortableDataProvider<PrismContainerValueWrapper<MappingType>, String> createDataProvider() {
         return new MultivalueContainerListDataProvider<>(
                 this,
@@ -85,10 +307,41 @@ public abstract class AssociationSmartAttributeMappingsTable<C extends Container
         return value != null && value.getParentContainerValue(ShadowAssociationDefinitionType.class) != null;
     }
 
+    protected boolean isAttributeRefMapping(@NotNull PrismContainerValueWrapper<MappingType> row) {
+        return !row.getPath().containsNameExactly(AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF);
+    }
+
+    protected boolean isAttributeRefMapping(@NotNull PrismContainerValue<MappingType> row) {
+        return !row.getPath().containsNameExactly(AssociationConstructionExpressionEvaluatorType.F_OBJECT_REF);
+    }
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     protected @NotNull List<IColumn<PrismContainerValueWrapper<MappingType>, String>> getColumns() {
         List<IColumn<PrismContainerValueWrapper<MappingType>, String>> columns = new ArrayList<>();
+
+        columns.add(new IconColumn<>(Model.of()) {
+            @Override
+            protected DisplayType getIconDisplayType(IModel<PrismContainerValueWrapper<MappingType>> rowModel) {
+                PrismContainerValueWrapper<MappingType> row = rowModel.getObject();
+
+                if (isAttributeRefMapping(row)) {
+                    return GuiDisplayTypeUtil.createDisplayType(
+                            "fa-solid fa-tags text-muted",
+                            "text-primary",
+                            "Association attribute mapping");
+                }
+
+                return GuiDisplayTypeUtil.createDisplayType(
+                        "fa-solid fa-link text-muted",
+                        "text-info",
+                        "Association object reference mapping");
+            }
+
+            @Override
+            public String getCssClass() {
+                return "px-0 tile-column-icon";
+            }
+        });
 
         if (isInboundRelated()) {
             columns.add(getMappingUsedIconColumn("tile-column-icon"));
@@ -136,6 +389,16 @@ public abstract class AssociationSmartAttributeMappingsTable<C extends Container
             @Override
             public String getCssClass() {
                 return "col-2 header-border-right";
+            }
+
+            @Override
+            protected Component createColumnPanel(String componentId, IModel rowModel) {
+                Component columnPanel = super.createColumnPanel(componentId, rowModel);
+                columnPanel.add(new VisibleBehaviour(() -> {
+                    PrismContainerValueWrapper<MappingType> row = ((PrismPropertyWrapper) rowModel.getObject()).getParent();
+                    return isAttributeRefMapping(row);
+                }));
+                return columnPanel;
             }
 
             @Override
@@ -286,7 +549,12 @@ public abstract class AssociationSmartAttributeMappingsTable<C extends Container
     }
 
     @Override
-    protected ItemName getItemNameOfRefAttribute() {
-        return AbstractAttributeMappingsDefinitionType.F_REF;
+    protected boolean isSuggestionSwitchSupported() {
+        return false;
+    }
+
+    @Override
+    protected boolean isSimulationSupported() {
+        return false;
     }
 }

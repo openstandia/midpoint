@@ -153,7 +153,7 @@ public class CorrelationItemRulePanel<C extends Containerable> extends BasePanel
             }
 
             @Override
-            protected @Nullable PrismContainerWrapper<ResourceAttributeDefinitionType> getMappings() {
+            protected @Nullable PrismContainerWrapper<ResourceAttributeDefinitionType> getMappings(ItemName fAttribute) {
                 return CorrelationItemRulePanel.this.getMappings();
             }
         };

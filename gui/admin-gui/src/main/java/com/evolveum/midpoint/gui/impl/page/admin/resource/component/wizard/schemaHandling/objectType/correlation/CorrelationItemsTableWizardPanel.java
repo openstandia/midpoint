@@ -211,7 +211,7 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
 
             @Override
             protected boolean isSuggestButtonVisible() {
-                return !isShowSuggestionsButtonVisible();
+                return !isAssociationView() && super.isSuggestButtonVisible();
             }
 
             @Override
@@ -507,6 +507,10 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
 
     @Override
     protected void addCustomButtons(@NotNull RepeatingView buttons) {
+        if (isAssociationView()) {
+            return;
+        }
+
         SimulationActionTaskButton<?> simulationActionTaskButton = createSimulationMenuButton(buttons);
         buttons.add(simulationActionTaskButton);
     }
