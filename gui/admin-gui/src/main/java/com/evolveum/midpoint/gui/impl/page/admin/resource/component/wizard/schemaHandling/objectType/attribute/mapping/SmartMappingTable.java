@@ -186,7 +186,7 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
                         inlineMenuItems.add(createDiscardItemMenu());
                         inlineMenuItems.add(createChangeMappingNameInlineMenu());
                         inlineMenuItems.add(createChangeLifecycleButtonInlineMenu());
-                        if(isSimulationSupported()) {
+                        if (isSimulationSupported()) {
                             inlineMenuItems.add(createSimulationInlineMenu());
                         }
                         inlineMenuItems.add(createDuplicateInlineMenu());
@@ -525,6 +525,10 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
         return refAttributeDefValue;
     }
 
+    private void removeFromAcceptedSuggestionsCache(PrismContainerValueWrapper<MappingType> value) {
+        acceptedSuggestionsCache.remove(value);
+    }
+
     private void deleteItemPerform(@NotNull PrismContainerValueWrapper<MappingType> value) {
         Task task = getPageBase().createSimpleTask(OP_DELETE_MAPPING);
         @Nullable StatusInfo<?> status = getStatusInfo(value);
@@ -538,10 +542,10 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
             PrismValue oldValue = parentContainerValue.getOldValue();
             removeMappingTypeSuggestionNew(getPageBase(), status, oldValue.getRealValue(), task, task.getResult());
         } else {
+            removeFromAcceptedSuggestionsCache(value);
             resolveDeletedItem(value);
         }
     }
-
 
     private ItemName getPathBaseOnMappingType() {
         return getMappingDirectionType().getContainerName();
@@ -970,7 +974,6 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
                                     mappingToSimulate.getOutbound().add(outbound.clone());
                                 }
 
-
                                 SimulationParams<?> params = new SimulationParams<>(
                                         getPageBase(),
                                         getResourceType(),
@@ -980,7 +983,7 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
                                         ExecutionModeType.SHADOW_MANAGEMENT_PREVIEW
                                 );
 
-                                SimulationActionFlow<?> flow = new SimulationActionFlow(params){
+                                SimulationActionFlow<?> flow = new SimulationActionFlow(params) {
                                     @Override
                                     public void onShowResultProcess(AjaxRequestTarget target, TaskType task, PageBase pageBase) {
                                         ObjectReferenceType simulationResultReference = getSimulationResultReference(task);
@@ -1022,6 +1025,7 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
 
     protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
     }
+
     protected boolean isSuggestionSwitchSupported() {
         return true;
     }
