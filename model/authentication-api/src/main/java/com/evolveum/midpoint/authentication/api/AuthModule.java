@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.authentication.api;
 
+import com.evolveum.midpoint.authentication.api.config.MidpointAuthentication;
 import com.evolveum.midpoint.authentication.api.config.ModuleAuthentication;
 
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -37,4 +38,15 @@ public interface AuthModule<MA extends ModuleAuthentication> {
 
     SecurityFilterChain getSecurityFilterChain();
 
+    /**
+     * Check if the module authentication can be skipped with success.
+     * This is used for example in case of OTP module, when user is not enrolled to OTP, then the module can be skipped
+     * with success and the authentication process can continue to the next module.
+     *
+     * @param ma
+     * @return true if {@link ModuleAuthentication#setState(AuthenticationModuleState)} can be set to {@link AuthenticationModuleState#SUCCESSFULLY}.
+     */
+    default boolean canSkipWithSuccess(MidpointAuthentication ma) {
+        return false;
+    }
 }

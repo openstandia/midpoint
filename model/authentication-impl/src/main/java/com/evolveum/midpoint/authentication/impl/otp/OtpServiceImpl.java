@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.evolveum.midpoint.authentication.api.OtpService;
 import com.evolveum.midpoint.common.Clock;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.OtpModuleStrategyType;
 
 public abstract class OtpServiceImpl implements OtpService {
 
@@ -48,6 +49,8 @@ public abstract class OtpServiceImpl implements OtpService {
 
     protected final int window;
 
+    protected final OtpModuleStrategyType strategy;
+
     public OtpServiceImpl(
             @NotNull OtpType type,
             @NotNull Clock clock,
@@ -55,7 +58,8 @@ public abstract class OtpServiceImpl implements OtpService {
             OtpAlgorithm algorithm,
             Integer secretLength,
             Integer digits,
-            Integer window) {
+            Integer window,
+            OtpModuleStrategyType strategy) {
 
         this.type = type;
         this.clock = clock;
@@ -64,6 +68,7 @@ public abstract class OtpServiceImpl implements OtpService {
         this.secretLength = secretLength != null && secretLength > 0 ? secretLength : this.algorithm.secretLength;
         this.digits = digits != null && digits > 0 ? digits : DEFAULT_DIGITS;
         this.window = window != null && window >= 1 ? window : DEFAULT_SKEW;
+        this.strategy = strategy != null ? strategy : OtpModuleStrategyType.ALWAYS;
     }
 
     public @NotNull OtpType getType() {

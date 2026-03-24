@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.evolveum.midpoint.authentication.api.AuthModule;
 import com.evolveum.midpoint.authentication.api.util.AuthUtil;
 
 import com.evolveum.midpoint.authentication.impl.MidpointAutowiredBeanFactoryObjectPostProcessor;
@@ -30,7 +31,6 @@ import com.evolveum.midpoint.authentication.impl.factory.channel.AuthChannelRegi
 import com.evolveum.midpoint.authentication.impl.factory.module.AuthModuleRegistryImpl;
 import com.evolveum.midpoint.authentication.impl.module.configurer.ModuleWebSecurityConfigurer;
 
-import com.evolveum.midpoint.authentication.impl.util.AuthModuleImpl;
 import com.evolveum.midpoint.authentication.impl.util.AuthSequenceUtil;
 import com.evolveum.midpoint.authentication.api.RemoveUnusedSecurityFilterPublisher;
 
@@ -154,7 +154,7 @@ public class MidpointAuthFilter extends GenericFilterBean {
             int indexOfProcessingModule,
             HttpServletRequest httpRequest,
             ServletResponse response) {
-        if(mpAuthentication == null) {
+        if (mpAuthentication == null) {
             return;
         }
 
@@ -215,6 +215,14 @@ public class MidpointAuthFilter extends GenericFilterBean {
 
         resolveErrorWithWrongConfigurationOfModules(mpAuthentication, originalIndexOfProcessingModule, httpRequest, response);
 
+        AuthModule<?> module = authWrapper.getAuthModules().get(indexOfProcessingModule);
+        if (mpAuthentication != null && module.canSkipWithSuccess(mpAuthentication)) {
+            ModuleAuthentication moduleAuthentication = mpAuthentication.getProcessingModuleAuthentication();
+            if (moduleAuthentication != null) {
+                moduleAuthentication.setState(AuthenticationModuleState.SUCCESSFULLY);
+            }
+        }
+
         setAuthenticationChanel(mpAuthentication, authWrapper);
         runFilters(authWrapper, indexOfProcessingModule, chain, httpRequest, response);
     }
@@ -252,8 +260,8 @@ public class MidpointAuthFilter extends GenericFilterBean {
     private void runFilters(AuthenticationWrapper authWrapper, int indexOfProcessingModule, FilterChain chain,
             HttpServletRequest httpRequest, ServletResponse response) throws ServletException, IOException {
         VirtualFilterChain vfc = new VirtualFilterChain(
-                chain, ((AuthModuleImpl) authWrapper.getAuthModules().get(indexOfProcessingModule)).getSecurityFilterChain().getFilters());
-        vfc.doFilter(httpRequest, response);
+                chain, authWrapper.getAuthModules().get(indexOfProcessingModule).getSecurityFilterChain().getFilters());
+            vfc.doFilter(httpRequest, response);
     }
 
     private void setAuthenticationChanel(MidpointAuthentication mpAuthentication, AuthenticationWrapper authWrapper) {
@@ -426,8 +434,8 @@ public class MidpointAuthFilter extends GenericFilterBean {
             }
         }
 
-        VirtualFilterChain vfc = new VirtualFilterChain(chain,
-                ((AuthModuleImpl) mpAuthentication.getAuthModules().get(i)).getSecurityFilterChain().getFilters());
+        VirtualFilterChain vfc = new VirtualFilterChain(
+                chain, mpAuthentication.getAuthModules().get(i).getSecurityFilterChain().getFilters());
         vfc.doFilter(httpRequest, response);
     }
 

@@ -14,6 +14,7 @@ import com.evolveum.midpoint.authentication.api.OtpServiceFactory;
 import com.evolveum.midpoint.authentication.api.config.ModuleAuthentication;
 import com.evolveum.midpoint.common.Clock;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.OtpAuthenticationModuleType;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.OtpModuleStrategyType;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.TOtpAuthenticationModuleType;
 
 @Service
@@ -40,19 +41,12 @@ public class OtpServiceFactoryImpl implements OtpServiceFactory {
         Integer secretLength = config.getSecretLength();
         Integer digits = config.getDigits();
         Integer window = config.getWindow();
+        OtpModuleStrategyType strategy = config.getStrategy();
 
         if (config instanceof TOtpAuthenticationModuleType totp) {
-            return new TOtpServiceImpl(
-                    clock,
-                    issuer,
-                    algorithm,
-                    secretLength,
-                    digits,
-                    window,
-                    totp.getPeriod()
-            );
-        } else {
-            throw new IllegalArgumentException("Unsupported OTP type: " + config.getClass());
+            return new TOtpServiceImpl(clock, issuer, algorithm, secretLength, digits, window, strategy, totp.getPeriod());
         }
+
+        throw new IllegalArgumentException("Unsupported OTP type: " + config.getClass());
     }
 }

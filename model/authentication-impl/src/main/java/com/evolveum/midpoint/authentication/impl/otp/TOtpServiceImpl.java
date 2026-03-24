@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.evolveum.midpoint.common.Clock;
 import com.evolveum.midpoint.util.exception.SystemException;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.OtpModuleStrategyType;
 
 public class TOtpServiceImpl extends OtpServiceImpl {
 
@@ -34,9 +35,10 @@ public class TOtpServiceImpl extends OtpServiceImpl {
             Integer secretLength,
             Integer digits,
             Integer window,
+            OtpModuleStrategyType strategy,
             Integer period) {
 
-        super(OtpType.TOTP, clock, issuer, algorithm, secretLength, digits, window);
+        super(OtpType.TOTP, clock, issuer, algorithm, secretLength, digits, window, strategy);
 
         this.period = period != null && period > 0 ? period : DEFAULT_PERIOD;
     }
