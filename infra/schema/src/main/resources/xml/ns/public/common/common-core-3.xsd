@@ -517,8 +517,8 @@
                         <a:displayName>ObjectType.effectiveMarkRef</a:displayName>
                     </xsd:appinfo>
                 </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="policyStatement" type="tns:PolicyStatementType" minOccurs="0" maxOccurs="unbounded">
+             </xsd:element>
+           <xsd:element name="policyStatement" type="tns:PolicyStatementType" minOccurs="0" maxOccurs="unbounded">
                <xsd:annotation>
                    <xsd:documentation>
                       Policy statements to manually add or exclude effective marks of shadow.
@@ -539,14 +539,7 @@
                      <a:experimental>true</a:experimental>
                  </xsd:appinfo>
                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="timestamp" type="xsd:dateTime" minOccurs="0">
-                <xsd:annotation>
-                    <xsd:documentation>
-                        Sampling timestamp. The timestamp of the moment when the value was retrieved or computed.
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
+           </xsd:element>
         </xsd:sequence>
 
         <xsd:attribute name="oid" type="xsd:string">
