@@ -479,6 +479,19 @@ public class RequestAccess implements Serializable {
         return getConflicts().stream().filter(c -> c.isWarning() && c.getState() != ConflictState.SOLVED).count();
     }
 
+    public boolean areShoppingCartItemsRelatedToConflicts() {
+        final Set<String> shoppingCartItemsIds = getShoppingCartItems()
+                .stream().map(cardItem -> cardItem.getAssignment().getTargetRef().getOid())
+                .collect(Collectors.toSet());
+        for (Conflict conflict : getConflicts()) {
+            if (shoppingCartItemsIds.contains(conflict.getAdded().getAssignment().getTargetRef().getOid()) ||
+                    shoppingCartItemsIds.contains(conflict.getExclusion().getAssignment().getTargetRef().getOid())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public long getErrorCount() {
         return getConflicts().stream().filter(c -> !c.isWarning() && c.getState() != ConflictState.SOLVED).count();
     }
