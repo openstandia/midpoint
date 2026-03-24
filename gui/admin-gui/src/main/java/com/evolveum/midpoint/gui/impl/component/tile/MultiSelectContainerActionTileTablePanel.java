@@ -577,7 +577,7 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
         };
         showSuggestionsButton.add(new VisibleBehaviour(() -> displayNoValuePanel()
                 && isShowSuggestionsButtonVisible()));
-        showSuggestionsButton.add(AttributeModifier.append("class", "mx-2 btn rounded bg-purple"));
+        showSuggestionsButton.add(AttributeModifier.append("class", "btn rounded bg-purple"));
         showSuggestionsButton.setOutputMarkupId(true);
         showSuggestionsButton.showTitleAsLabel(true);
 
