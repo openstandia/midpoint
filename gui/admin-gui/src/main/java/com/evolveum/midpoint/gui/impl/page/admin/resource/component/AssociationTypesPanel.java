@@ -290,7 +290,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
         if (valueModel != null) {
             getObjectDetailsModels().getPageResource().showResourceAssociationTypePreviewWizard(
                     target,
-                    getTypesContainerPath());
+                    valueModel.getObject().getPath());
         }
     }
 
