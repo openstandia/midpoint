@@ -648,8 +648,7 @@ public class QObjectMapping<S extends ObjectType, Q extends QObject<R>, R extend
                 var query = jdbcSession.newQuery()
                         .from(q)
                         .select(mapping.fullObjectExpressions(q)) // no complications here, we load it whole
-                        .where(mapping.allOwnedBy(q, batch))
-                        .orderBy(mapping.orderSpecifier(q));
+                        .where(mapping.allOwnedBy(q, batch));
                 for (var row : query.fetch()) {
                     // All assignments should have full object present / legacy assignments should be kept
                     var owner = mapping.getOwner(row, q);
