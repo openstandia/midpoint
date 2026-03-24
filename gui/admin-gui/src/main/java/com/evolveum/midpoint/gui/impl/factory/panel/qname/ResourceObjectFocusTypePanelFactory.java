@@ -15,7 +15,7 @@ import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.impl.validator.ResourceObjectFocusTypeValidator;
 
 import com.evolveum.midpoint.schema.result.OperationResult;
-import com.evolveum.midpoint.smart.api.UnsufficientPermissionsException;
+import com.evolveum.midpoint.smart.api.InsufficientPermissionsException;
 import com.evolveum.midpoint.smart.api.SmartIntegrationService;
 import com.evolveum.midpoint.task.api.Task;
 import com.evolveum.midpoint.util.exception.*;
@@ -153,7 +153,7 @@ public class ResourceObjectFocusTypePanelFactory extends AbstractInputGuiCompone
                 result.recordWarning("No suitable type suggestion was found.");
             }
         } catch (SchemaException | ExpressionEvaluationException | SecurityViolationException | CommunicationException |
-                 ConfigurationException | ObjectNotFoundException | UnsufficientPermissionsException e) {
+                 ConfigurationException | ObjectNotFoundException | InsufficientPermissionsException e) {
             result.recordFatalError("Couldn't suggest focus type: " + e.getMessage(), e);
         }
 

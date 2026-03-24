@@ -41,6 +41,7 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.StringResourceModel;
+import org.apache.wicket.model.util.ListModel;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -538,13 +539,26 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
 
     @NotNull
     protected List<AjaxIconButton> createSuggestObjectButton(String idButton) {
-        AjaxIconButton generateButton = SmartSuggestButtonWithConfirmation.create(idButton,
-                createStringResource("Suggestion.button.suggest"),
-                () -> GuiStyleConstants.CLASS_MAGIC_WAND,
-                suggestionConfirmationOptions(),
-                () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
-                        this::onSuggestNewPerformed),
-                getPageBase());
+        AjaxIconButton generateButton;
+        if (suggestionConfirmationOptions().isEmpty()) {
+            generateButton = new AjaxIconButton(idButton, Model.of("fa-solid fa-wand-magic-sparkles"),
+                    createStringResource("Suggestion.button.suggest")) {
+
+                @Override
+                public void onClick(AjaxRequestTarget target) {
+                    onSuggestNewPerformed(target, Collections::emptyList);
+                }
+            };
+            generateButton.add(AttributeModifier.append("class", "btn rounded bg-purple"));
+        } else {
+            generateButton = SmartSuggestButtonWithConfirmation.create(idButton,
+                    createStringResource("Suggestion.button.suggest"),
+                    () -> GuiStyleConstants.CLASS_MAGIC_WAND,
+                    suggestionConfirmationOptions(),
+                    () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
+                            this::onSuggestNewPerformed),
+                    getPageBase());
+        }
 
         generateButton.add(new VisibleBehaviour(() -> isSuggestButtonVisible() && displayNoValuePanel()));
         generateButton.setOutputMarkupId(true);

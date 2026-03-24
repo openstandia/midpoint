@@ -9,9 +9,9 @@ package com.evolveum.midpoint.smart.api;
 
 import com.evolveum.midpoint.util.exception.CommonException;
 
-public class UnsufficientPermissionsException extends CommonException {
+public class InsufficientPermissionsException extends CommonException {
 
-    public UnsufficientPermissionsException(String message) {
+    public InsufficientPermissionsException(String message) {
         super(message);
     }
 

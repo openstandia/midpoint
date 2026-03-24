@@ -145,14 +145,9 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
             }
 
             @Override
-            protected List<ConfirmationOption<DataAccessPermission>> suggestionConfirmationOptions() {
-                return ConfirmationOption.delineationPermissionsOptions();
-            }
-
-            @Override
             protected void onSuggestNewPerformed(AjaxRequestTarget target,
                     IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
-                onSuggestValue(target, confirmedOptions);
+                onSuggestValue(target);
                 AssociationTypesPanel.this.restartTimer.accept(target);
                 refreshAndDetach(target);
             }
@@ -270,8 +265,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
         }
     }
 
-    private void onSuggestValue(AjaxRequestTarget target,
-            IModel<List<ConfirmationOption<DataAccessPermission>>> confirmationOptions) {
+    private void onSuggestValue(AjaxRequestTarget target) {
         ResourceDetailsModel objectDetailsModels = getObjectDetailsModels();
         ResourceType resourceType = objectDetailsModels.getObjectType();
         Task task = getPageBase().createSimpleTask(OP_DETERMINE_STATUSES);
@@ -283,7 +277,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
     protected void onSuggestValue(
             IModel<PrismContainerWrapper<ShadowAssociationTypeDefinitionType>> newWrapperModel,
             AjaxRequestTarget target) {
-        onSuggestValue(target, Collections::emptyList);
+        onSuggestValue(target);
     }
 
     @Override
@@ -377,9 +371,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
 
             @Override
             protected IModel<List<ConfirmationOption<DataAccessPermission>>> getConfirmationOptions() {
-                final List<ConfirmationOption<DataAccessPermission>> confirmationOptions =
-                        ConfirmationOption.delineationPermissionsOptions();
-                return () -> confirmationOptions;
+                return Collections::emptyList;
             }
 
             @Override
