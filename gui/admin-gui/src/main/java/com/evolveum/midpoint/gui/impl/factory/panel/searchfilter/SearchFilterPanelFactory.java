@@ -82,9 +82,7 @@ public class SearchFilterPanelFactory extends AbstractInputGuiComponentFactory<S
     private boolean isCollectionObjectParentContainer(PrismPropertyPanelContext<SearchFilterType> panelCtx) {
         PrismPropertyWrapper<SearchFilterType> searchFilterItemWrapper = panelCtx.unwrapWrapperModel();
         PrismContainerValueWrapper<?> containerWrapper = searchFilterItemWrapper.getParent();
-        return containerWrapper != null &&
-                (containerWrapper.getRealValue() instanceof ObjectCollectionType
-                        || containerWrapper.getRealValue() instanceof CollectionRefSpecificationType);
+        return containerWrapper != null && containerWrapper.getRealValue() instanceof ObjectCollectionType;
     }
 
     private QName getFilterObjectType(PrismPropertyPanelContext<SearchFilterType> panelCtx) {
