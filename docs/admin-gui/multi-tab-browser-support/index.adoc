@@ -1,0 +1,37 @@
+---
+midpoint-feature: multi-tab-browser-support
+doc-type: intro
+---
+= Multi-tab browser support
+:page-since: "4.11"
+:page-toc: top
+:page-upkeep-status: red
+
+[NOTE]
+====
+It's just a draft of the page
+
+====
+
+== Introduction
+
+The MidPoint multi-tab browser support feature enhances the user experience by allowing multiple pages within the application to be opened and managed simultaneously in separate tabs.
+This capability enables administrators and users to work more efficiently by switching between different views—such as users, roles, tasks, and resources—without losing context or interrupting ongoing operations.
+
+With multi-tab support, each tab maintains its own state, including navigation history, filters, and selected objects.
+This reduces the need to repeatedly navigate through the interface and minimizes the risk of losing unsaved progress.
+The feature is particularly useful for complex administrative workflows that require comparing data, monitoring tasks while making configuration changes, or referencing multiple objects at once.
+
+Overall, multi-tab support brings a more flexible, productive, and modern interaction model to MidPoint, aligning it with standard browser usability expectations while preserving system stability and consistency.
+
+
+== Supported use cases
+
+* Object list views opened from left-side menu
+
+* Object list views on the object details page
+
+* Navigation, breadcrumbs, back button
+
+* Preview changes
+
