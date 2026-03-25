@@ -86,7 +86,8 @@ Overall, midPoint 4.10 opens up the world of identity management and governance 
 * Fixed correlation work item panel. See bug:MID-10993[]
 * Fixed NPE in general notifier. See bug:MID-11038[]
 * Fixed page storage for dashboard widget collection. See bug:MID-11055[]
-
+* Fixed getOptions conversion to avoid overriding default retrieval when <retrieve> is omitted. See bug:MID-11088[]
+* Fixed missing estimatedOldValues in raw audit (EXECUTE_CHANGES_RAW). See bug:MID-10027[]
 === Releases Of Other Components
 
 #TODO UDPATE#

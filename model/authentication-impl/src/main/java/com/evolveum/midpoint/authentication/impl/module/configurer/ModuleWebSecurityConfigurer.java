@@ -70,7 +70,6 @@ public class ModuleWebSecurityConfigurer<C extends ModuleWebSecurityConfiguratio
     @Value("${security.enable-csrf:true}")
     private boolean csrfEnabled;
 
-
     private ObjectPostProcessor<Object> objectPostProcessor;
     private AuthenticationProvider provider;
     private String sequenceSuffix;
@@ -79,10 +78,9 @@ public class ModuleWebSecurityConfigurer<C extends ModuleWebSecurityConfiguratio
     private AuthenticationChannel authenticationChannel;
     private ServletRequest request;
 
-
     private C configuration;
 
-    public ModuleWebSecurityConfigurer(){
+    public ModuleWebSecurityConfigurer() {
     }
 
     public ModuleWebSecurityConfigurer(MT moduleType,
@@ -209,7 +207,7 @@ public class ModuleWebSecurityConfigurer<C extends ModuleWebSecurityConfiguratio
     protected LogoutSuccessHandler createLogoutHandler(String defaultSuccessLogoutURL) {
         AuditedLogoutHandler handler = objectPostProcessor.postProcess(new AuditedLogoutHandler());
         if (StringUtils.isNotBlank(defaultSuccessLogoutURL)
-            && (defaultSuccessLogoutURL.startsWith("/")
+                && (defaultSuccessLogoutURL.startsWith("/")
                 || defaultSuccessLogoutURL.startsWith("http")
                 || defaultSuccessLogoutURL.startsWith("https"))) {
             handler.setDefaultTargetUrl(defaultSuccessLogoutURL);
@@ -217,7 +215,7 @@ public class ModuleWebSecurityConfigurer<C extends ModuleWebSecurityConfiguratio
         return handler;
     }
 
-    protected  <CA extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity>> CA getOrApply(HttpSecurity http, CA configurer) throws Exception {
+    protected <CA extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity>> CA getOrApply(HttpSecurity http, CA configurer) throws Exception {
         CA existingConfigurer = (CA) http.getConfigurer(configurer.getClass());
         return existingConfigurer != null ? existingConfigurer : http.apply(configurer);
     }
