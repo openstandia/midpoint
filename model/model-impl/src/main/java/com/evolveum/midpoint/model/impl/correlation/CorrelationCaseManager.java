@@ -123,7 +123,7 @@ public class CorrelationCaseManager {
                         .schema(createCaseSchema(resource.getBusiness())))
                 .state(SchemaConstants.CASE_STATE_CREATED)
                 .metadata(new MetadataType()
-                    .createTimestamp(now));
+                        .createTimestamp(now));
         try {
             repositoryService.addObject(newCase.asPrismObject(), null, result);
         } catch (ObjectAlreadyExistsException e) {
@@ -293,7 +293,7 @@ public class CorrelationCaseManager {
 
         recordCorrelationCompletionMetadataInShadow(aCase, task, result);
         caseCloser.closeCase(result);
-        correlationService.resolve(aCase, task, result);
+
     }
 
     /**
@@ -307,6 +307,11 @@ public class CorrelationCaseManager {
             throws SchemaException, ExpressionEvaluationException, CommunicationException, SecurityViolationException,
             ConfigurationException, ObjectNotFoundException {
         recordCorrelationOutcomeInShadow(aCase, result);
+
+        correlationService.resolve(aCase, task, result);
+        if (result.isError()) {
+            throw new SystemException(result.getMessage());
+        }
 
         // As a convenience, we try to re-import the object. Technically this is not a part of the correlation case processing.
         // Whether we do this should be made configurable (in the future).
