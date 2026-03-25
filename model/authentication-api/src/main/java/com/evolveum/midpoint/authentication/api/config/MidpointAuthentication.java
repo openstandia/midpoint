@@ -353,7 +353,7 @@ public class MidpointAuthentication extends AbstractAuthenticationToken implemen
         }
 
         if (AuthenticationModuleState.CALLED_OFF == ma.getState() && BooleanUtils.isTrue(m.isAcceptEmpty())) {
-            // authentication was called of, but configuration allows empty auth
+            // authentication was called off, but sequence module configuration allows "empty" auth via acceptEmpty = true
             return true;
         }
 

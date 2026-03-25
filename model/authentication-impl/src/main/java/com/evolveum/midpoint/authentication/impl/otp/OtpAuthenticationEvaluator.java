@@ -136,4 +136,9 @@ public class OtpAuthenticationEvaluator
     protected boolean supportsActivation() {
         return true;
     }
+
+    @Override
+    protected String createModuleAuthenticationFailureMessage(MidPointPrincipal principal, ConnectionEnvironment connEnv) {
+        return "Incorrect OTP code";
+    }
 }
