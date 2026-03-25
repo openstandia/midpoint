@@ -221,19 +221,13 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
 
                     @Override
                     protected void initPanelToolbarButtons(@NotNull RepeatingView toolbar) {
-                        var toggleSuggestionVisibilityButton = createToggleSuggestionVisibilityButton(getPageBase(),
-                                toolbar.newChildId(),
-                                suggestionToggleModel,
-                                SmartMappingTable.this::refreshAndDetach,
-                                null);
-
-                        toggleSuggestionVisibilityButton.add(new VisibleBehaviour(() -> isSuggestionSwitchSupported()));
-
-                        toolbar.add(toggleSuggestionVisibilityButton);
-
-                        toolbar.add(createAcceptAllButton(toolbar.newChildId()));
-                        toolbar.add(createDiscardAllButton(toolbar.newChildId()));
+                        SmartMappingTable.this.initPanelToolbarButtons(toolbar);
                         super.initPanelToolbarButtons(toolbar);
+                    }
+
+                    @Override
+                    protected String getNewObjectButtonCssClass() {
+                        return SmartMappingTable.this.getNewObjectButtonCssClass();
                     }
 
                     @Override
@@ -288,6 +282,24 @@ public abstract class SmartMappingTable<P extends Containerable> extends BasePan
         columnTileTable.setDefaultPagingSize(MAX_TILE_COUNT);
 
         return columnTileTable;
+    }
+
+    protected String getNewObjectButtonCssClass() {
+        return "btn btn-outline-primary ml-auto";
+    }
+
+    protected void initPanelToolbarButtons(@NotNull RepeatingView toolbar) {
+        var toggleSuggestionVisibilityButton = createToggleSuggestionVisibilityButton(getPageBase(),
+                toolbar.newChildId(),
+                suggestionToggleModel,
+                SmartMappingTable.this::refreshAndDetach,
+                null);
+
+        toggleSuggestionVisibilityButton.add(new VisibleBehaviour(this::isSuggestionSwitchSupported));
+
+        toolbar.add(toggleSuggestionVisibilityButton);
+        toolbar.add(createAcceptAllButton(toolbar.newChildId()));
+        toolbar.add(createDiscardAllButton(toolbar.newChildId()));
     }
 
     @SuppressWarnings("unchecked")
