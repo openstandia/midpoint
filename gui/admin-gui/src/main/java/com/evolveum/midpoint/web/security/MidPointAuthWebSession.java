@@ -98,7 +98,7 @@ public class MidPointAuthWebSession extends AuthenticatedWebSession implements D
 
         if (principal instanceof GuiProfiledPrincipal guiProfiledPrincipal) {
             CompiledGuiProfile profile = guiProfiledPrincipal.getCompiledGuiProfile();
-            if (profile.isInvalid()) {  //todo if profile is invalid, should we clear all session storage? or just currently opened tab storage?
+            if (profile.isInvalid()) {
                 getSessionStorage().clearAllBrowserTabsStorages();
             }
         }

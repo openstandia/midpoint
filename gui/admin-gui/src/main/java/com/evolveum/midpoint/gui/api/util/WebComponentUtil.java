@@ -42,7 +42,6 @@ import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.wicket.*;
-import org.apache.wicket.ajax.AjaxNewWindowNotifyingBehavior;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.form.AjaxSubmitLink;
@@ -4187,7 +4186,7 @@ public final class WebComponentUtil {
         return BooleanUtils.isTrue(profile.isEnableExperimentalFeatures());
     }
 
-    @Deprecated
+    @Deprecated //Use {@link com.evolveum.midpoint.gui.api.page.PageAdminLTE#isDarkMode()}
     public static boolean isDarkModeEnabled() {
         MidPointAuthWebSession session = MidPointAuthWebSession.get();
         return session.getSessionStorage().getMode() == SessionStorage.Mode.DARK;
@@ -4330,16 +4329,4 @@ public final class WebComponentUtil {
 
         return valueWrapper.toShortString();
     }
-
-//    public static String getBrowserWindowNameParameter(@NotNull Component component) {
-//        var behavior = component.getBehaviors()
-//                .stream()
-//                .filter(b -> b instanceof AjaxNewWindowNotifyingBehavior)
-//                .findFirst()
-//                .orElse(null);
-//        if (behavior == null) {
-//            return null;
-//        }
-//        return ((AjaxNewWindowNotifyingBehavior) behavior).getWindowName();
-//    }
 }

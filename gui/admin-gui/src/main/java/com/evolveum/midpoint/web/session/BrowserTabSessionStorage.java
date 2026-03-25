@@ -227,7 +227,6 @@ public class BrowserTabSessionStorage implements Serializable, DebugDumpable {
             pageStorageMap.put(key, pageStorage);
         }
         return pageStorage;
-        //TODO: fixme
     }
 
     public MemberPanelStorage initMemberStorage(String storageKey, SearchBoxConfigurationHelper searchBoxConfig) {
@@ -287,9 +286,14 @@ public class BrowserTabSessionStorage implements Serializable, DebugDumpable {
     @Override
     public String debugDump(int indent) {
         StringBuilder sb = new StringBuilder();
+
         DebugUtil.indentDebugDump(sb, indent);
-        sb.append("BrowserWindowStorage\n");
-        //todo
+        sb.append("BrowserTabSessionStorage\n");
+        DebugUtil.debugDumpWithLabelLn(sb, "userProfile", userProfile, indent + 1);
+        DebugUtil.debugDumpWithLabelLn(sb, "pageStorageMap", pageStorageMap, indent + 1);
+        DebugUtil.debugDumpWithLabelLn(sb, "detailsStorageMap", detailsStorageMap, indent + 1);
+        DebugUtil.debugDumpWithLabel(sb, "mainMenuState", mainMenuState, indent + 1);
+
         return sb.toString();
     }
 }

@@ -10,6 +10,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
 
+import java.util.Map.Entry;
 import org.jetbrains.annotations.NotNull;
 
 import com.evolveum.midpoint.gui.impl.page.self.requestAccess.RequestAccess;
@@ -77,7 +78,6 @@ public class SessionStorage implements Serializable, DebugDumpable {
         LIGHT, DARK;
     }
 
-    //todo mode stays the same all across the tabs?
     private Mode mode = Mode.LIGHT;
 
     private RequestAccess requestAccess = new RequestAccess();
@@ -138,26 +138,39 @@ public class SessionStorage implements Serializable, DebugDumpable {
     @Override
     public String debugDump(int indent) {
         StringBuilder sb = new StringBuilder();
+
         DebugUtil.indentDebugDump(sb, indent);
         sb.append("SessionStorage\n");
-        //todo fix
-//        DebugUtil.debugDumpWithLabelLn(sb, "userProfile", userProfile, indent + 1);
-//        DebugUtil.debugDumpWithLabel(sb, "pageStorageMap", pageStorageMap, indent + 1);
+
+        DebugUtil.debugDumpWithLabelLn(sb, "mode", mode, indent + 1);
+        DebugUtil.debugDumpWithLabelLn(sb, "requestAccess", requestAccess, indent + 1);
+        DebugUtil.debugDumpWithLabelLn(sb, "storageByWindowName", storageByWindowName, indent + 1);
+        DebugUtil.debugDumpWithLabelLn(sb, "suggestions", suggestions, indent + 1);
+        DebugUtil.debugDumpWithLabel(sb, "resourceWizardStorage", resourceWizardStorage, indent + 1);
+
         return sb.toString();
     }
 
     public void dumpSizeEstimates(StringBuilder sb, int indent) {
-        //todo fix
-//        DebugUtil.dumpObjectSizeEstimate(sb, "SessionStorage", this, indent);
-//        if (userProfile != null) {
-//            sb.append("\n");
-//            DebugUtil.dumpObjectSizeEstimate(sb, "userProfile", userProfile, indent + 1);
-//        }
-//        sb.append("\n");
-//        DebugUtil.dumpObjectSizeEstimate(sb, "pageStorageMap", (Serializable) pageStorageMap, indent + 1);
-//        for (Entry<String, PageStorage> entry : pageStorageMap.entrySet()) {
-//            sb.append("\n");
-//            DebugUtil.dumpObjectSizeEstimate(sb, entry.getKey(), entry.getValue(), indent + 2);
-//        }
+        DebugUtil.dumpObjectSizeEstimate(sb, "SessionStorage", this, indent);
+        if (requestAccess != null) {
+            sb.append("\n");
+            DebugUtil.dumpObjectSizeEstimate(sb, "requestAccess", requestAccess, indent + 1);
+        }
+        DebugUtil.dumpObjectSizeEstimate(sb, "storageByWindowName", (Serializable) storageByWindowName, indent + 1);
+        for (Entry<String, BrowserTabSessionStorage> entry : storageByWindowName.entrySet()) {
+            sb.append("\n");
+            DebugUtil.dumpObjectSizeEstimate(sb, entry.getKey(), entry.getValue(), indent + 2);
+        }
+        if (suggestions != null) {
+            sb.append("\n");
+            DebugUtil.dumpObjectSizeEstimate(sb, "suggestions", suggestions, indent + 1);
+        }
+        if (resourceWizardStorage != null) {
+            sb.append("\n");
+            DebugUtil.dumpObjectSizeEstimate(sb, "resourceWizardStorage", resourceWizardStorage, indent + 1);
+        }
+        sb.append("\n");
+
     }
 }
