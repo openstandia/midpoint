@@ -1229,7 +1229,7 @@ public abstract class PageAdminLTE extends WebPage implements ModelServiceLocato
         org.apache.wicket.request.IRequestParameters parameters = RequestCycle.get().getRequest().getRequestParameters();
         StringValue paramValue = parameters.getParameterValue(BrowserWindowIdentifierFilter.PARAM_WI);
         String tabId = paramValue != null ? paramValue.toString() : null;
-        LOGGER.info("Page Admin LTE: {}", tabId);
+        LOGGER.trace("Page Admin LTE: {}", tabId);
 
         if (tabId == null) {
             //try to get tabId from Referer header

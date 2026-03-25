@@ -33,8 +33,6 @@ public class BrowserTabSessionStorage implements Serializable, DebugDumpable {
      * Store session information for user preferences about paging size in midPoint GUI
      */
     private UserProfileStorage userProfile;
-    private SuggestionsStorage suggestions; //todo separate for each browser tab/window?
-    private ResourceWizardStorage resourceWizardStorage;
 
     /**
      * place to store information in session for various pages
@@ -252,17 +250,6 @@ public class BrowserTabSessionStorage implements Serializable, DebugDumpable {
         userProfile = profile;
     }
 
-    public SuggestionsStorage getSuggestions() {
-        if (suggestions == null) {
-            suggestions = new SuggestionsStorage();
-        }
-        return suggestions;
-    }
-
-    public void setSuggestions(SuggestionsStorage suggestions) {
-        this.suggestions = suggestions;
-    }
-
     public void clearResourceContentStorage() {
         pageStorageMap.remove(SessionStorage.KEY_RESOURCE_ACCOUNT_CONTENT + SessionStorage.KEY_RESOURCE_PAGE_REPOSITORY_CONTENT);
         pageStorageMap.remove(SessionStorage.KEY_RESOURCE_ACCOUNT_CONTENT + SessionStorage.KEY_RESOURCE_PAGE_RESOURCE_CONTENT);
@@ -282,13 +269,6 @@ public class BrowserTabSessionStorage implements Serializable, DebugDumpable {
                     }
                 });
         keysToRemove.forEach(key -> pageStorageMap.remove(key));
-    }
-
-    public ResourceWizardStorage getResourceWizardStorage() {
-        if (resourceWizardStorage == null) {
-            resourceWizardStorage = new ResourceWizardStorage();
-        }
-        return resourceWizardStorage;
     }
 
     public GenericPageStorage getSimulation() {

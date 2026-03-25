@@ -295,7 +295,7 @@ public class ResourceWizardPanel extends AbstractWizardPanel<ResourceType, Resou
 
             private void manageResourceWizardStorage() {
                 String oid = getAssignmentHolderModel().getObjectType().getOid();
-                getPageBase().getBrowserTabSessionStorage().getResourceWizardStorage().markPreviewDataClicked(oid);
+                getPageBase().getSessionStorage().getResourceWizardStorage().markPreviewDataClicked(oid);
             }
 
             @Override

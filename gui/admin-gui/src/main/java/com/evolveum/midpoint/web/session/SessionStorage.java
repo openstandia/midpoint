@@ -68,7 +68,9 @@ public class SessionStorage implements Serializable, DebugDumpable {
     public static final String KEY_CERT_CAMPAIGNS = "certCampaigns";
     public static final String KEY_CERT_DECISIONS = "certDecisions";
 
-    private Map<String, BrowserTabSessionStorage> storageByWindowName = new HashMap<>();
+    private final Map<String, BrowserTabSessionStorage> storageByWindowName = new HashMap<>();
+    private SuggestionsStorage suggestions;
+    private ResourceWizardStorage resourceWizardStorage;
 
     public enum Mode {
 
@@ -108,6 +110,24 @@ public class SessionStorage implements Serializable, DebugDumpable {
     public void clearAllBrowserTabsStorages() {
         storageByWindowName.values()
                 .forEach(BrowserTabSessionStorage::clearPageStorage);
+    }
+
+    public SuggestionsStorage getSuggestions() {
+        if (suggestions == null) {
+            suggestions = new SuggestionsStorage();
+        }
+        return suggestions;
+    }
+
+    public void setSuggestions(SuggestionsStorage suggestions) {
+        this.suggestions = suggestions;
+    }
+
+    public ResourceWizardStorage getResourceWizardStorage() {
+        if (resourceWizardStorage == null) {
+            resourceWizardStorage = new ResourceWizardStorage();
+        }
+        return resourceWizardStorage;
     }
 
     @Override
