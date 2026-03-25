@@ -215,14 +215,6 @@ public class MidpointAuthFilter extends GenericFilterBean {
 
         resolveErrorWithWrongConfigurationOfModules(mpAuthentication, originalIndexOfProcessingModule, httpRequest, response);
 
-        AuthModule<?> module = authWrapper.getAuthModules().get(indexOfProcessingModule);
-        if (mpAuthentication != null && module.canSkipWithSuccess(mpAuthentication)) {
-            ModuleAuthentication moduleAuthentication = mpAuthentication.getProcessingModuleAuthentication();
-            if (moduleAuthentication != null) {
-                moduleAuthentication.setState(AuthenticationModuleState.SUCCESSFULLY);
-            }
-        }
-
         setAuthenticationChanel(mpAuthentication, authWrapper);
         runFilters(authWrapper, indexOfProcessingModule, chain, httpRequest, response);
     }
@@ -480,6 +472,5 @@ public class MidpointAuthFilter extends GenericFilterBean {
             }
         }
     }
-
 }
 

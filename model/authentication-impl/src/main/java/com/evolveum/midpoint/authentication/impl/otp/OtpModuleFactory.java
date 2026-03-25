@@ -6,13 +6,10 @@
 
 package com.evolveum.midpoint.authentication.impl.otp;
 
-import java.util.Map;
-
 import jakarta.servlet.ServletRequest;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.stereotype.Component;
 
-import com.evolveum.midpoint.authentication.api.AuthModule;
 import com.evolveum.midpoint.authentication.api.AuthenticationChannel;
 import com.evolveum.midpoint.authentication.impl.factory.module.AbstractCredentialModuleFactory;
 import com.evolveum.midpoint.authentication.impl.module.configuration.LoginFormModuleWebSecurityConfiguration;
@@ -68,23 +65,5 @@ public class OtpModuleFactory extends AbstractCredentialModuleFactory<
         auth.setModule(moduleType);
 
         return auth;
-    }
-
-    @Override
-    public AuthModule<OtpModuleAuthentication> createAuthModule(
-            OtpAuthenticationModuleType module,
-            String sequenceSuffix,
-            ServletRequest request,
-            Map<Class<?>, Object> sharedObjects,
-            AuthenticationModulesType authenticationsPolicy,
-            CredentialsPolicyType credentialPolicy,
-            AuthenticationChannel channel,
-            AuthenticationSequenceModuleType sequenceModule)
-            throws Exception {
-
-        AuthModule<OtpModuleAuthentication> authModule = super.createAuthModule(
-                module, sequenceSuffix, request, sharedObjects, authenticationsPolicy, credentialPolicy, channel, sequenceModule);
-
-        return new OtpAuthModuleDelegator(authModule, module);
     }
 }

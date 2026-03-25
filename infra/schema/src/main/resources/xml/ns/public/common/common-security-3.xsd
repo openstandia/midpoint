@@ -349,55 +349,10 @@
                             </xsd:appinfo>
                         </xsd:annotation>
                     </xsd:element>
-                    <xsd:element name="strategy" type="tns:OtpModuleStrategyType" minOccurs="0" default="always">
-                        <xsd:annotation>
-                            <xsd:documentation>
-                                The strategy that defines OTP module usage.
-
-                                "enrolled" means that OTP module is used only for users who have OTP credential set up (enrolled users).
-
-                                Default value is "always", which means that OTP module is used for authentication of all users,
-                                regardless of whether they have OTP credential set up or not.
-                            </xsd:documentation>
-                            <xsd:appinfo>
-                                <a:experimental/>
-                            </xsd:appinfo>
-                        </xsd:annotation>
-                    </xsd:element>
                 </xsd:sequence>
             </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
-
-    <xsd:simpleType name="OtpModuleStrategyType">
-        <xsd:annotation>
-            <xsd:appinfo>
-                <jaxb:typesafeEnumClass/>
-            </xsd:appinfo>
-        </xsd:annotation>
-        <xsd:restriction base="xsd:string">
-            <xsd:enumeration value="always">
-                <xsd:annotation>
-                    <xsd:documentation>
-                        Always use OTP module for authentication.
-                    </xsd:documentation>
-                    <xsd:appinfo>
-                        <jaxb:typesafeEnumMember name="ALWAYS"/>
-                    </xsd:appinfo>
-                </xsd:annotation>
-            </xsd:enumeration>
-            <xsd:enumeration value="enrolled">
-                <xsd:annotation>
-                    <xsd:documentation>
-                        Use OTP module only for users who have OTP credential set up (enrolled users).
-                    </xsd:documentation>
-                    <xsd:appinfo>
-                        <jaxb:typesafeEnumMember name="ENROLLED"/>
-                    </xsd:appinfo>
-                </xsd:annotation>
-            </xsd:enumeration>
-        </xsd:restriction>
-    </xsd:simpleType>
 
     <xsd:complexType name="AbstractCredentialAuthenticationModuleType" abstract="true">
         <xsd:annotation>
