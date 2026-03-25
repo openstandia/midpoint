@@ -43,6 +43,7 @@ import com.evolveum.midpoint.schema.constants.SchemaConstants;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.schema.util.Resource;
+import com.evolveum.midpoint.smart.api.InsufficientPermissionsException;
 import com.evolveum.midpoint.smart.api.ServiceClientFactory;
 import com.evolveum.midpoint.smart.api.SmartIntegrationService;
 import com.evolveum.midpoint.smart.api.info.StatusInfo;
@@ -558,9 +559,10 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
 
     @Override
     public FocusTypeSuggestionType suggestFocusType(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult parentResult)
+            String resourceOid, ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions, Task task, OperationResult parentResult)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException {
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException {
         LOGGER.debug("Suggesting focus type for resourceOid {}, typeIdentification {}", resourceOid, typeIdentification);
         var result = parentResult.subresult(OP_SUGGEST_FOCUS_TYPE)
                 .addParam("resourceOid", resourceOid)
@@ -570,7 +572,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
             try (var serviceClient = this.clientFactory.getServiceClient(result)) {
                 var suggestion = new FocusTypeSuggestionOperation(
                         TypeOperationContext.init(serviceClient, resourceOid, typeIdentification, null, task, result))
-                        .suggestFocusType();
+                        .suggestFocusType(permissions);
                 LOGGER.debug("Suggested focus type: {}", suggestion.getFocusType());
                 return suggestion;
             }
@@ -584,9 +586,10 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
 
     @Override
     public FocusTypeSuggestionType suggestFocusType(
-            String resourceOid, ResourceObjectTypeDefinitionType typeDefBean, Task task, OperationResult parentResult)
+            String resourceOid, ResourceObjectTypeDefinitionType typeDefBean,
+            List<DataAccessPermissionType> permissions, Task task, OperationResult parentResult)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException {
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException {
         LOGGER.debug("Suggesting focus type for resourceOid {}, typeDefinition {}", resourceOid, typeDefBean);
         var result = parentResult.subresult(OP_SUGGEST_FOCUS_TYPE)
                 .addParam("resourceOid", resourceOid)
@@ -596,7 +599,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
             try (var serviceClient = this.clientFactory.getServiceClient(result)) {
                 var suggestion = new FocusTypeSuggestionOperation(
                         OperationContext.init(serviceClient, resourceOid, typeDefBean.getDelineation().getObjectClass(), task, result))
-                        .suggestFocusType(typeDefBean);
+                        .suggestFocusType(typeDefBean, permissions);
                 LOGGER.debug("Suggested focus type: {}", suggestion.getFocusType());
                 return suggestion;
             }

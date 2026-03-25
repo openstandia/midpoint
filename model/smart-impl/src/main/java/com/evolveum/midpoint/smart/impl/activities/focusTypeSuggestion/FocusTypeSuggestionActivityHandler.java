@@ -96,7 +96,7 @@ public class FocusTypeSuggestionActivityHandler
             }
 
             var focusTypeSuggestion = SmartIntegrationBeans.get().smartIntegrationService.suggestFocusType(
-                    resourceOid, typeIdentification, task, result);
+                    resourceOid, typeIdentification, permissions, task, result);
 
             var state = getActivityState();
             state.setWorkStateItemRealValues(FocusTypeSuggestionWorkStateType.F_RESULT, focusTypeSuggestion);

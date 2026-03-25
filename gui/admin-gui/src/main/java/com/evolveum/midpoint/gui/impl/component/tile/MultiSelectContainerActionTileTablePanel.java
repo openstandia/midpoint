@@ -41,6 +41,7 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.StringResourceModel;
+import org.apache.wicket.model.util.ListModel;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -127,12 +128,12 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
         buttonsList.add(createTableActionToolbar(idButton));
         buttonsList.addAll(createSuggestObjectButton(idButton));
         ToggleCheckBoxPanel toggleSuggestionButton = createToggleSuggestionButton(idButton, switchToggleModel);
-        toggleSuggestionButton.add(new VisibleBehaviour(() -> !displayNoValuePanel()));
+        toggleSuggestionButton.add(new VisibleBehaviour(this::isToggleSuggestionVisible));
         buttonsList.add(toggleSuggestionButton);
 
         AjaxIconButton newObjectPerformButton = createNewObjectPerformButton(idButton, null);
         newObjectPerformButton.add(AttributeModifier.replace("class",
-                "text-nowrap btn btn-primary rounded text-nowrap mx-3"));
+                "text-nowrap btn btn-primary rounded"));
         newObjectPerformButton.add(new VisibleBehaviour(this::displayNoValuePanel));
         buttonsList.add(0, newObjectPerformButton);
         return buttonsList;
@@ -538,15 +539,28 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
 
     @NotNull
     protected List<AjaxIconButton> createSuggestObjectButton(String idButton) {
-        AjaxIconButton generateButton = SmartSuggestButtonWithConfirmation.create(idButton,
-                createStringResource("Suggestion.button.suggest"),
-                () -> GuiStyleConstants.CLASS_MAGIC_WAND,
-                suggestionConfirmationOptions(),
-                () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
-                        this::onSuggestNewPerformed),
-                getPageBase());
+        AjaxIconButton generateButton;
+        if (suggestionConfirmationOptions().isEmpty()) {
+            generateButton = new AjaxIconButton(idButton, Model.of("fa-solid fa-wand-magic-sparkles"),
+                    createStringResource("Suggestion.button.suggest")) {
 
-        generateButton.add(new VisibleBehaviour(() -> this.displayNoValuePanel() && isSuggestButtonVisible()));
+                @Override
+                public void onClick(AjaxRequestTarget target) {
+                    onSuggestNewPerformed(target, Collections::emptyList);
+                }
+            };
+            generateButton.add(AttributeModifier.append("class", "btn rounded bg-purple"));
+        } else {
+            generateButton = SmartSuggestButtonWithConfirmation.create(idButton,
+                    createStringResource("Suggestion.button.suggest"),
+                    () -> GuiStyleConstants.CLASS_MAGIC_WAND,
+                    suggestionConfirmationOptions(),
+                    () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
+                            this::onSuggestNewPerformed),
+                    getPageBase());
+        }
+
+        generateButton.add(new VisibleBehaviour(() -> isSuggestButtonVisible() && displayNoValuePanel() && !isShowSuggestionsButtonVisible()));
         generateButton.setOutputMarkupId(true);
         generateButton.showTitleAsLabel(true);
 
@@ -563,7 +577,7 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
         };
         showSuggestionsButton.add(new VisibleBehaviour(() -> displayNoValuePanel()
                 && isShowSuggestionsButtonVisible()));
-        showSuggestionsButton.add(AttributeModifier.append("class", "mx-2 btn rounded bg-purple"));
+        showSuggestionsButton.add(AttributeModifier.append("class", "btn rounded bg-purple"));
         showSuggestionsButton.setOutputMarkupId(true);
         showSuggestionsButton.showTitleAsLabel(true);
 
@@ -655,7 +669,7 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
     }
 
     protected boolean isToggleSuggestionVisible() {
-        return getSwitchToggleModel().getObject().equals(Boolean.TRUE) && !displayNoValuePanel();
+        return !displayNoValuePanel();
     }
 
     protected IModel<Boolean> getSwitchToggleModel() {

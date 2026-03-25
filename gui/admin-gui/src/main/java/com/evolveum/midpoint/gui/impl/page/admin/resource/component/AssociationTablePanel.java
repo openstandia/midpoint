@@ -383,7 +383,7 @@ public abstract class AssociationTablePanel
         return associationDetailsPanel;
     }
 
-    protected void performOnDeleteSuggestion(
+    protected boolean performOnDeleteSuggestion(
             @NotNull PageBase pageBase,
             AjaxRequestTarget target,
             PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType> valueWrapper,
@@ -391,8 +391,32 @@ public abstract class AssociationTablePanel
         Task task = pageBase.createSimpleTask("delete suggestion");
         OperationResult result = task.getResult();
 
-        if (statusInfo != null) {
-            removeSuggestionValue(pageBase, target, valueWrapper, statusInfo, task, result);
+        return statusInfo != null && removeSuggestionValue(pageBase, target, valueWrapper, statusInfo, task, result);
+    }
+
+    @Override
+    public void deleteItemPerformed(
+            AjaxRequestTarget target,
+            List<PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType>> toDelete,
+            boolean refresh) {
+        if (toDelete == null || toDelete.isEmpty()) {
+            warn(createStringResource("MultivalueContainerListPanel.message.noItemsSelected").getString());
+            target.add(getPageBase().getFeedbackPanel());
+            return;
+        }
+
+        toDelete.forEach(value -> {
+            var statusInfo = getStatusInfoObject(value);
+            if (performOnDeleteSuggestion(getPageBase(), target, value, statusInfo)) {
+                return;
+            }
+
+            resolveDeletedItem(value);
+            value.setSelected(false);
+        });
+
+        if (refresh) {
+            refreshAndDetach(target);
         }
     }
 

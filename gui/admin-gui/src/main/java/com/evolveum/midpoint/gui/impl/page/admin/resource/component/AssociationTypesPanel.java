@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.gui.impl.page.admin.resource.component;
 
 import com.evolveum.midpoint.gui.api.model.LoadableModel;
+import com.evolveum.midpoint.gui.api.page.PageBase;
 import com.evolveum.midpoint.gui.api.prism.wrapper.*;
 import com.evolveum.midpoint.gui.api.util.WebComponentUtil;
 import com.evolveum.midpoint.gui.api.util.WebPrismUtil;
@@ -58,7 +59,6 @@ import java.util.*;
 
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationStatusInfoUtils.*;
 import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.*;
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationWrapperUtils.createNewItemContainerValueWrapper;
 
 @PanelType(name = "associationTypes")
 @PanelInstance(identifier = "associationTypes", applicableForType = ResourceType.class,
@@ -145,14 +145,9 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
             }
 
             @Override
-            protected List<ConfirmationOption<DataAccessPermission>> suggestionConfirmationOptions() {
-                return ConfirmationOption.delineationPermissionsOptions();
-            }
-
-            @Override
             protected void onSuggestNewPerformed(AjaxRequestTarget target,
                     IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
-                onSuggestValue(target, confirmedOptions);
+                onSuggestValue(target);
                 AssociationTypesPanel.this.restartTimer.accept(target);
                 refreshAndDetach(target);
             }
@@ -171,10 +166,15 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
             public void performAcceptOperationAction(
                     @NotNull AjaxRequestTarget target,
                     PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType> value) {
-                StatusInfo<?> statusInfo = getStatusInfoObject(value);
-                onAcceptValue(() -> value, target);
-                performOnDeleteSuggestion(getPageBase(), target, value, statusInfo);
-                refreshAndDetach(target);
+
+                PageBase pageBase = getPageBase();
+                onReviewValue(() -> value, target, getStatusInfoObject(value),
+                        ajaxRequestTarget -> performOnDeleteSuggestion(pageBase, ajaxRequestTarget,
+                                value, getStatusInfoObject(value)));
+//                StatusInfo<?> statusInfo = getStatusInfoObject(value);
+//                onAcceptValue(() -> value, target);
+//                performOnDeleteSuggestion(getPageBase(), target, value, statusInfo);
+//                refreshAndDetach(target);
             }
 
             @Override
@@ -270,8 +270,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
         }
     }
 
-    private void onSuggestValue(AjaxRequestTarget target,
-            IModel<List<ConfirmationOption<DataAccessPermission>>> confirmationOptions) {
+    private void onSuggestValue(AjaxRequestTarget target) {
         ResourceDetailsModel objectDetailsModels = getObjectDetailsModels();
         ResourceType resourceType = objectDetailsModels.getObjectType();
         Task task = getPageBase().createSimpleTask(OP_DETERMINE_STATUSES);
@@ -283,7 +282,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
     protected void onSuggestValue(
             IModel<PrismContainerWrapper<ShadowAssociationTypeDefinitionType>> newWrapperModel,
             AjaxRequestTarget target) {
-        onSuggestValue(target, Collections::emptyList);
+        onSuggestValue(target);
     }
 
     @Override
@@ -322,15 +321,38 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
                         containerModel.getObject().getPath(), postSaveHandler);
     }
 
+    //TODO
     protected void onAcceptValue(
             @NotNull IModel<PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType>> valueModel,
             AjaxRequestTarget target) {
         IModel<PrismContainerWrapper<ShadowAssociationTypeDefinitionType>> containerModel = createContainerModel();
-        PrismContainerValue<ShadowAssociationTypeDefinitionType> prismContainerValue =
-                prepareNewPrismContainerValue(valueModel, containerModel);
+        PrismContainerValue<ShadowAssociationTypeDefinitionType> prismContainerValue = prepareNewPrismContainerValue(valueModel, containerModel);
 
+        prismContainerValue.setId(null);
         prismContainerValue.setParent(containerModel.getObject().getItem());
-        createNewItemContainerValueWrapper(getPageBase(), prismContainerValue, containerModel.getObject(), target);
+//        WebPrismUtil.cleanupEmptyContainerValue(prismContainerValue);
+//        if (!containerModel.getObject().getItem().contains(prismContainerValue)) {
+//            try {
+//                containerModel.getObject().getItem().add(prismContainerValue);
+//            } catch (SchemaException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+
+        try {
+            PrismContainerWrapper<ShadowAssociationTypeDefinitionType> container =
+                    getObjectDetailsModels().getObjectWrapper().findContainer(getTypesContainerPath());
+            WebPrismUtil.addNewValueToContainer(
+                    container,
+                    prismContainerValue,
+                    getPageBase(),
+                    getObjectDetailsModels().createWrapperContext());
+        } catch (SchemaException e) {
+            throw new RuntimeException(e);
+        }
+
+//        prismContainerValue.setParent(containerModel.getObject().getItem());
+//        createNewItemContainerValueWrapper(getPageBase(), prismContainerValue, containerModel.getObject(), target);
     }
 
     protected PrismContainerValue<ShadowAssociationTypeDefinitionType> prepareNewPrismContainerValue(
@@ -377,9 +399,7 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
 
             @Override
             protected IModel<List<ConfirmationOption<DataAccessPermission>>> getConfirmationOptions() {
-                final List<ConfirmationOption<DataAccessPermission>> confirmationOptions =
-                        ConfirmationOption.delineationPermissionsOptions();
-                return () -> confirmationOptions;
+                return Collections::emptyList;
             }
 
             @Override
@@ -391,7 +411,14 @@ public class AssociationTypesPanel extends SchemaHandlingObjectsPanel<ShadowAsso
 
         aiPanel.setOutputMarkupId(true);
         aiPanel.setOutputMarkupPlaceholderTag(true);
-        aiPanel.add(new VisibleBehaviour(() -> getSwitchSuggestionModel().getObject() && !getTable().displayNoValuePanel()));
+        aiPanel.add(new VisibleBehaviour(() -> {
+            AssociationTablePanel table = getTableComponent();
+            if (table == null) {
+                return false;
+            }
+            return Boolean.TRUE.equals(getSwitchSuggestionModel().getObject())
+                    && !table.displayNoValuePanel();
+        }));
         return aiPanel;
     }
 

@@ -267,7 +267,8 @@ public class TestSmartIntegrationServiceStory extends AbstractEmptyModelIntegrat
                         new SiSuggestFocusTypeResponseType()
                                 .focusTypeName(UserType.COMPLEX_TYPE)));
         var focusTypeForPerson = smartIntegrationService
-                .suggestFocusType(RESOURCE_DUMMY_HR.oid, HR_PERSON, task, result)
+                .suggestFocusType(RESOURCE_DUMMY_HR.oid, HR_PERSON, List.of(DataAccessPermissionType.SCHEMA_ACCESS),
+                        task, result)
                 .getFocusType();
 
         then("the focus type for person is correct");
@@ -281,7 +282,8 @@ public class TestSmartIntegrationServiceStory extends AbstractEmptyModelIntegrat
                         new SiSuggestFocusTypeResponseType()
                                 .focusTypeName(OrgType.COMPLEX_TYPE)));
         var focusTypeForDepartment = smartIntegrationService
-                .suggestFocusType(RESOURCE_DUMMY_HR.oid, HR_DEPARTMENT, task, result)
+                .suggestFocusType(RESOURCE_DUMMY_HR.oid, HR_DEPARTMENT, List.of(DataAccessPermissionType.SCHEMA_ACCESS),
+                        task, result)
                 .getFocusType();
 
         then("the focus type for person is correct");
