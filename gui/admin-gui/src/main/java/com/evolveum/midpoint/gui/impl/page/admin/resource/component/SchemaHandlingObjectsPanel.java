@@ -136,14 +136,12 @@ public abstract class SchemaHandlingObjectsPanel<C extends Containerable> extend
             }
 
             @Override
-            protected AjaxIconButton createGenerateButton(String buttonId) {
+            protected @NotNull AjaxIconButton createGenerateButton(String buttonId) {
                 // We override this button, because we want to redirect to suggestion page without any confirmation
                 // dialog.
                 final AjaxIconButton generateButton = new AjaxIconButton(buttonId,
-                        () -> isSuggestionExists() ? "fa fa-arrows-rotate" : "mr-2 fa fa-wand-magic-sparkles",
-                        () -> isSuggestionExists()
-                                ? translate("SmartGeneratingPanel.button.ai.suggestions.refresh")
-                                : translate("SmartGeneratingPanel.button.ai.suggestions.suggest")) {
+                        Model.of("mr-2 fa fa-wand-magic-sparkles"),
+                        () -> translate("SmartGeneratingPanel.button.ai.suggestions.suggest")) {
 
                     @Override
                     public void onClick(AjaxRequestTarget target) {
@@ -171,7 +169,7 @@ public abstract class SchemaHandlingObjectsPanel<C extends Containerable> extend
         };
 
         aiPanel.setOutputMarkupId(true);
-        aiPanel.add(new VisibleBehaviour(switchSuggestion::getObject)); // Visible only when suggestions are enabled
+        aiPanel.add(new VisibleBehaviour(() -> getSwitchSuggestionModel().getObject() && !getTable().displayNoValuePanel()));
         return aiPanel;
     }
 

@@ -550,7 +550,7 @@ public abstract class ResourceObjectsPanel extends AbstractResourceObjectPanel {
         };
     }
 
-    private void showAssociationInboundWizard(PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType> associationWrapper, AjaxRequestTarget target) {
+    private void showAssociationInboundWizard(@NotNull PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType> associationWrapper, AjaxRequestTarget target) {
         ShadowAssociationTypeDefinitionType association = associationWrapper.getRealValue();
         if (association == null) {
             return;

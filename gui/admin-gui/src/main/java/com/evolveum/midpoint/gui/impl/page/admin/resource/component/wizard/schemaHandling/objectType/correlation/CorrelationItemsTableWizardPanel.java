@@ -183,6 +183,11 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
             }
 
             @Override
+            protected boolean isToggleSuggestionVisible() {
+                return super.isToggleSuggestionVisible() && !isAssociationView();
+            }
+
+            @Override
             protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
                 CorrelationItemsTableWizardPanel.this.buildSimulationResultPanel(target, simulationResultTypeIModel);
             }
@@ -206,7 +211,7 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
 
             @Override
             protected boolean isSuggestButtonVisible() {
-                return !isShowSuggestionsButtonVisible();
+                return !isAssociationView() && super.isSuggestButtonVisible();
             }
 
             @Override
@@ -223,7 +228,7 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
                 if (rowModel == null) {
                     PrismContainerValueWrapper<ItemsSubCorrelatorType> newValue = createNewItemsSubCorrelatorValue(
                             getPageBase(), null, target);
-                    showTableForItemRefs(target, this::findResourceObjectTypeDefinition, () -> newValue, null);
+                    showTableForItemRefs(target, this::findAssociatedParentContainerWrapper, () -> newValue, null);
                     return;
                 }
 
@@ -231,10 +236,10 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
                     PrismContainerValueWrapper<ItemsSubCorrelatorType> object = rowModel.getObject();
                     PrismContainerValueWrapper<ItemsSubCorrelatorType> newValue = createNewItemsSubCorrelatorValue(
                             getPageBase(), object.getNewValue(), target);
-                    showTableForItemRefs(target, this::findResourceObjectTypeDefinition, () -> newValue, null);
+                    showTableForItemRefs(target, this::findAssociatedParentContainerWrapper, () -> newValue, null);
                 }
 
-                showTableForItemRefs(target, this::findResourceObjectTypeDefinition, rowModel, null);
+                showTableForItemRefs(target, this::findAssociatedParentContainerWrapper, rowModel, null);
             }
 
             @Override
@@ -244,17 +249,26 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
                 if (rowModel.getObject() == null || rowModel.getObject().getRealValue() == null) {
                     return;
                 }
-                showTableForItemRefs(target, this::findResourceObjectTypeDefinition, rowModel, statusInfo);
+                showTableForItemRefs(target, this::findAssociatedParentContainerWrapper, rowModel, statusInfo);
             }
 
             @Override
             public void acceptSuggestionItemPerformed(AjaxRequestTarget target,
                     @NotNull IModel<PrismContainerValueWrapper<ItemsSubCorrelatorType>> rowModel,
                     StatusInfo<CorrelationSuggestionsType> statusInfo) {
-                PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> resourceObjectTypeDefinition =
-                        findResourceObjectTypeDefinition();
-                CorrelationItemsTableWizardPanel.this.acceptSuggestionItemPerformed(
-                        getPageBase(), target, rowModel, () -> resourceObjectTypeDefinition, statusInfo);
+
+                PrismContainerValueWrapper<? extends Containerable> parent = findAssociatedParentContainerWrapper();
+                if (parent == null || parent.getRealValue() == null) {
+                    return;
+                }
+
+                if (parent.getRealValue() instanceof ResourceObjectTypeDefinitionType) {
+                    @SuppressWarnings("unchecked")
+                    PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> rotWrapper =
+                            (PrismContainerValueWrapper<ResourceObjectTypeDefinitionType>) parent;
+                    CorrelationItemsTableWizardPanel.this.acceptSuggestionItemPerformed(
+                            getPageBase(), target, rowModel, () -> rotWrapper, statusInfo);
+                }
             }
 
             @Override
@@ -282,7 +296,7 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
                     StatusInfo<?> statusInfo) {
                 PrismContainerValueWrapper<ItemsSubCorrelatorType> newValue = createNewItemsSubCorrelatorValue(
                         getPageBase(), value, target);
-                showTableForItemRefs(target, this::findResourceObjectTypeDefinition,
+                showTableForItemRefs(target, this::findAssociatedParentContainerWrapper,
                         () -> newValue, (StatusInfo<CorrelationSuggestionsType>) statusInfo);
             }
         };
@@ -299,6 +313,10 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
             @Override
             protected void performSuggestOperation(AjaxRequestTarget target,
                     IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
+                final List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                        .map(ConfirmationOption::option)
+                        .map(DataAccessPermission::toSchemaType)
+                        .toList();
                 ResourceObjectTypeIdentification objectTypeIdentification = getResourceObjectTypeIdentification();
                 SmartIntegrationService service = getPageBase().getSmartIntegrationService();
                 getPageBase().taskAwareExecutor(target, OP_SUGGEST_CORRELATION_RULES)
@@ -306,7 +324,8 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
                                 .withHideSuccess(true)
                                 .withHideInProgress(true))
                         .runVoid((task, result) -> service
-                                .submitSuggestCorrelationOperation(resourceOid, objectTypeIdentification, task, result));
+                                .submitSuggestCorrelationOperation(resourceOid, objectTypeIdentification, permissions,
+                                        task, result));
             }
 
             @Override
@@ -448,9 +467,9 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
         return false;
     }
 
-    protected abstract void showTableForItemRefs(
+    protected abstract <C extends Containerable> void showTableForItemRefs(
             @NotNull AjaxRequestTarget target,
-            @NotNull IModel<PrismContainerValueWrapper<ResourceObjectTypeDefinitionType>> resourceObjectTypeDefinition,
+            @NotNull IModel<PrismContainerValueWrapper<C>> parentContainerDefWrapper,
             @NotNull IModel<PrismContainerValueWrapper<ItemsSubCorrelatorType>> rowModel,
             @Nullable StatusInfo<CorrelationSuggestionsType> statusInfo);
 
@@ -493,6 +512,10 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
 
     @Override
     protected void addCustomButtons(@NotNull RepeatingView buttons) {
+        if (isAssociationView()) {
+            return;
+        }
+
         SimulationActionTaskButton<?> simulationActionTaskButton = createSimulationMenuButton(buttons);
         buttons.add(simulationActionTaskButton);
     }
@@ -585,4 +608,9 @@ public abstract class CorrelationItemsTableWizardPanel extends AbstractResourceW
     protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
         // override in case of simulation result panel is needed
     }
+
+    protected boolean isAssociationView() {
+        return false;
+    }
+
 }

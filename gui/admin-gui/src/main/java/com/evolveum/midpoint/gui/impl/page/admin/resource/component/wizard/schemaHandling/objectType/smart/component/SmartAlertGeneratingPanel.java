@@ -10,6 +10,7 @@ import static com.evolveum.midpoint.gui.api.util.LocalizationUtil.translate;
 
 import java.io.Serial;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 import com.evolveum.midpoint.gui.api.model.LoadableModel;
@@ -237,7 +238,41 @@ public abstract class SmartAlertGeneratingPanel extends BasePanel<SmartGeneratin
     }
 
     protected AjaxIconButton createGenerateButton(String buttonId) {
-        final AjaxIconButton suggestButton = SmartSuggestButtonWithConfirmation.create(buttonId,
+        final AjaxIconButton suggestButton;
+        if (getConfirmationOptions().getObject().isEmpty()) {
+            suggestButton = buttonWithoutDialog(buttonId);
+            suggestButton.add(AttributeModifier.append("class", "btn, rounded, bg-purple"));
+        } else {
+            suggestButton = buttonWithDialog(buttonId);
+        }
+        suggestButton.add(AttributeModifier.append("class", "ml-auto"));
+        suggestButton.showTitleAsLabel(true);
+        suggestButton.add(new VisibleBehaviour(() -> getModelObject().isSuggestionButtonVisible()
+                || getModelObject().isRefreshButtonVisible()));
+        return suggestButton;
+    }
+
+    private AjaxIconButton buttonWithoutDialog(String buttonId) {
+        return new AjaxIconButton(buttonId,
+                () -> getModelObject().isSuggestionButtonVisible()
+                        ? "mr-2 fa fa-wand-magic-sparkles"
+                        : "fa fa-arrows-rotate",
+                () -> getModelObject().isSuggestionButtonVisible()
+                        ? translate("SmartGeneratingPanel.button.ai.suggestions.suggest")
+                        : translate("SmartGeneratingPanel.button.ai.suggestions.refresh")) {
+            @Override
+            public void onClick(AjaxRequestTarget target) {
+                if (SmartAlertGeneratingPanel.this.getModelObject().isSuggestionButtonVisible()) {
+                    generatePerformed(target, Collections::emptyList);
+                } else {
+                    regeneratePerformed(target, Collections::emptyList);
+                }
+            }
+        };
+    }
+
+    private @NotNull AjaxIconButton buttonWithDialog(String buttonId) {
+        return SmartSuggestButtonWithConfirmation.create(buttonId,
                 () -> getModelObject().isSuggestionButtonVisible()
                         ? translate("SmartGeneratingPanel.button.ai.suggestions.suggest")
                         : translate("SmartGeneratingPanel.button.ai.suggestions.refresh"),
@@ -250,11 +285,6 @@ public abstract class SmartAlertGeneratingPanel extends BasePanel<SmartGeneratin
                                 ? this::generatePerformed
                                 : this::regeneratePerformed),
                 getPageBase());
-        suggestButton.add(AttributeModifier.append("class", "ml-auto"));
-        suggestButton.showTitleAsLabel(true);
-        suggestButton.add(new VisibleBehaviour(() -> getModelObject().isSuggestionButtonVisible()
-                || getModelObject().isRefreshButtonVisible()));
-        return suggestButton;
     }
 
     /** Called when task finishes successfully. Default no-op. */

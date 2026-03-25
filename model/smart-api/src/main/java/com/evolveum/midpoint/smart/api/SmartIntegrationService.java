@@ -133,7 +133,12 @@ public interface SmartIntegrationService {
             ConfigurationException, ObjectNotFoundException;
 
     /** Submits "suggest object types" request. Returns a token used to query the status. */
-    String submitSuggestObjectTypesOperation(String resourceOid, QName objectClassName, Task task, OperationResult result)
+    String submitSuggestObjectTypesOperation(
+            String resourceOid,
+            QName objectClassName,
+            List<DataAccessPermissionType> permissions,
+            Task task,
+            OperationResult result)
             throws CommonException;
 
     /**
@@ -153,7 +158,7 @@ public interface SmartIntegrationService {
      * Submits "suggest focus type" request. Returns a token used to query the status.
      */
     String submitSuggestFocusTypeOperation(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult result)
+            String resourceOid, ResourceObjectTypeIdentification typeIdentification, List<DataAccessPermissionType> permissions, Task task, OperationResult result)
             throws CommonException;
 
     /**
@@ -181,15 +186,17 @@ public interface SmartIntegrationService {
 
     /** Suggests a discrete focus type for the application (resource) object type. */
     FocusTypeSuggestionType suggestFocusType(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult result)
+            String resourceOid, ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions, Task task, OperationResult result)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException;
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException;
 
     /** Suggests a discrete focus type for the application (resource) object type which is not yet defined in the resource. */
     FocusTypeSuggestionType suggestFocusType(
-            String resourceOid, ResourceObjectTypeDefinitionType typeDefBean, Task task, OperationResult result)
+            String resourceOid, ResourceObjectTypeDefinitionType typeDefBean,
+            List<DataAccessPermissionType> permissions, Task task, OperationResult result)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException;
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException;
 
     /**
      * Suggests correlation rules for the given resource object type and focus type.
@@ -216,7 +223,11 @@ public interface SmartIntegrationService {
      * Interaction metadata will be added later.
      */
     String submitSuggestCorrelationOperation(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult result)
+            String resourceOid,
+            ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions,
+            Task task,
+            OperationResult result)
             throws CommonException;
 
     /**

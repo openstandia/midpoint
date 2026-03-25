@@ -622,11 +622,11 @@ public abstract class AbstractPageObjectDetails<O extends ObjectType, ODM extend
         }
         //TODO force
         ////            if (!executeForceDelete(objectWrapper, task, options, result)) {
-////                result.recordFatalError(getString("pageUser.message.cantUpdateUser"), ex);
-////                LoggingUtils.logUnexpectedException(LOGGER, getString("pageUser.message.cantUpdateUser"), ex);
-////            } else {
-////                result.recomputeStatus();
-////            }
+        ////                result.recordFatalError(getString("pageUser.message.cantUpdateUser"), ex);
+        ////                LoggingUtils.logUnexpectedException(LOGGER, getString("pageUser.message.cantUpdateUser"), ex);
+        ////            } else {
+        ////                result.recomputeStatus();
+        ////            }
 
         //TODO this is just a quick hack.. for focus objects, feedback panel and results are processed by ProgressAware.finishProcessing()
 

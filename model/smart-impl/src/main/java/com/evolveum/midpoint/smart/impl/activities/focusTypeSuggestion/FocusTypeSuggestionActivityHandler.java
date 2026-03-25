@@ -85,11 +85,18 @@ public class FocusTypeSuggestionActivityHandler
         @Override
         protected @NotNull ActivityRunResult runLocally(OperationResult result) throws CommonException {
             var task = getRunningTask();
-            var resourceOid = getWorkDefinition().getResourceOid();
-            var typeIdentification = getWorkDefinition().getTypeIdentification();
+            var workDefinition = getWorkDefinition();
+            var resourceOid = workDefinition.getResourceOid();
+            var typeIdentification = workDefinition.getTypeIdentification();
+            var permissions = workDefinition.getPermissions();
+
+            if (!permissions.contains(DataAccessPermissionType.SCHEMA_ACCESS)) {
+                LOGGER.debug("Skipping focus type suggestion for {} - SCHEMA_ACCESS permission not granted", typeIdentification);
+                return ActivityRunResult.success();
+            }
 
             var focusTypeSuggestion = SmartIntegrationBeans.get().smartIntegrationService.suggestFocusType(
-                    resourceOid, typeIdentification, task, result);
+                    resourceOid, typeIdentification, permissions, task, result);
 
             var state = getActivityState();
             state.setWorkStateItemRealValues(FocusTypeSuggestionWorkStateType.F_RESULT, focusTypeSuggestion);

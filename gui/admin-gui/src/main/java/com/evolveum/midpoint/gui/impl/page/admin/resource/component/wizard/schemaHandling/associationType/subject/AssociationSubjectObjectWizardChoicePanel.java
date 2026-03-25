@@ -11,22 +11,21 @@ import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.gui.impl.component.wizard.WizardPanelHelper;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.ResourceDetailsModel;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.ResourceWizardChoicePanel;
-
-import com.evolveum.midpoint.xml.ns._public.common.common_3.ShadowAssociationTypeSubjectDefinitionType;
+import com.evolveum.midpoint.xml.ns._public.common.common_3.ShadowAssociationTypeDefinitionType;
 
 import org.apache.wicket.behavior.AttributeAppender;
 import org.apache.wicket.model.IModel;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class AssociationSubjectWizardChoicePanel
-        extends ResourceWizardChoicePanel<AssociationSubjectWizardChoicePanel.AssociationSubjectPreviewTileType> {
+public abstract class AssociationSubjectObjectWizardChoicePanel
+        extends ResourceWizardChoicePanel<AssociationSubjectObjectWizardChoicePanel.AssociationSubjectObjectPreviewTileType> {
 
-    private final WizardPanelHelper<ShadowAssociationTypeSubjectDefinitionType, ResourceDetailsModel> helper;
+    private final WizardPanelHelper<ShadowAssociationTypeDefinitionType, ResourceDetailsModel> helper;
 
-    public AssociationSubjectWizardChoicePanel(
+    public AssociationSubjectObjectWizardChoicePanel(
             String id,
-            WizardPanelHelper<ShadowAssociationTypeSubjectDefinitionType, ResourceDetailsModel> helper) {
-        super(id, helper.getDetailsModel(), AssociationSubjectPreviewTileType.class);
+            @NotNull WizardPanelHelper<ShadowAssociationTypeDefinitionType, ResourceDetailsModel> helper) {
+        super(id, helper.getDetailsModel(), AssociationSubjectObjectPreviewTileType.class);
         this.helper = helper;
     }
 
@@ -36,15 +35,14 @@ public abstract class AssociationSubjectWizardChoicePanel
         add(AttributeAppender.append("class", "col-xxl-8 col-10 gap-3 m-auto"));
     }
 
-    public enum AssociationSubjectPreviewTileType implements TileEnum {
+    public enum AssociationSubjectObjectPreviewTileType implements TileEnum {
 
         OBJECTS("fa fa-circle"),
-        INBOUND("fa fa-arrow-right-to-bracket"),
-        OUTBOUND("fa fa-arrow-right-from-bracket");
+        SUBJECTS("fa fa-users");
 
         private final String icon;
 
-        AssociationSubjectPreviewTileType(String icon) {
+        AssociationSubjectObjectPreviewTileType(String icon) {
             this.icon = icon;
         }
 
@@ -74,7 +72,7 @@ public abstract class AssociationSubjectWizardChoicePanel
         return true;
     }
 
-    protected IModel<PrismContainerValueWrapper<ShadowAssociationTypeSubjectDefinitionType>> getValueModel() {
+    protected IModel<PrismContainerValueWrapper<ShadowAssociationTypeDefinitionType>> getValueModel() {
         return helper.getValueModel();
     }
 

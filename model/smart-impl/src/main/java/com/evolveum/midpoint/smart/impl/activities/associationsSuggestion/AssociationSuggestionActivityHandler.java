@@ -107,6 +107,7 @@ public class AssociationSuggestionActivityHandler
                     SmartIntegrationBeans.get().smartIntegrationService.suggestAssociations(resourceOid, isInbound, task, result);
 
             var state = getActivityState();
+
             state.setWorkStateItemRealValues(
                     AssociationSuggestionWorkStateType.F_RESULT, suggestedAssociations);
             state.flushPendingTaskModifications(result);

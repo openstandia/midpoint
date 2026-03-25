@@ -128,15 +128,21 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
             return;
         }
 
-        if (confirmedOptions.getObject().size() != 2) {
+        List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                .map(ConfirmationOption::option)
+                .map(DataAccessPermission::toSchemaType)
+                .toList();
+        if (!permissions.contains(DataAccessPermissionType.SCHEMA_ACCESS) ||
+                !permissions.contains(DataAccessPermissionType.STATISTICS_ACCESS)) {
             result.recordFatalError("Unable to suggest object types without permissions to access schema and "
                     + "statistics");
             getPageBase().showResult(result);
             target.add(getPageBase().getFeedbackPanel(), SmartObjectTypeSuggestionWizardPanel.this);
             return;
         }
+
         boolean executed = runSuggestionAction(
-                getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task);
+                getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task, permissions);
 
         result.computeStatusIfUnknown();
 

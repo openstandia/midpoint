@@ -42,17 +42,9 @@ public class OtpServiceFactoryImpl implements OtpServiceFactory {
         Integer window = config.getWindow();
 
         if (config instanceof TOtpAuthenticationModuleType totp) {
-            return new TOtpServiceImpl(
-                    clock,
-                    issuer,
-                    algorithm,
-                    secretLength,
-                    digits,
-                    window,
-                    totp.getPeriod()
-            );
-        } else {
-            throw new IllegalArgumentException("Unsupported OTP type: " + config.getClass());
+            return new TOtpServiceImpl(clock, issuer, algorithm, secretLength, digits, window, totp.getPeriod());
         }
+
+        throw new IllegalArgumentException("Unsupported OTP type: " + config.getClass());
     }
 }
