@@ -100,12 +100,10 @@ public abstract class SmartAlertGeneratingPanel extends BasePanel<SmartGeneratin
 
         initButtons(alertContainer);
 
-        Label suggestionInfo = new Label(ID_SUGGESTION_INFO,
-                LoadableDetachableModel.of(() -> createStringResource(
-                        "SmartGeneratingPanel.suggestion.last.update.info",
-                        getModelObject().getLastUpdatedDate()).getString()));
-        suggestionInfo.setOutputMarkupId(true);
-        suggestionInfo.add(new VisibleBehaviour(() -> getModelObject().getLastUpdatedDate() != null));
+        TimerProgressPanel suggestionInfo = new TimerProgressPanel(ID_SUGGESTION_INFO,
+                () -> getModelObject().getSuggestedObjectsStartTime(),
+                () -> getModelObject().getSuggestedObjectsEndTime());
+        suggestionInfo.add(new VisibleBehaviour(() -> getModelObject().suggestionExists()));
         alertContainer.add(suggestionInfo);
 
         initAjaxTimeBehaviour(alertContainer);
@@ -280,7 +278,8 @@ public abstract class SmartAlertGeneratingPanel extends BasePanel<SmartGeneratin
                         ? "mr-2 fa fa-wand-magic-sparkles"
                         : "fa fa-arrows-rotate",
                 getConfirmationOptions().getObject(),
-                () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
+                () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {
+                },
                         getModelObject().isSuggestionButtonVisible()
                                 ? this::generatePerformed
                                 : this::regeneratePerformed),
