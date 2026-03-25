@@ -37,6 +37,7 @@ import com.evolveum.midpoint.gui.impl.page.admin.certification.helpers.Available
 import com.evolveum.midpoint.gui.impl.page.admin.certification.helpers.CertMiscUtil;
 import com.evolveum.midpoint.gui.impl.util.IconAndStylesUtil;
 import com.evolveum.midpoint.model.api.authentication.CompiledObjectCollectionView;
+import com.evolveum.midpoint.prism.PrismConstants;
 import com.evolveum.midpoint.prism.PrismContext;
 import com.evolveum.midpoint.prism.query.ObjectQuery;
 import com.evolveum.midpoint.schema.GetOperationOptions;
@@ -230,18 +231,18 @@ public class CertificationWorkItemTable extends ContainerableListPanel<AccessCer
         if (isMyCertItems()) {
             principal = getPageBase().getPrincipal();
         }
+        boolean collectDecisionsFromAllReviewers = CertMiscUtil.isCollectDecisionsFromAllReviewers(getPageBase());
         if (StringUtils.isNotEmpty(getCampaignOid())) {
-            return QueryUtils.createQueryForOpenWorkItemsForCampaigns(Collections.singletonList(getCampaignOid()),
-                    principal, false);
-            //todo change to this query later to avoid duplicated filters
-//            query = getPageBase().getPrismContext().queryFor(AccessCertificationWorkItemType.class)
-//                    .ownerId(getCampaignOid())
-//                    .build();
+            query = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
+                    .exists(PrismConstants.T_PARENT)
+                    .ownerId(getCampaignOid())
+                    .build();
+            return QueryUtils.createQueryForOpenWorkItems(query, principal, false, collectDecisionsFromAllReviewers);
         } else {
             query = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
                     .build();
         }
-        return QueryUtils.createQueryForOpenWorkItems(query, principal, false);
+        return QueryUtils.createQueryForOpenWorkItems(query, principal, false, collectDecisionsFromAllReviewers);
     }
 
     protected boolean isMyCertItems() {

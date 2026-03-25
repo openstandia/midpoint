@@ -347,9 +347,9 @@ public class CertificationItemsPanel extends BasePanel<String> {
 
                     @Override
                     public String getObject() {
-                        float openNotDecidedItemCount = CertMiscUtil.countOpenCertItems(campaignsOids,
+                        float openNotDecidedItemCount = CertMiscUtil.countOpenCertItemsUnified(campaignsOids,
                                 getPrincipalAsReviewer(), true, getPageBase());
-                        float allOpenItemCount = CertMiscUtil.countOpenCertItems(campaignsOids,
+                        float allOpenItemCount = CertMiscUtil.countOpenCertItemsUnified(campaignsOids,
                                 getPrincipalAsReviewer(), false, getPageBase());
                         float decidedOpenItems = allOpenItemCount - openNotDecidedItemCount;
                         if (allOpenItemCount == 0 || decidedOpenItems == 0) {

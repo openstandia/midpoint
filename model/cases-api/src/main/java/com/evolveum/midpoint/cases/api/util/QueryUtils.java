@@ -248,9 +248,9 @@ public class QueryUtils {
             filter = reviewerAndEnabledFilter;
         }
 
-        // If collectDecisionsFromAllReviewers is false, only show work items where the parent case
-        // has not been decided yet (currentStageOutcome is NO_RESPONSE)
-        if (!collectDecisionsFromAllReviewers) {
+        // If collectDecisionsFromAllReviewers is false and showing only not-decided items,
+        // hide work items where the parent case has already been decided by another reviewer
+        if (!collectDecisionsFromAllReviewers && notDecidedOnly) {
             ObjectFilter caseNotDecidedFilter = PrismContext.get().queryFor(AccessCertificationWorkItemType.class)
                     .exists(PrismConstants.T_PARENT)
                     .block()
