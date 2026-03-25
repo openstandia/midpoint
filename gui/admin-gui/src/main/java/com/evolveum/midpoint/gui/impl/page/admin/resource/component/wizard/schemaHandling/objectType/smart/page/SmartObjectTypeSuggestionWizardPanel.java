@@ -6,6 +6,25 @@
  */
 package com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.page;
 
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationStatusInfoUtils.loadObjectClassObjectTypeSuggestions;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.removeObjectTypeSuggestionNew;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.removeWholeTaskObject;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.runSuggestionAction;
+import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationWrapperUtils.processSuggestedContainerValue;
+
+import java.util.List;
+import javax.xml.namespace.QName;
+
+import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
+
+import org.apache.wicket.AttributeModifier;
+import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.markup.repeater.RepeatingView;
+import org.apache.wicket.model.IModel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.evolveum.midpoint.gui.api.GuiStyleConstants;
 import com.evolveum.midpoint.gui.api.page.PageBase;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerValueWrapper;
 import com.evolveum.midpoint.gui.api.prism.wrapper.PrismContainerWrapper;
@@ -13,33 +32,20 @@ import com.evolveum.midpoint.gui.api.util.WebPrismUtil;
 import com.evolveum.midpoint.gui.impl.component.wizard.AbstractWizardPanel;
 import com.evolveum.midpoint.gui.impl.component.wizard.WizardPanelHelper;
 import com.evolveum.midpoint.gui.impl.page.admin.resource.ResourceDetailsModel;
-import com.evolveum.midpoint.prism.*;
+import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.component.SmartSuggestButtonWithConfirmation;
+import com.evolveum.midpoint.prism.PrismContainerValue;
 import com.evolveum.midpoint.prism.path.ItemPath;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.smart.api.info.StatusInfo;
 import com.evolveum.midpoint.task.api.Task;
-import com.evolveum.midpoint.web.component.dialog.DataAccessPermission;
-import com.evolveum.midpoint.web.component.dialog.RequestDetailsConfirmationPanel;
-import com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto;
+import com.evolveum.midpoint.util.exception.SystemException;
+import com.evolveum.midpoint.web.component.AjaxIconButton;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationOption;
+import com.evolveum.midpoint.web.component.dialog.privacy.DataAccessPermission;
+import com.evolveum.midpoint.web.component.input.ButtonWithConfirmationOptionsDialog;
 import com.evolveum.midpoint.web.component.util.SerializableConsumer;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
-
 import com.evolveum.midpoint.xml.ns._public.prism_schema_3.ComplexTypeDefinitionType;
-
-import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.Model;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.xml.namespace.QName;
-
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationStatusInfoUtils.loadObjectClassObjectTypeSuggestions;
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.*;
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationWrapperUtils.processSuggestedContainerValue;
-import static com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto.initDummyObjectTypePermissionData;
-
-import java.util.List;
 
 public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<ResourceObjectTypeDefinitionType, ResourceDetailsModel> {
 
@@ -62,11 +68,10 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
         return new ResourceObjectClassTableWizardPanel<>(idOfChoicePanel, getHelper()) {
 
             @Override
-            protected void onContinueWithSelected(
-                    IModel<PrismContainerValueWrapper<ComplexTypeDefinitionType>> model,
+            protected void onContinueWithSelected(IModel<PrismContainerValueWrapper<ComplexTypeDefinitionType>> model,
                     AjaxRequestTarget target) {
-                var complexTypeDef = model.getObject().getRealValue();
-                proceedToSuggestionConfirmationPanel(getPageBase(), target, complexTypeDef);
+                // We have our own "submit" button bellow, so this should not be called.
+                throw new SystemException("Unexpected method was called.");
             }
 
             @Override
@@ -74,28 +79,81 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
                 removeLastBreadcrumb();
                 SmartObjectTypeSuggestionWizardPanel.this.onExitPerformed(target);
             }
+
+            @Override
+            protected boolean isSubmitButtonVisible() {
+                // Do not show the "submit" button defined in base classes.
+                return false;
+            }
+
+            @Override
+            protected void addCustomButtons(RepeatingView buttons) {
+                AjaxIconButton generateButton = buildGenerateSuggestionButton(buttons);
+                generateButton.add(new VisibleBehaviour(() -> !hasValidSuggestions(selectedModel.getObject())));
+                buttons.add(generateButton);
+
+                AjaxIconButton showSuggestionButton = buildShowSuggestionButton(buttons);
+                showSuggestionButton.add(new VisibleBehaviour(() -> hasValidSuggestions(selectedModel.getObject())));
+                buttons.add(showSuggestionButton);
+            }
+
+            private @NotNull AjaxIconButton buildGenerateSuggestionButton(@NotNull RepeatingView buttons) {
+                AjaxIconButton generateButton = SmartSuggestButtonWithConfirmation.create(buttons.newChildId(),
+                        createStringResource("ResourceObjectClassTableWizardPanel.saveButton"),
+                        () -> GuiStyleConstants.CLASS_MAGIC_WAND,
+                        ConfirmationOption.delineationPermissionsOptions(),
+                        () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {
+                        },
+                                (target, confirmedOptions) -> {
+                                    final QName objectClassName = selectedModel.getObject().getRealValue().getName();
+                                    processSuggestionActivity(target, objectClassName, false, confirmedOptions);
+                                }),
+                        getPageBase());
+
+                generateButton.setOutputMarkupId(true);
+                generateButton.showTitleAsLabel(true);
+                return generateButton;
+            }
+
+            private @NotNull AjaxIconButton buildShowSuggestionButton(@NotNull RepeatingView buttons) {
+                AjaxIconButton showSuggestionButton = new AjaxIconButton(
+                        buttons.newChildId(),
+                        () -> GuiStyleConstants.CLASS_ICON_PREVIEW,
+                        createStringResource("SmartObjectTypeSuggestionWizardPanel.showSuggestion")) {
+                    @Override
+                    public void onClick(AjaxRequestTarget target) {
+                        PrismContainerValueWrapper<ComplexTypeDefinitionType> selected = selectedModel.getObject();
+                        QName objectClassName = selected.getRealValue().getName();
+                        clearPageFeedback(target);
+                        showChoiceFragment(target,
+                                buildSelectSuggestedObjectTypeWizardPanel(getIdOfChoicePanel(), objectClassName));
+                    }
+                };
+                showSuggestionButton.setOutputMarkupId(true);
+                showSuggestionButton.showTitleAsLabel(true);
+                showSuggestionButton.add(AttributeModifier.replace("class", "btn btn-primary"));
+                return showSuggestionButton;
+            }
         };
     }
 
-    private void proceedToSuggestionConfirmationPanel(@NotNull PageBase pageBase, AjaxRequestTarget target, ComplexTypeDefinitionType complexTypeDef) {
-        RequestDetailsConfirmationPanel<DataAccessPermission> dialog = new RequestDetailsConfirmationPanel<>(
-                getPageBase().getMainPopupBodyId(),
-                Model.of(new RequestDetailsRecordDto<>(null, initDummyObjectTypePermissionData()))) {
+    private boolean hasValidSuggestions(@NotNull PrismContainerValueWrapper<ComplexTypeDefinitionType> selectedObject) {
+        QName objectClassName = selectedObject.getRealValue().getName();
+        String resourceOid = getAssignmentHolderModel().getObjectType().getOid();
+        Task task = getPageBase().createSimpleTask(OP_DETERMINE_STATUS);
+        OperationResult result = task.getResult();
 
-            @Override
-            public void yesPerformed(AjaxRequestTarget target,
-                    IModel<List<RequestDetailsRecordDto.RequestRecord<DataAccessPermission>>> confirmedOptions) {
-                processSuggestionActivity(target, complexTypeDef.getName(), false, confirmedOptions);
-            }
-        };
-        pageBase.showMainPopup(dialog, target);
+        StatusInfo<ObjectTypesSuggestionType> suggestions = loadObjectClassObjectTypeSuggestions(
+                getPageBase(), resourceOid, objectClassName, task, result);
+
+        return isSuccessfulSuggestion(suggestions);
     }
 
     /**
      * Processes the suggestion activity for the given object class name.
      */
     private void processSuggestionActivity(AjaxRequestTarget target, QName objectClassName, boolean resetSuggestion,
-            IModel<List<RequestDetailsRecordDto.RequestRecord<DataAccessPermission>>> confirmedOptions) {
+            IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
         String resourceOid = getAssignmentHolderModel().getObjectType().getOid();
         Task task = getPageBase().createSimpleTask(OP_DETERMINE_STATUS);
         OperationResult result = task.getResult();
@@ -116,15 +174,21 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
             return;
         }
 
-        if (confirmedOptions.getObject().size() != 2) {
+        List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                .map(ConfirmationOption::option)
+                .map(DataAccessPermission::toSchemaType)
+                .toList();
+        if (!permissions.contains(DataAccessPermissionType.SCHEMA_ACCESS) ||
+                !permissions.contains(DataAccessPermissionType.STATISTICS_ACCESS)) {
             result.recordFatalError("Unable to suggest object types without permissions to access schema and "
                     + "statistics");
             getPageBase().showResult(result);
             target.add(getPageBase().getFeedbackPanel(), SmartObjectTypeSuggestionWizardPanel.this);
             return;
         }
+
         boolean executed = runSuggestionAction(
-                getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task);
+                getPageBase(), resourceOid, objectClassName, target, OP_DEFINE_TYPES, task, permissions);
 
         result.computeStatusIfUnknown();
 
@@ -197,7 +261,7 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
                     @NotNull AjaxRequestTarget target) {
                 PageBase pageBase = getPageBase();
 
-                ResourceObjectTypeDefinitionType suggestedObjectTypeDef =  model.getObject().getRealValue();
+                ResourceObjectTypeDefinitionType suggestedObjectTypeDef = model.getObject().getRealValue();
 
                 PrismContainerValue<ResourceObjectTypeDefinitionType> original =
                         newValue.clone();
@@ -214,12 +278,10 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
             }
 
             @Override
-            public void refreshSuggestionPerform(AjaxRequestTarget target) {
+            public void refreshSuggestionPerform(AjaxRequestTarget target,
+                    IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
                 removeLastBreadcrumb();
-                final List<RequestDetailsRecordDto.RequestRecord<DataAccessPermission>> requestRecords =
-                        initDummyObjectTypePermissionData();
-                processSuggestionActivity(target, objectClassName, true,
-                        () -> requestRecords);
+                processSuggestionActivity(target, objectClassName, true, confirmedOptions);
             }
 
             @Override

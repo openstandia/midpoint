@@ -43,6 +43,7 @@ import com.evolveum.midpoint.schema.constants.SchemaConstants;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.schema.util.Resource;
+import com.evolveum.midpoint.smart.api.InsufficientPermissionsException;
 import com.evolveum.midpoint.smart.api.ServiceClientFactory;
 import com.evolveum.midpoint.smart.api.SmartIntegrationService;
 import com.evolveum.midpoint.smart.api.info.StatusInfo;
@@ -345,25 +346,28 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
 
     @Override
     public String submitSuggestObjectTypesOperation(
-            String resourceOid, QName objectClassName, Task task, OperationResult parentResult)
+            String resourceOid, QName objectClassName, List<DataAccessPermissionType> permissions,
+            Task task, OperationResult parentResult)
             throws CommonException {
         var result = parentResult.subresult(OP_SUBMIT_SUGGEST_OBJECT_TYPES_OPERATION)
                 .addParam("resourceOid", resourceOid)
                 .addParam("objectClassName", objectClassName)
                 .build();
         try {
+            var workDef = new ObjectTypesSuggestionWorkDefinitionType()
+                    .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
+                    .objectclass(objectClassName);
+            workDef.getPermissions().addAll(permissions);
             var oid = modelInteractionService.submit(
                     new ActivityDefinitionType()
                             .work(new WorkDefinitionsType()
-                                    .objectTypesSuggestion(new ObjectTypesSuggestionWorkDefinitionType()
-                                            .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
-                                            .objectclass(objectClassName))),
+                                    .objectTypesSuggestion(workDef)),
                     ActivitySubmissionOptions.create().withTaskTemplate(new TaskType()
                             .name("Suggest object types for " + objectClassName.getLocalPart() + " on " + resourceOid)
                             .cleanupAfterCompletion(AUTO_CLEANUP_TIME)),
                     task, result);
-            LOGGER.debug("Submitted suggest object types operation for resourceOid {}, objectClassName {}: {}",
-                    resourceOid, objectClassName, oid);
+            LOGGER.debug("Submitted suggest object types operation for resourceOid {}, objectClassName {}, permissions {}: {}",
+                    resourceOid, objectClassName, permissions, oid);
             return oid;
         } catch (Throwable t) {
             result.recordException(t);
@@ -442,6 +446,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
     public String submitSuggestFocusTypeOperation(
             String resourceOid,
             ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions,
             Task task,
             OperationResult parentResult) throws CommonException {
         var result = parentResult.subresult(OP_SUBMIT_SUGGEST_FOCUS_TYPE_OPERATION)
@@ -449,13 +454,15 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
                 .addParam("typeIdentification", typeIdentification)
                 .build();
         try {
+            var workDef = new FocusTypeSuggestionWorkDefinitionType()
+                    .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
+                    .kind(typeIdentification.getKind())
+                    .intent(typeIdentification.getIntent());
+            workDef.getPermissions().addAll(permissions);
             var oid = modelInteractionService.submit(
                     new ActivityDefinitionType()
                             .work(new WorkDefinitionsType()
-                                    .focusTypeSuggestion(new FocusTypeSuggestionWorkDefinitionType()
-                                            .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
-                                            .kind(typeIdentification.getKind())
-                                            .intent(typeIdentification.getIntent()))),
+                                    .focusTypeSuggestion(workDef)),
                     ActivitySubmissionOptions.create().withTaskTemplate(new TaskType()
                             .name("Suggest focus type for " + typeIdentification + " on " + resourceOid)
                             .cleanupAfterCompletion(AUTO_CLEANUP_TIME)),
@@ -552,9 +559,10 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
 
     @Override
     public FocusTypeSuggestionType suggestFocusType(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult parentResult)
+            String resourceOid, ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions, Task task, OperationResult parentResult)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException {
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException {
         LOGGER.debug("Suggesting focus type for resourceOid {}, typeIdentification {}", resourceOid, typeIdentification);
         var result = parentResult.subresult(OP_SUGGEST_FOCUS_TYPE)
                 .addParam("resourceOid", resourceOid)
@@ -564,7 +572,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
             try (var serviceClient = this.clientFactory.getServiceClient(result)) {
                 var suggestion = new FocusTypeSuggestionOperation(
                         TypeOperationContext.init(serviceClient, resourceOid, typeIdentification, null, task, result))
-                        .suggestFocusType();
+                        .suggestFocusType(permissions);
                 LOGGER.debug("Suggested focus type: {}", suggestion.getFocusType());
                 return suggestion;
             }
@@ -578,9 +586,10 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
 
     @Override
     public FocusTypeSuggestionType suggestFocusType(
-            String resourceOid, ResourceObjectTypeDefinitionType typeDefBean, Task task, OperationResult parentResult)
+            String resourceOid, ResourceObjectTypeDefinitionType typeDefBean,
+            List<DataAccessPermissionType> permissions, Task task, OperationResult parentResult)
             throws SchemaException, ExpressionEvaluationException, SecurityViolationException, CommunicationException,
-            ConfigurationException, ObjectNotFoundException {
+            ConfigurationException, ObjectNotFoundException, InsufficientPermissionsException {
         LOGGER.debug("Suggesting focus type for resourceOid {}, typeDefinition {}", resourceOid, typeDefBean);
         var result = parentResult.subresult(OP_SUGGEST_FOCUS_TYPE)
                 .addParam("resourceOid", resourceOid)
@@ -590,7 +599,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
             try (var serviceClient = this.clientFactory.getServiceClient(result)) {
                 var suggestion = new FocusTypeSuggestionOperation(
                         OperationContext.init(serviceClient, resourceOid, typeDefBean.getDelineation().getObjectClass(), task, result))
-                        .suggestFocusType(typeDefBean);
+                        .suggestFocusType(typeDefBean, permissions);
                 LOGGER.debug("Suggested focus type: {}", suggestion.getFocusType());
                 return suggestion;
             }
@@ -666,25 +675,29 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
 
     @Override
     public String submitSuggestCorrelationOperation(
-            String resourceOid, ResourceObjectTypeIdentification typeIdentification, Task task, OperationResult parentResult)
+            String resourceOid, ResourceObjectTypeIdentification typeIdentification,
+            List<DataAccessPermissionType> permissions,
+            Task task, OperationResult parentResult)
             throws CommonException {
         var result = parentResult.subresult(OP_SUBMIT_SUGGEST_CORRELATION_OPERATION)
                 .addParam("resourceOid", resourceOid)
                 .addParam("typeIdentification", typeIdentification)
                 .build();
         try {
+            var workDef = new CorrelationSuggestionWorkDefinitionType()
+                    .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
+                    .objectType(typeIdentification.asBean());
+            workDef.getPermissions().addAll(permissions);
             var oid = modelInteractionService.submit(
                     new ActivityDefinitionType()
                             .work(new WorkDefinitionsType()
-                                    .correlationSuggestion(new CorrelationSuggestionWorkDefinitionType()
-                                            .resourceRef(resourceOid, ResourceType.COMPLEX_TYPE)
-                                            .objectType(typeIdentification.asBean()))),
+                                    .correlationSuggestion(workDef)),
                     ActivitySubmissionOptions.create().withTaskTemplate(new TaskType()
                             .name("Suggest correlation for " + typeIdentification + " on " + resourceOid)
                             .cleanupAfterCompletion(AUTO_CLEANUP_TIME)),
                     task, result);
-            LOGGER.debug("Submitted suggest correlation operation for resourceOid {}, object type {}: {}",
-                    resourceOid, typeIdentification, oid);
+            LOGGER.debug("Submitted suggest correlation operation for resourceOid {}, object type {}, permissions {}: {}",
+                    resourceOid, typeIdentification, permissions, oid);
             return oid;
         } catch (Throwable t) {
             result.recordException(t);

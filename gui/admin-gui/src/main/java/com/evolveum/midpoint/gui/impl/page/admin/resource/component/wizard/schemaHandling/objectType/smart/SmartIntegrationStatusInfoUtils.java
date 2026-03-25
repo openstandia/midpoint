@@ -742,6 +742,11 @@ public class SmartIntegrationStatusInfoUtils {
                 return;
             }
 
+            if(si.getStatus() == OperationResultStatusType.SUCCESS
+                    && (si.getResult() == null || si.getResult().getObjectType().isEmpty())) {
+                return;
+            }
+
             if (si.getResult() == null) {
                 ObjectTypesSuggestionType tmp = new ObjectTypesSuggestionType();
                 tmp.getObjectType().add(new ResourceObjectTypeDefinitionType());
@@ -786,6 +791,11 @@ public class SmartIntegrationStatusInfoUtils {
         suggestions.stream().filter(Objects::nonNull).forEach(si -> {
             AssociationsSuggestionType suggestion = si.getResult();
             if (si.getStatus() == OperationResultStatusType.NOT_APPLICABLE) {
+                return;
+            }
+
+            if(si.getStatus() == OperationResultStatusType.SUCCESS
+                    && (si.getResult() == null || si.getResult().getAssociation().isEmpty())) {
                 return;
             }
 

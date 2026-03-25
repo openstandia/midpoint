@@ -10530,6 +10530,13 @@
                             </xsd:documentation>
                         </xsd:annotation>
                     </xsd:element>
+                    <xsd:element name="permissions" type="c:DataAccessPermissionType" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Data access permissions given to the suggest task.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
                 </xsd:sequence>
             </xsd:extension>
         </xsd:complexContent>
@@ -10576,6 +10583,14 @@
                                 <a:displayName>ObjectTypesSuggestionWorkDefinitionType.statisticsRef</a:displayName>
                                 <a:objectReferenceTargetType>c:GenericObjectType</a:objectReferenceTargetType> <!-- temporary -->
                             </xsd:appinfo>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="permissions" type="c:DataAccessPermissionType" minOccurs="0"
+                                 maxOccurs="unbounded">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Data access permissions given to the suggest task.
+                            </xsd:documentation>
                         </xsd:annotation>
                     </xsd:element>
                 </xsd:sequence>
@@ -10680,6 +10695,14 @@
                             <xsd:documentation>
                                 Focus item paths that should be ignored when generating correlation suggestions.
                                 Any correlation whose target resolves to one of these paths will not be suggested.
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                    <xsd:element name="permissions" type="c:DataAccessPermissionType" minOccurs="0"
+                                 maxOccurs="unbounded">
+                        <xsd:annotation>
+                            <xsd:documentation>
+                                Data access permissions given to the suggest task.
                             </xsd:documentation>
                         </xsd:annotation>
                     </xsd:element>

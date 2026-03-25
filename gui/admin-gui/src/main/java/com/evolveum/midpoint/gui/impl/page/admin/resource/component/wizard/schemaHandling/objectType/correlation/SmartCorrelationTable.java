@@ -38,8 +38,9 @@ import com.evolveum.midpoint.util.exception.SchemaException;
 import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.data.column.ColumnMenuAction;
-import com.evolveum.midpoint.web.component.dialog.DataAccessPermission;
-import com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationOption;
+import com.evolveum.midpoint.web.component.dialog.ConfirmationWithOptionsDto;
+import com.evolveum.midpoint.web.component.dialog.privacy.DataAccessPermission;
 import com.evolveum.midpoint.web.component.menu.cog.ButtonInlineMenuItem;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItem;
 import com.evolveum.midpoint.web.component.menu.cog.InlineMenuItemAction;
@@ -74,7 +75,7 @@ import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizar
 import static com.evolveum.midpoint.gui.impl.page.admin.simulation.SimulationsGuiUtil.loadSimulationResult;
 import static com.evolveum.midpoint.gui.impl.page.admin.simulation.wizard.ResourceSimulationTaskWizardPanel.getSimulationResultReference;
 import static com.evolveum.midpoint.gui.impl.util.StatusInfoTableUtil.*;
-import static com.evolveum.midpoint.web.component.dialog.RequestDetailsRecordDto.initDummyCorrelationPermissionData;
+import static com.evolveum.midpoint.web.component.dialog.ConfirmationOption.correlationPermissionsOptions;
 
 /**
  * Multi-select tile table for correlation items.
@@ -105,10 +106,16 @@ public abstract class SmartCorrelationTable
     }
 
     @Override
-    protected IModel<RequestDetailsRecordDto<DataAccessPermission>> buildSmartPermissionRecordDto() {
-        final RequestDetailsRecordDto<DataAccessPermission> dataAccessPermissionRequestDetailsRecordDto =
-                new RequestDetailsRecordDto<>(null, initDummyCorrelationPermissionData());
-        return () -> dataAccessPermissionRequestDetailsRecordDto;
+    protected IModel<ConfirmationWithOptionsDto<DataAccessPermission>> buildSmartPermissionRecordDto() {
+        final ConfirmationWithOptionsDto<DataAccessPermission> confirmationWithOptionsDto =
+                ConfirmationWithOptionsDto.<DataAccessPermission>builder()
+                        .confirmationTitle(createStringResource("SmartSuggestConfirmationPanel.title"))
+                        .confirmationSubtitle(createStringResource("SmartSuggestConfirmationPanel.subtitle"))
+                        .confirmationOptionsTitle(createStringResource("SmartSuggestConfirmationPanel.request.component.title"))
+                        .confirmationInfoMessage(createStringResource("SmartSuggestConfirmationPanel.infoMessage"))
+                        .confirmationOptions(correlationPermissionsOptions())
+                        .build();
+        return () -> confirmationWithOptionsDto;
     }
 
     @Override
@@ -197,18 +204,28 @@ public abstract class SmartCorrelationTable
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     protected MultivalueContainerListDataProvider<ItemsSubCorrelatorType> createDataProvider() {
-        if (findResourceObjectTypeDefinition() == null) {
-            return new MultivalueContainerListDataProvider(this, getSearchModel(), () -> getContainerModel().getObject());
+        PrismContainerValueWrapper<? extends Containerable> parent = findAssociatedParentContainerWrapper();
+        if (parent == null || parent.getRealValue() == null && getContainerModel().getObject() == null) {
+            LOGGER.error("Cannot create data provider for SmartCorrelationTable, because parent container wrapper is null.");
+            return new MultivalueContainerListDataProvider(this, getSearchModel(), () -> null);
         }
 
-        var dto = StatusAwareDataFactory.createCorrelationModel(
-                this,
-                getSwitchToggleModel(),
-                () -> getContainerModel().getObject(), //detach
-                findResourceObjectTypeDefinition(),
-                getResourceOid());
+        if (parent.getRealValue() instanceof ResourceObjectTypeDefinitionType) {
+            PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> resourceObjectTypeWrapper =
+                    (PrismContainerValueWrapper<ResourceObjectTypeDefinitionType>) parent;
 
-        return new StatusAwareDataProvider<>(this, Model.of(), dto, false);
+            var dto = StatusAwareDataFactory.createCorrelationModel(
+                    this,
+                    getSwitchToggleModel(),
+                    () -> getContainerModel().getObject(), // detach
+                    resourceObjectTypeWrapper,
+                    getResourceOid());
+
+            return new StatusAwareDataProvider<>(this, Model.of(), dto, false);
+        }
+
+        return new MultivalueContainerListDataProvider(this, getSearchModel(),
+                () -> getContainerModel().getObject().getValues());
     }
 
     @Override
@@ -378,11 +395,18 @@ public abstract class SmartCorrelationTable
     @Override
     public List<InlineMenuItem> getDefaultMenuActions(PrismContainerValueWrapper<ItemsSubCorrelatorType> model) {
         List<InlineMenuItem> defaultMenuActions = super.getDefaultMenuActions(model);
-        defaultMenuActions.add(createSimulationInlineMenu(model));
+        Containerable realValue = findAssociatedParentContainerWrapper().getRealValue();
+
+        if (realValue instanceof ResourceObjectTypeDefinitionType resourceObjectTypeDef) {
+            defaultMenuActions.add(createSimulationInlineMenu(model, resourceObjectTypeDef));
+        }
+
         return defaultMenuActions;
     }
 
-    protected InlineMenuItem createSimulationInlineMenu(PrismContainerValueWrapper<ItemsSubCorrelatorType> tileModel) {
+    protected InlineMenuItem createSimulationInlineMenu(
+            PrismContainerValueWrapper<ItemsSubCorrelatorType> tileModel,
+            ResourceObjectTypeDefinitionType resourceObjectTypeDef) {
         return new InlineMenuItem(
                 createStringResource("SmartCorrelationTilePanel.simulate")) {
             @Serial private static final long serialVersionUID = 1L;
@@ -436,7 +460,7 @@ public abstract class SmartCorrelationTable
                         SimulationParams<?> params = new SimulationParams<>(
                                 getPageBase(),
                                 getResourceType(),
-                                findResourceObjectTypeDefinition().getRealValue(),
+                                resourceObjectTypeDef,
                                 ResourceTaskFlavors.CORRELATION_PREVIEW_ACIVITY,
                                 simulatedCorrelatorsType,
                                 ExecutionModeType.SHADOW_MANAGEMENT_PREVIEW
@@ -514,17 +538,33 @@ public abstract class SmartCorrelationTable
     }
 
     @Override
-    protected void onSuggestNewPerformed(AjaxRequestTarget target) {
+    protected void onSuggestNewPerformed(AjaxRequestTarget target,
+            IModel<List<ConfirmationOption<DataAccessPermission>>> confirmedOptions) {
         getSwitchToggleModel().setObject(Boolean.TRUE);
+        final List<DataAccessPermissionType> permissions = confirmedOptions.getObject().stream()
+                .map(ConfirmationOption::option)
+                .map(DataAccessPermission::toSchemaType)
+                .toList();
         PageBase pageBase = getPageBase();
-        ResourceObjectTypeIdentification objectTypeIdentification = getResourceObjectTypeIdentification();
+
+        PrismContainerValueWrapper<? extends Containerable> parentWrapper = findAssociatedParentContainerWrapper();
+        if (parentWrapper == null
+                || parentWrapper.getRealValue() == null
+                || parentWrapper.getRealValue() instanceof AssociationSynchronizationExpressionEvaluatorType) {
+            return;
+        }
+
+        ResourceObjectTypeDefinitionType realValue = (ResourceObjectTypeDefinitionType) parentWrapper.getRealValue();
+        var objectTypeIdentification = ResourceObjectTypeIdentification.of(realValue.getKind(), realValue.getIntent());
+
         SmartIntegrationService service = pageBase.getSmartIntegrationService();
         pageBase.taskAwareExecutor(target, OP_SUGGEST_CORRELATION_RULES)
                 .withOpResultOptions(OpResult.Options.create()
                         .withHideSuccess(true)
                         .withHideInProgress(true))
                 .runVoid((task, result) -> {
-                    service.submitSuggestCorrelationOperation(getResourceOid(), objectTypeIdentification, task, result);
+                    service.submitSuggestCorrelationOperation(getResourceOid(), objectTypeIdentification, permissions,
+                            task, result);
                     refreshAndDetach(target);
                 });
     }
@@ -600,27 +640,21 @@ public abstract class SmartCorrelationTable
         return null;
     }
 
-    private @Nullable ResourceObjectTypeIdentification getResourceObjectTypeIdentification() {
-        PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> parentWrapper = findResourceObjectTypeDefinition();
-        if (parentWrapper == null || parentWrapper.getRealValue() == null) {
-            return null;
-        }
-        ResourceObjectTypeDefinitionType realValue = parentWrapper.getRealValue();
-        return ResourceObjectTypeIdentification.of(realValue.getKind(), realValue.getIntent());
-    }
-
-    @Override
-    protected RepeatingView createTableActionToolbar(String id) {
-        return super.createTableActionToolbar(id);
-    }
-
     @Override
     protected void onCreateNewObjectPerform(AjaxRequestTarget target) {
         editItemPerformed(target, null, false);
     }
 
-    protected PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> findResourceObjectTypeDefinition() {
-        return correlationWrapper.getObject().getParentContainerValue(ResourceObjectTypeDefinitionType.class);
+    protected PrismContainerValueWrapper<? extends Containerable> findAssociatedParentContainerWrapper() {
+        PrismContainerValueWrapper<CorrelationDefinitionType> corr = correlationWrapper.getObject();
+
+        PrismContainerValueWrapper<ResourceObjectTypeDefinitionType> rot =
+                corr.getParentContainerValue(ResourceObjectTypeDefinitionType.class);
+        if (rot != null) {
+            return rot;
+        }
+
+        return corr.getParentContainerValue(AssociationSynchronizationExpressionEvaluatorType.class);
     }
 
     protected <C extends Containerable> @Nullable StatusInfo<CorrelationSuggestionsType> getStatusInfo(PrismContainerValueWrapper<C> value) {
@@ -655,6 +689,20 @@ public abstract class SmartCorrelationTable
 
     protected void buildSimulationResultPanel(AjaxRequestTarget target, IModel<SimulationResultType> simulationResultTypeIModel) {
     }
+
+    @Override
+    protected boolean isSuggestButtonVisible() {
+        return isSuggestButtonEnabled();
+    }
+
+    public boolean isSuggestButtonEnabled() {
+        PrismContainerValueWrapper<? extends Containerable> parentWrapper = findAssociatedParentContainerWrapper();
+        if (parentWrapper == null || parentWrapper.getRealValue() == null) {
+            return false;
+        }
+        return !(parentWrapper.getRealValue() instanceof AssociationSynchronizationExpressionEvaluatorType);
+    }
+
 
 }
 
