@@ -92,6 +92,9 @@ Overall, midPoint 4.10 opens up the world of identity management and governance 
 
 * Fixed getOptions conversion to avoid overriding default retrieval when <retrieve> is omitted. See bug:MID-11088[]
 * Fixed missing estimatedOldValues in raw audit (EXECUTE_CHANGES_RAW). See bug:MID-10027[]
+* Fixed modification of query of report fails when the query is defined using midPoint query language. See bug:MID-11093[]
+* Fixed access request shows unrelated conflicts. See bug:MID-10994[]
+
 === Releases Of Other Components
 
 #TODO UDPATE#
