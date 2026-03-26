@@ -648,6 +648,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
             SchemaMatchResultType schemaMatch,
             Boolean isInbound,
             Boolean useAiService,
+            @Nullable ShadowObjectClassStatisticsType objectTypeStatistics,
             @Nullable List<ItemPath> targetPathsToIgnore,
             @Nullable CurrentActivityState<?> activityState,
             Task task,
@@ -661,7 +662,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
                 .build();
         try (var serviceClient = this.clientFactory.getServiceClient(result)) {
             var mappings = this.mappingSuggestionOperationFactory.create(serviceClient, resourceOid,
-                    typeIdentification, activityState, isInbound, useAiService, task, result)
+                    typeIdentification, activityState, isInbound, useAiService, objectTypeStatistics, task, result)
                     .suggestMappings(result, schemaMatch, targetPathsToIgnore);
             LOGGER.debug("Suggested mappings:\n{}", mappings.debugDumpLazily(1));
             return mappings;

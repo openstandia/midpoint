@@ -17,7 +17,9 @@ import com.evolveum.midpoint.schema.result.OperationResult;
 import com.evolveum.midpoint.schema.util.Resource;
 import com.evolveum.midpoint.schema.util.SmartMetadataUtil;
 import com.evolveum.midpoint.smart.api.ServiceClient;
+import com.evolveum.midpoint.smart.impl.scoring.MappingScriptValidator;
 import com.evolveum.midpoint.smart.impl.scoring.MappingsQualityAssessor;
+import com.evolveum.midpoint.smart.impl.mappings.CategoricalAttributeRegistry;
 import com.evolveum.midpoint.smart.impl.wellknownschemas.WellKnownSchemaService;
 import com.evolveum.midpoint.smart.impl.mappings.heuristics.HeuristicRuleMatcher;
 import com.evolveum.midpoint.task.api.Task;
@@ -197,12 +199,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 true,
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_LDAP.oid, ACCOUNT_DEFAULT, true, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -253,12 +258,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 true,
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_LDAP.oid, ACCOUNT_DEFAULT, true, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -300,12 +308,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 true,
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_LDAP.oid, ACCOUNT_DEFAULT, true, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -350,12 +361,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 true,
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_LDAP.oid, ACCOUNT_DEFAULT, true, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, acceptedSuggestionPaths);
@@ -386,12 +400,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 false, // outbound
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_LDAP.oid, ACCOUNT_DEFAULT, false, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -477,12 +494,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 false, // outbound
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_LDAP.oid, ACCOUNT_DEFAULT, false, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -521,12 +541,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 false, // outbound
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_AD.oid, ACCOUNT_DEFAULT, false, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -593,12 +616,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 false, // outbound
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_AD.oid, ACCOUNT_DEFAULT, false, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
@@ -637,12 +663,15 @@ public class TestSystemMappingsSuggestion extends AbstractSmartIntegrationTest {
 
         var op = MappingsSuggestionOperation.init(
                 ctx,
-                new MappingsQualityAssessor(expressionFactory),
+                new MappingsQualityAssessor(new MappingScriptValidator(expressionFactory)),
+                new MappingScriptValidator(expressionFactory),
                 new OwnedShadowsProviderFromResource(),
                 wellKnownSchemaService,
                 heuristicRuleMatcher,
+                new CategoricalAttributeRegistry(),
                 false, // outbound
-                true);
+                true,
+                null);
 
         var match = smartIntegrationService.computeSchemaMatch(RESOURCE_AD.oid, ACCOUNT_DEFAULT, false, task, result);
         MappingsSuggestionType suggestion = op.suggestMappings(result, match, null);
