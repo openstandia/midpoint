@@ -16,6 +16,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.xml.datatype.Duration;
 import javax.xml.namespace.QName;
 
+import com.evolveum.midpoint.prism.query.builder.S_FilterEntry;
+import com.evolveum.midpoint.prism.query.builder.S_FilterExit;
+
+import com.evolveum.midpoint.schema.*;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,11 +39,6 @@ import com.evolveum.midpoint.prism.xml.XmlTypeConverter;
 import com.evolveum.midpoint.repo.api.RepositoryService;
 import com.evolveum.midpoint.repo.common.activity.ActivityInterruptedException;
 import com.evolveum.midpoint.repo.common.activity.run.state.CurrentActivityState;
-import com.evolveum.midpoint.schema.GetOperationOptions;
-import com.evolveum.midpoint.schema.GetOperationOptionsBuilder;
-import com.evolveum.midpoint.schema.ResultHandler;
-import com.evolveum.midpoint.schema.SchemaConstantsGenerated;
-import com.evolveum.midpoint.schema.SelectorOptions;
 import com.evolveum.midpoint.schema.constants.SchemaConstants;
 import com.evolveum.midpoint.schema.processor.ResourceObjectTypeIdentification;
 import com.evolveum.midpoint.schema.result.OperationResult;
@@ -67,6 +67,10 @@ import com.evolveum.midpoint.xml.ns._public.resource.capabilities_3.CountObjects
 import com.evolveum.midpoint.xml.ns._public.resource.capabilities_3.CountObjectsSimulateType;
 import com.evolveum.prism.xml.ns._public.types_3.ItemPathType;
 import com.evolveum.prism.xml.ns._public.types_3.PolyStringType;
+
+import static com.evolveum.midpoint.xml.ns._public.common.common_3.ActivityAffectedObjectsType.F_RESOURCE_OBJECTS;
+import static com.evolveum.midpoint.xml.ns._public.common.common_3.TaskAffectedObjectsType.F_ACTIVITY;
+import static com.evolveum.midpoint.xml.ns._public.common.common_3.TaskType.F_AFFECTED_OBJECTS;
 
 @Service("smartIntegrationService")
 public class SmartIntegrationServiceImpl implements SmartIntegrationService {
@@ -286,7 +290,6 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
             throws SchemaException {
         return statisticsService.getLatestStatistics(resourceOid, objectClassName, parentResult);
     }
-
 
     @Override
     public String regenerateObjectClassStatistics(String resourceOid, QName objectClassName, Task task, OperationResult parentResult)
@@ -661,7 +664,7 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
                 .build();
         try (var serviceClient = this.clientFactory.getServiceClient(result)) {
             var mappings = this.mappingSuggestionOperationFactory.create(serviceClient, resourceOid,
-                    typeIdentification, activityState, isInbound, useAiService, task, result)
+                            typeIdentification, activityState, isInbound, useAiService, task, result)
                     .suggestMappings(result, schemaMatch, targetPathsToIgnore);
             LOGGER.debug("Suggested mappings:\n{}", mappings.debugDumpLazily(1));
             return mappings;
@@ -888,6 +891,65 @@ public class SmartIntegrationServiceImpl implements SmartIntegrationService {
                 .item(TaskType.F_AFFECTED_OBJECTS, TaskAffectedObjectsType.F_ACTIVITY, ActivityAffectedObjectsType.F_ACTIVITY_TYPE)
                 .eq(activityType)
                 .build();
+    }
+
+    @Override
+    public @NotNull SearchResultList<PrismObject<TaskType>> listObjectTypeRelatedSuggestionTasks(
+            @NotNull ResourceObjectTypeIdentification objectTypeIdentification,
+            @NotNull String resourceOid,
+            @NotNull List<ItemName> activityTypes,
+            @NotNull Task task,
+            @NotNull OperationResult result)
+            throws CommonException {
+        ObjectQuery query = SmartIntegrationServiceImpl.createQueryForObjectTypeSuggestionTasks(
+                objectTypeIdentification, resourceOid, activityTypes);
+
+        return modelService.searchObjects(TaskType.class, query, null, task, result);
+    }
+
+    public @NotNull static ObjectQuery createQueryForObjectTypeSuggestionTasks(
+            @NotNull ResourceObjectTypeIdentification typeIdentification,
+            @NotNull String resourceOid,
+            @NotNull List<ItemName> activityTypes) {
+
+        S_FilterExit filter = PrismContext.get()
+                .queryFor(TaskType.class)
+                .item(createResourceObjectPath(BasicResourceObjectSetType.F_RESOURCE_REF))
+                .ref(resourceOid)
+                .and()
+                .item(createResourceObjectPath(BasicResourceObjectSetType.F_KIND))
+                .eq(typeIdentification.getKind())
+                .and()
+                .item(createResourceObjectPath(BasicResourceObjectSetType.F_INTENT))
+                .eq(typeIdentification.getIntent());
+
+        if (!activityTypes.isEmpty()) {
+            S_FilterEntry block = filter.and().block();
+
+            boolean first = true;
+            for (ItemName activityType : activityTypes) {
+                filter = first
+                        ? addActivityTypeRule(block, activityType)
+                        : addActivityTypeRule(filter.or(), activityType);
+                first = false;
+            }
+
+            filter = filter.endBlock();
+        }
+
+        return filter.build();
+    }
+
+    public static @NotNull ItemPath createResourceObjectPath(ItemName subPath) {
+        return ItemPath.create(F_AFFECTED_OBJECTS, F_ACTIVITY, F_RESOURCE_OBJECTS, subPath);
+    }
+
+    protected static @NotNull S_FilterExit addActivityTypeRule(@NotNull S_FilterEntry filter, @NotNull ItemName activityType) {
+        return filter.item(
+                        TaskType.F_AFFECTED_OBJECTS,
+                        TaskAffectedObjectsType.F_ACTIVITY,
+                        ActivityAffectedObjectsType.F_ACTIVITY_TYPE)
+                .eq(activityType);
     }
 
     @Override
