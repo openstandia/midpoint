@@ -32,7 +32,6 @@ import com.evolveum.midpoint.util.logging.Trace;
 import com.evolveum.midpoint.util.logging.TraceManager;
 import com.evolveum.midpoint.web.component.data.column.IconColumn;
 import com.evolveum.midpoint.web.component.prism.ValueStatus;
-import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
 import com.evolveum.midpoint.web.session.UserProfileStorage;
 import com.evolveum.midpoint.xml.ns._public.common.common_3.*;
 
@@ -391,20 +390,6 @@ public abstract class AssociationAttributeMappingsTable<C extends Containerable>
                 return "col-2 header-border-right";
             }
 
-            @Override
-            protected Component createColumnPanel(String componentId, IModel rowModel) {
-                Component columnPanel = super.createColumnPanel(componentId, rowModel);
-                columnPanel.add(new VisibleBehaviour(() -> {
-                    PrismContainerValueWrapper<MappingType> row = ((PrismPropertyWrapper) rowModel.getObject()).getParent();
-                    return isAttributeRefMapping(row);
-                }));
-                return columnPanel;
-            }
-
-            @Override
-            protected Component createHeader(String componentId, IModel mainModel) {
-                return super.createHeader(componentId, mainModel);
-            }
         });
 
         columns.add(new PrismPropertyWrapperColumn<>(
@@ -557,4 +542,10 @@ public abstract class AssociationAttributeMappingsTable<C extends Containerable>
     protected boolean isSimulationSupported() {
         return false;
     }
+
+    @Override
+    protected String getNewObjectButtonCssClass() {
+        return "btn btn-outline-primary";
+    }
+
 }

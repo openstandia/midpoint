@@ -179,10 +179,14 @@ public class SmartObjectClassTable<O extends PrismContainerValueWrapper<ComplexT
             @Override
             protected void onUpdate(AjaxRequestTarget ajaxRequestTarget) {
                 onRadioTileSelected(getSelectedTileModel(), ajaxRequestTarget);
-                ajaxRequestTarget.add(SmartObjectClassTable.this);
+                onSelectionRefresh(ajaxRequestTarget);
             }
         });
         return radioGroup;
+    }
+
+    protected void onSelectionRefresh(@NotNull AjaxRequestTarget target) {
+        target.add(SmartObjectClassTable.this);
     }
 
     private void initializeSelectedTile(
@@ -245,16 +249,7 @@ public class SmartObjectClassTable<O extends PrismContainerValueWrapper<ComplexT
 
             @Override
             protected void onViewSchema(AjaxRequestTarget target) {
-                SmartObjectClassTileModel<PrismContainerValueWrapper<ComplexTypeDefinitionType>> smartModel;
-                if (getModelObject() instanceof SmartObjectClassTileModel) {
-                    smartModel =
-                            (SmartObjectClassTileModel<PrismContainerValueWrapper<ComplexTypeDefinitionType>>) getModelObject();
-                } else {
-                    return;
-                }
-
                 PrismContainerValueWrapper<ComplexTypeDefinitionType> value = ((SmartObjectClassTileModel<?>) getModelObject()).getValue();
-
                 displaySchemaViewTablePopup(target, () -> value);
                 super.onViewSchema(target);
             }

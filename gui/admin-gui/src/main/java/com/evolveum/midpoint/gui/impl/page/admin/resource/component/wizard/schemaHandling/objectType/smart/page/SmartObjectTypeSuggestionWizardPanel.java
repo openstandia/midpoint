@@ -15,6 +15,9 @@ import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizar
 import java.util.List;
 import javax.xml.namespace.QName;
 
+import com.evolveum.midpoint.web.component.util.VisibleBehaviour;
+
+import org.apache.wicket.AttributeModifier;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.markup.repeater.RepeatingView;
 import org.apache.wicket.model.IModel;
@@ -85,11 +88,22 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
 
             @Override
             protected void addCustomButtons(RepeatingView buttons) {
+                AjaxIconButton generateButton = buildGenerateSuggestionButton(buttons);
+                generateButton.add(new VisibleBehaviour(() -> !hasValidSuggestions(selectedModel.getObject())));
+                buttons.add(generateButton);
+
+                AjaxIconButton showSuggestionButton = buildShowSuggestionButton(buttons);
+                showSuggestionButton.add(new VisibleBehaviour(() -> hasValidSuggestions(selectedModel.getObject())));
+                buttons.add(showSuggestionButton);
+            }
+
+            private @NotNull AjaxIconButton buildGenerateSuggestionButton(@NotNull RepeatingView buttons) {
                 AjaxIconButton generateButton = SmartSuggestButtonWithConfirmation.create(buttons.newChildId(),
                         createStringResource("ResourceObjectClassTableWizardPanel.saveButton"),
                         () -> GuiStyleConstants.CLASS_MAGIC_WAND,
                         ConfirmationOption.delineationPermissionsOptions(),
-                        () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {},
+                        () -> new ButtonWithConfirmationOptionsDialog.ButtonHandlers<>(target -> {
+                        },
                                 (target, confirmedOptions) -> {
                                     final QName objectClassName = selectedModel.getObject().getRealValue().getName();
                                     processSuggestionActivity(target, objectClassName, false, confirmedOptions);
@@ -98,9 +112,41 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
 
                 generateButton.setOutputMarkupId(true);
                 generateButton.showTitleAsLabel(true);
-                buttons.add(generateButton);
+                return generateButton;
+            }
+
+            private @NotNull AjaxIconButton buildShowSuggestionButton(@NotNull RepeatingView buttons) {
+                AjaxIconButton showSuggestionButton = new AjaxIconButton(
+                        buttons.newChildId(),
+                        () -> GuiStyleConstants.CLASS_ICON_PREVIEW,
+                        createStringResource("SmartObjectTypeSuggestionWizardPanel.showSuggestion")) {
+                    @Override
+                    public void onClick(AjaxRequestTarget target) {
+                        PrismContainerValueWrapper<ComplexTypeDefinitionType> selected = selectedModel.getObject();
+                        QName objectClassName = selected.getRealValue().getName();
+                        clearPageFeedback(target);
+                        showChoiceFragment(target,
+                                buildSelectSuggestedObjectTypeWizardPanel(getIdOfChoicePanel(), objectClassName));
+                    }
+                };
+                showSuggestionButton.setOutputMarkupId(true);
+                showSuggestionButton.showTitleAsLabel(true);
+                showSuggestionButton.add(AttributeModifier.replace("class", "btn btn-primary"));
+                return showSuggestionButton;
             }
         };
+    }
+
+    private boolean hasValidSuggestions(@NotNull PrismContainerValueWrapper<ComplexTypeDefinitionType> selectedObject) {
+        QName objectClassName = selectedObject.getRealValue().getName();
+        String resourceOid = getAssignmentHolderModel().getObjectType().getOid();
+        Task task = getPageBase().createSimpleTask(OP_DETERMINE_STATUS);
+        OperationResult result = task.getResult();
+
+        StatusInfo<ObjectTypesSuggestionType> suggestions = loadObjectClassObjectTypeSuggestions(
+                getPageBase(), resourceOid, objectClassName, task, result);
+
+        return isSuccessfulSuggestion(suggestions);
     }
 
     /**
@@ -215,7 +261,7 @@ public class SmartObjectTypeSuggestionWizardPanel extends AbstractWizardPanel<Re
                     @NotNull AjaxRequestTarget target) {
                 PageBase pageBase = getPageBase();
 
-                ResourceObjectTypeDefinitionType suggestedObjectTypeDef =  model.getObject().getRealValue();
+                ResourceObjectTypeDefinitionType suggestedObjectTypeDef = model.getObject().getRealValue();
 
                 PrismContainerValue<ResourceObjectTypeDefinitionType> original =
                         newValue.clone();

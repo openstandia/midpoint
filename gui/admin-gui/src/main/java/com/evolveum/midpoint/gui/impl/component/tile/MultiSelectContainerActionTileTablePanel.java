@@ -133,7 +133,7 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
 
         AjaxIconButton newObjectPerformButton = createNewObjectPerformButton(idButton, null);
         newObjectPerformButton.add(AttributeModifier.replace("class",
-                "text-nowrap btn btn-primary rounded text-nowrap mx-3"));
+                "text-nowrap btn btn-primary rounded"));
         newObjectPerformButton.add(new VisibleBehaviour(this::displayNoValuePanel));
         buttonsList.add(0, newObjectPerformButton);
         return buttonsList;
@@ -559,7 +559,7 @@ public abstract class MultiSelectContainerActionTileTablePanel<E extends Seriali
                     getPageBase());
         }
 
-        generateButton.add(new VisibleBehaviour(() -> isSuggestButtonVisible() && displayNoValuePanel()));
+        generateButton.add(new VisibleBehaviour(() -> isSuggestButtonVisible() && displayNoValuePanel() && !isShowSuggestionsButtonVisible()));
         generateButton.setOutputMarkupId(true);
         generateButton.showTitleAsLabel(true);
 

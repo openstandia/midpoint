@@ -97,7 +97,13 @@ public abstract class ResourceObjectClassTableWizardPanel<P extends Containerabl
                 objectClassDefinitions,
                 selectedModel,
                 resourceOid,
-                objectClassSizeEstimations);
+                objectClassSizeEstimations){
+            @Override
+            public void onSelectionRefresh(@NotNull AjaxRequestTarget target) {
+                super.onSelectionRefresh(target);
+                target.add(ResourceObjectClassTableWizardPanel.this);
+            }
+        };
         table.setOutputMarkupId(true);
         return table;
     }

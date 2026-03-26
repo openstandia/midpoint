@@ -9,6 +9,7 @@ package com.evolveum.midpoint.gui.impl.page.admin.task.component;
 import com.evolveum.midpoint.gui.api.component.Badge;
 import com.evolveum.midpoint.gui.api.component.BadgePanel;
 import com.evolveum.midpoint.gui.api.component.BasePanel;
+import com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.component.TimerProgressPanel;
 import com.evolveum.midpoint.gui.impl.page.admin.role.mining.page.tmp.panel.IconWithLabel;
 import com.evolveum.midpoint.gui.impl.util.DetailsPageUtil;
 import com.evolveum.midpoint.schema.result.OperationResult;
@@ -36,10 +37,7 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.jetbrains.annotations.NotNull;
 
-import javax.xml.datatype.XMLGregorianCalendar;
 import java.time.Duration;
-
-import static com.evolveum.midpoint.gui.impl.page.admin.resource.component.wizard.schemaHandling.objectType.smart.SmartIntegrationUtils.formatElapsedTime;
 
 /**
  * Popup panel that displays progress of a running task.
@@ -179,9 +177,26 @@ public abstract class SmartTaskProgressPanel extends BasePanel<TaskType> impleme
         badgePanel.setOutputMarkupId(true);
         container.add(badgePanel);
 
-        Label timeLabel = new Label(ID_TIME_LABEL, this::getElapsedTimeText);
-        timeLabel.setOutputMarkupId(true);
-        container.add(timeLabel);
+        TimerProgressPanel timerProgressPanel = buildTimerComponent();
+        container.add(timerProgressPanel);
+    }
+
+    private @NotNull TimerProgressPanel buildTimerComponent() {
+        TimerProgressPanel timerProgressPanel = new TimerProgressPanel(ID_TIME_LABEL, () -> {
+            TaskType task = getModelObject();
+            if (task == null) {
+                return null;
+            }
+            return task.getLastRunStartTimestamp();
+        }, () -> {
+            TaskType task = getModelObject();
+            if (task == null) {
+                return null;
+            }
+            return task.getLastRunFinishTimestamp();
+        });
+        timerProgressPanel.setOutputMarkupId(true);
+        return timerProgressPanel;
     }
 
     private void initProgress(@NotNull WebMarkupContainer container) {
@@ -190,28 +205,6 @@ public abstract class SmartTaskProgressPanel extends BasePanel<TaskType> impleme
         container.add(progressLabel);
 
         container.add(createProgressBar());
-    }
-
-    private @NotNull String getElapsedTimeText() {
-        TaskType task = getModelObject();
-        if (task == null) {
-            return "";
-        }
-
-        XMLGregorianCalendar startTs = task.getLastRunStartTimestamp();
-        if (startTs == null) {
-            return "";
-        }
-
-        long startMillis = startTs.toGregorianCalendar().getTimeInMillis();
-
-        XMLGregorianCalendar finishTs = task.getLastRunFinishTimestamp();
-        long endMillis = finishTs != null
-                ? finishTs.toGregorianCalendar().getTimeInMillis()
-                : System.currentTimeMillis();
-
-        return formatElapsedTime(startMillis, endMillis,
-                createStringResource("SmartTaskProgressPanel.runningFor").getString());
     }
 
     private @NotNull String getProgressText() {
