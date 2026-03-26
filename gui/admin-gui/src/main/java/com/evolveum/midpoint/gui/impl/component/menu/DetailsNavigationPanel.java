@@ -158,7 +158,7 @@ public class DetailsNavigationPanel<O extends ObjectType> extends BasePanel<List
     private ContainerPanelConfigurationType getConfigurationFromStorage() {
         ObjectDetailsStorage storage = getPageBase().getBrowserTabSessionStorage().getObjectDetailsStorage(
                 "details" + objectDetailsModel.getObjectWrapperModel().getObject().getCompileTimeClass().getSimpleName());
-        return storage.getDefaultConfiguration();
+        return storage != null ? storage.getDefaultConfiguration() : new ContainerPanelConfigurationType();
     }
 
     private boolean isMenuActive(ContainerPanelConfigurationType storageConfig, ContainerPanelConfigurationType itemModelObject) {
