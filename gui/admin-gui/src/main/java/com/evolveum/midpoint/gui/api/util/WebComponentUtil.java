@@ -4186,6 +4186,7 @@ public final class WebComponentUtil {
         return BooleanUtils.isTrue(profile.isEnableExperimentalFeatures());
     }
 
+    @Deprecated //Use {@link com.evolveum.midpoint.gui.api.page.PageAdminLTE#isDarkMode()}
     public static boolean isDarkModeEnabled() {
         MidPointAuthWebSession session = MidPointAuthWebSession.get();
         return session.getSessionStorage().getMode() == SessionStorage.Mode.DARK;

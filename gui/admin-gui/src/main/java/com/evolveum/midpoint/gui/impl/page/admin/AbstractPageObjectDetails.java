@@ -786,7 +786,7 @@ public abstract class AbstractPageObjectDetails<O extends ObjectType, ODM extend
             return;
         }
 
-        getSessionStorage().setObjectDetailsStorage("details" + getType().getSimpleName(), panelConfig);
+        getBrowserTabSessionStorage().setObjectDetailsStorage("details" + getType().getSimpleName(), panelConfig);
         String panelType = panelConfig.getPanelType();
 
         if (panelType == null && LOGGER.isDebugEnabled()) {

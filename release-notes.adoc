@@ -72,6 +72,8 @@ Overall, midPoint 4.10 opens up the world of identity management and governance 
 * Fixed attempt to modify immutable definition. See bug:MID-11001[].
 * Fixed schema type object updates and prism context schema registry reload. See bug:MID-10983[].
 * Fixed ConcurrentModificationException in RelationUtil. See bug:MID-10940[]
+* Fixed correlation case closing on resolution error. See bug:MID-11094[]
+
 * Fixed the execution of the 'Delete all closed tasks' action. See bug:MID-11069[]
 * Fixed the usage of the multiple ProtectedStringType fields in the same panel. See bug:MID-11072[]
 * Fixed misleading information in audit log during password reset. See bug:MID-11077[]
@@ -86,8 +88,13 @@ Overall, midPoint 4.10 opens up the world of identity management and governance 
 * Fixed correlation work item panel. See bug:MID-10993[]
 * Fixed NPE in general notifier. See bug:MID-11038[]
 * Fixed page storage for dashboard widget collection. See bug:MID-11055[]
+* Fixed oversized IN queries in fetchChildren causing PostgreSQL parameter limit errors. See bug:MID-11089[]
+
 * Fixed getOptions conversion to avoid overriding default retrieval when <retrieve> is omitted. See bug:MID-11088[]
 * Fixed missing estimatedOldValues in raw audit (EXECUTE_CHANGES_RAW). See bug:MID-10027[]
+* Fixed modification of query of report fails when the query is defined using midPoint query language. See bug:MID-11093[]
+* Fixed access request shows unrelated conflicts. See bug:MID-10994[]
+
 === Releases Of Other Components
 
 #TODO UDPATE#

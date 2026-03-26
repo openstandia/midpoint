@@ -11,10 +11,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.xml.datatype.Duration;
 import javax.xml.namespace.QName;
 
@@ -63,6 +60,7 @@ import org.apache.wicket.serialize.java.JavaSerializer;
 import org.apache.wicket.settings.ApplicationSettings;
 import org.apache.wicket.settings.ResourceSettings;
 import org.apache.wicket.spring.injection.annot.SpringComponentInjector;
+import org.apache.wicket.util.lang.Bytes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.BeansException;
@@ -212,6 +210,8 @@ public class MidPointApplication extends AuthenticatedWebApplication implements 
     public void init() {
         super.init();
 
+        getStoreSettings().setMaxSizePerSession(Bytes.megabytes(100));
+
         getRequestCycleSettings().setTimeout(requestCycleTimeout);
 
         getCspSettings().blocking().clear()
@@ -280,6 +280,7 @@ public class MidPointApplication extends AuthenticatedWebApplication implements 
         mount(new MountedMapper(MOUNT_GONE_ERROR, PageError410.class, new PageParametersEncoder()));
 
         getRequestCycleListeners().add(new LoggingRequestCycleListener(this));
+        getRequestCycleListeners().add(new BrowserTabIdRequestCycleListener());
 
         getAjaxRequestTargetListeners().add(new AjaxRequestTarget.IListener() {
 

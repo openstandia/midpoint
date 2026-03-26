@@ -13,9 +13,39 @@ export default class MidPointTheme {
     constructor() {
         const self = this;
 
+//        var tabId = sessionStorage.getItem('tabId');
+//        if (!tabId) {
+//            tabId = new URLSearchParams(window.location.search).get('w');
+//
+//            if (!tabId) {
+//                console.info("No tabId found in sessionStorage or URL parameters. Generating a new one.");
+//            } else {
+//                sessionStorage.setItem('tabId', tabId);
+//                console.info("Found tabId in URL parameters and stored in sessionStorage", tabId);
+//            }
+//        } else {
+//            console.info("Found existing tabId in sessionStorage", tabId);
+//        }
+
         $(window).on('load', function () {
             //dom not only ready, but everything is loaded MID-3668
             $("body").removeClass("custom-hold-transition");
+
+//            // Subscribe to all Wicket Ajax calls before they are sent
+//            Wicket.Event.subscribe('/ajax/call/init', function(jqEvent, attrs, jqXHR, settings) {
+//                console.debug('Entered ajax call init');
+//
+//                if (!attrs) {
+//                    console.warn('attrs is undefined!');
+//                    return;
+//                }
+//
+//                const tabId = sessionStorage.getItem('tabId');
+//                console.log('tabId:', tabId);
+//
+//                attrs.ep = attrs.ep || {};
+//                attrs.ep.tabId = tabId;
+//            });
 
             self.initAjaxStatusSigns();
 
@@ -533,6 +563,45 @@ export default class MidPointTheme {
                 }
             }
         });
+    }
+
+    initTabId() {
+        let isFirstLoad = false;
+        if (!sessionStorage.getItem('w')) {
+            const windowId = encodeURIComponent(crypto.randomUUID().substring(0, 8));
+            console.log('windowId initialized:', windowId);
+            isFirstLoad = true;
+            sessionStorage.setItem('w', windowId);
+        }
+
+        var tabId = sessionStorage.getItem('w');
+        console.log('tabId initialized:', tabId);
+
+        // === Add tabId to page URL if not already present ===
+        var url = new URL(window.location.href);
+        var wParam = url.searchParams.get('w');
+
+        if (isFirstLoad) {
+           url.searchParams.set('w', tabId);
+           console.log('redirect to url ' + url.toString());
+           window.location.replace(url);
+           return;
+        }
+
+        if (!url.searchParams.has('w')) {
+            console.log('tabId added to URL');
+            url.searchParams.set('w', tabId);
+            window.history.replaceState({}, '', url);
+        }
+
+        if (window.Wicket && Wicket.Event) {
+            // Subscribe to all Wicket Ajax calls before they are sent
+            Wicket.Event.subscribe('/ajax/call/before', function(jqEvent, attrs, jqXHR, settings) {
+                if (!attrs) return;
+                attrs.ep = attrs.ep || {};
+                attrs.ep.w = tabId;
+            });
+        }
     }
 
     keydownForMenuItems(sideBar, self) {
